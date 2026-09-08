@@ -1546,12 +1546,6 @@ const MayaPayment = () => {
                             </strong>
 
                         </div>
-
-
-                        {/* =================================================
-                            PLATE NUMBER
-                        ================================================= */}
-
                         <div className="maya-detail-item">
 
                             <span className="maya-detail-label">
@@ -1567,12 +1561,6 @@ const MayaPayment = () => {
                     </div>
 
                 </section>
-
-
-                {/* =================================================
-                    UPLOAD PAYMENT RECEIPT
-                ================================================= */}
-
                 <section className="maya-payment-proof-section">
 
                     <div className="maya-section-heading">
