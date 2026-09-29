@@ -1,15 +1,25 @@
 const dns = require("dns");
 
-dns.setServers(["8.8.8.8", "1.1.1.1"]);
+dns.setServers([
+    "8.8.8.8",
+    "1.1.1.1"
+]);
+
 
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
 
-const connectDB = require("./config/database");
-const staffAuthRoutes = require("./routes/staffAuthRoutes");
-const adminStaffRoutes = require("./routes/adminStaffRoutes");
+const connectDB =
+    require("./config/database");
+
+const staffAuthRoutes =
+    require("./routes/staffAuthRoutes");
+
+const adminStaffRoutes =
+    require("./routes/adminStaffRoutes");
+
 
 dotenv.config();
 
@@ -17,58 +27,89 @@ const app = express();
 
 
 // ===============================
-// MIDDLEWARE
+// CORS
 // ===============================
+//
+// Allow:
+// 1. Local Vite development
+// 2. Production Vercel website
+// 3. Android Capacitor application
+// 4. Requests without an Origin header
+//
 
 const allowedOrigins = [
+
+    // Local development
     "http://localhost:5173",
     "http://localhost:5174",
+
+    // Capacitor Android
+    "http://localhost",
+    "https://localhost",
+    "capacitor://localhost",
+
+    // Production website
     "https://iloilo-guimaras-ticketing-system-gules.vercel.app"
 ];
 
+
 app.use(
     cors({
-        origin: (origin, callback) => {
 
-            // Allow requests without an Origin header
-            // such as direct server-to-server requests.
+        origin: (
+            origin,
+            callback
+        ) => {
+
+            // Native Android requests may not
+            // always provide an Origin header.
             if (!origin) {
-                return callback(null, true);
+
+                return callback(
+                    null,
+                    true
+                );
+
             }
 
-            // Allow known frontend origins.
-            if (allowedOrigins.includes(origin)) {
-                return callback(null, true);
+
+            if (
+                allowedOrigins.includes(
+                    origin
+                )
+            ) {
+
+                return callback(
+                    null,
+                    true
+                );
+
             }
 
-            console.log("CORS blocked origin:", origin);
+
+            console.log(
+                "Blocked CORS origin:",
+                origin
+            );
+
 
             return callback(
-                new Error("Not allowed by CORS")
+                new Error(
+                    "Not allowed by CORS"
+                )
             );
+
         },
 
-        credentials: true,
+        credentials: true
 
-        methods: [
-            "GET",
-            "HEAD",
-            "PUT",
-            "PATCH",
-            "POST",
-            "DELETE"
-        ],
-
-        allowedHeaders: [
-            "Content-Type",
-            "Authorization"
-        ],
-
-        optionsSuccessStatus: 204
     })
 );
 
-app.use(express.json());
+
+app.use(
+    express.json()
+);
 
 
 // ===============================
@@ -78,7 +119,10 @@ app.use(express.json());
 app.use(
     "/uploads",
     express.static(
-        path.join(__dirname, "uploads")
+        path.join(
+            __dirname,
+            "uploads"
+        )
     )
 );
 
@@ -94,17 +138,22 @@ connectDB();
 // TEST
 // ===============================
 
-app.get("/", (req, res) => {
+app.get(
+    "/",
+    (req, res) => {
 
-    res.json({
-        message:
-            "Iloilo-Guimaras Ferry Ticketing API is running!",
+        res.json({
 
-        database:
-            "MongoDB"
-    });
+            message:
+                "Iloilo-Guimaras Ferry Ticketing API is running!",
 
-});
+            database:
+                "MongoDB"
+
+        });
+
+    }
+);
 
 
 // ===============================
@@ -114,10 +163,12 @@ app.get("/", (req, res) => {
 const authRoutes =
     require("./routes/authRoutes");
 
+
 app.use(
     "/api/auth",
     authRoutes
 );
+
 
 app.use(
     "/api/staff-auth",
@@ -132,10 +183,12 @@ app.use(
 const adminRoutes =
     require("./routes/adminRoutes");
 
+
 app.use(
     "/api/admin",
     adminRoutes
 );
+
 
 app.use(
     "/api/admin/staff",
@@ -149,6 +202,7 @@ app.use(
 
 const paymentRoutes =
     require("./routes/paymentRoutes");
+
 
 app.use(
     "/api/payment",
@@ -167,10 +221,12 @@ app.use(
 const bookingRoutes =
     require("./routes/bookingRoutes");
 
+
 app.use(
     "/api/bookings",
     bookingRoutes
 );
+
 
 // ===============================
 // FERRY CLOSURE
@@ -182,6 +238,7 @@ app.use(
 
 const ferryClosureRoutes =
     require("./routes/ferryClosureRoutes");
+
 
 app.use(
     "/api/ferry-closures",
@@ -200,12 +257,11 @@ app.use(
 const staffRoutes =
     require("./routes/staffRoutes");
 
+
 app.use(
     "/api/staff",
     staffRoutes
 );
-
-
 
 
 // ===============================
@@ -214,6 +270,7 @@ app.use(
 
 const PORT =
     process.env.PORT || 5000;
+
 
 app.listen(
     PORT,
