@@ -2086,13 +2086,13 @@ ${booking.status || "CONFIRMED"}
 
 
                     <h1>
-                        Booking Confirmed!
+                        Booking Submitted!
                     </h1>
 
 
                     <p>
                         Your GuimarasGo trip has been
-                        successfully booked.
+                        successfully submitted please wait for confirmation!
                     </p>
 
                 </section>
