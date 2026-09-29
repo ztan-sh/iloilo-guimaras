@@ -30,15 +30,14 @@ app.use(
     cors({
         origin: (origin, callback) => {
 
+            // Allow requests without an Origin header
+            // such as direct server-to-server requests.
             if (!origin) {
                 return callback(null, true);
             }
 
-            const isAllowedOrigin =
-                allowedOrigins.includes(origin) ||
-                /^https:\/\/iloilo-guimaras-ticketing-system-[a-z0-9-]+\.vercel\.app$/.test(origin);
-
-            if (isAllowedOrigin) {
+            // Allow known frontend origins.
+            if (allowedOrigins.includes(origin)) {
                 return callback(null, true);
             }
 
