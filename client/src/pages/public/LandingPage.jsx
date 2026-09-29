@@ -295,6 +295,64 @@ const LandingPage = () => {
                 }
 
                 /* =========================================
+                   DOWNLOAD ANDROID APP BUTTON
+                ========================================= */
+
+                .download-app-button {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+
+                    width: 180px;
+                    height: 44px;
+
+                    margin-top: 2px;
+
+                    border: 1px solid rgba(38, 110, 255, 0.25);
+                    border-radius: 5px;
+
+                    background: rgba(255, 255, 255, 0.90);
+
+                    color: #266eff;
+
+                    font-size: 14px;
+                    font-weight: 600;
+
+                    text-decoration: none;
+
+                    cursor: pointer;
+
+                    transition:
+                        transform 0.2s ease,
+                        background 0.2s ease,
+                        color 0.2s ease,
+                        box-shadow 0.2s ease;
+                }
+
+                .download-app-button:hover {
+                    background: #266eff;
+
+                    color: #ffffff;
+
+                    transform: translateY(-2px);
+
+                    box-shadow:
+                        0 6px 15px rgba(38, 110, 255, 0.25);
+                }
+
+                .download-app-button:active {
+                    transform: translateY(0);
+                }
+
+                .download-app-icon {
+                    margin-right: 7px;
+
+                    font-size: 16px;
+
+                    line-height: 1;
+                }
+
+                /* =========================================
                    TABLET
                 ========================================= */
 
@@ -344,7 +402,8 @@ const LandingPage = () => {
 
                     .primary-button,
                     .staff-button,
-                    .admin-button {
+                    .admin-button,
+                    .download-app-button {
                         width: 165px;
                         height: 42px;
                     }
@@ -406,7 +465,8 @@ const LandingPage = () => {
 
                     .primary-button,
                     .staff-button,
-                    .admin-button {
+                    .admin-button,
+                    .download-app-button {
                         width: 180px;
                         height: 40px;
 
@@ -454,7 +514,8 @@ const LandingPage = () => {
 
                     .primary-button,
                     .staff-button,
-                    .admin-button {
+                    .admin-button,
+                    .download-app-button {
                         width: 170px;
                         height: 38px;
                     }
@@ -503,6 +564,19 @@ const LandingPage = () => {
                             >
                                 Login
                             </button>
+
+                            {/* DOWNLOAD ANDROID APP */}
+
+                            <a
+                                href="/downloads/GuimarasGo.apk"
+                                className="download-app-button"
+                                download="GuimarasGo.apk"
+                            >
+                                <span className="download-app-icon">
+                                    📱
+                                </span>
+                                Download Android App
+                            </a>
 
                         </div>
 
