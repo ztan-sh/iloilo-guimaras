@@ -1,3 +1,7 @@
+const dns = require("dns");
+
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
@@ -21,7 +25,7 @@ app.use(
         origin: [
             "http://localhost:5173",
             "http://localhost:5174",
-            "https://mobile-base-ticketing-system-5sy2.vercel.app"
+            "https://iloilo-guimaras-ticketing-system-gules.vercel.app"
         ],
         credentials: true
     })

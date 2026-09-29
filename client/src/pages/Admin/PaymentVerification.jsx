@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import "./PaymentVerification.css";
 
-const API_BASE_URL = "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const PaymentVerification = ({ onPendingCountChange }) => {
     const [payments, setPayments] = useState([]);
