@@ -20,14 +20,52 @@ const app = express();
 // MIDDLEWARE
 // ===============================
 
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://iloilo-guimaras-ticketing-system-gules.vercel.app"
+];
+
 app.use(
     cors({
-        origin: [
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "https://iloilo-guimaras-ticketing-system-gules.vercel.app"
+        origin: (origin, callback) => {
+
+            if (!origin) {
+                return callback(null, true);
+            }
+
+            const isAllowedOrigin =
+                allowedOrigins.includes(origin) ||
+                /^https:\/\/iloilo-guimaras-ticketing-system-[a-z0-9-]+\.vercel\.app$/.test(origin);
+
+            if (isAllowedOrigin) {
+                return callback(null, true);
+            }
+
+            console.log("CORS blocked origin:", origin);
+
+            return callback(
+                new Error("Not allowed by CORS")
+            );
+        },
+
+        credentials: true,
+
+        methods: [
+            "GET",
+            "HEAD",
+            "PUT",
+            "PATCH",
+            "POST",
+            "DELETE"
         ],
-        credentials: true
+
+        allowedHeaders: [
+            "Content-Type",
+            "Authorization"
+        ],
+
+        optionsSuccessStatus: 204
     })
 );
 
