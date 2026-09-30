@@ -89,6 +89,18 @@ const Register = () => {
     };
 
     // =========================================================
+    // PASSWORD REQUIREMENTS
+    // =========================================================
+
+    const passwordRequirements = {
+        minLength: formData.password.length >= 8,
+        uppercase: /[A-Z]/.test(formData.password),
+        lowercase: /[a-z]/.test(formData.password),
+        number: /\d/.test(formData.password),
+        special: /[^A-Za-z0-9]/.test(formData.password),
+    };
+
+    // =========================================================
     // HANDLE REGISTRATION
     // =========================================================
 
@@ -98,6 +110,22 @@ const Register = () => {
         // =====================================================
         // PASSWORD VALIDATION
         // =====================================================
+
+        if (
+            !passwordRequirements.minLength ||
+            !passwordRequirements.uppercase ||
+            !passwordRequirements.lowercase ||
+            !passwordRequirements.number ||
+            !passwordRequirements.special
+        ) {
+            showPopup(
+                "warning",
+                "Password Requirements",
+                "Please make sure your password meets all of the requirements shown below."
+            );
+
+            return;
+        }
 
         if (
             formData.password !==
@@ -565,6 +593,67 @@ const Register = () => {
                             24,
                             0.10
                         );
+                }
+
+
+                /* =====================================================
+                   PASSWORD REQUIREMENTS
+                ===================================================== */
+
+                .register-password-requirements {
+                    width: 100%;
+                    margin: -4px 0 18px;
+                    padding: 11px 12px;
+                    border: 1px solid #eeeeee;
+                    border-radius: 7px;
+                    background: #fafafa;
+                }
+
+                .register-password-requirements-title {
+                    margin: 0 0 8px;
+                    color: #555;
+                    font-size: 10px;
+                    font-weight: 600;
+                }
+
+                .register-password-checklist {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 6px 12px;
+                }
+
+                .password-check-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    min-width: 0;
+                    color: #888;
+                    font-size: 9px;
+                    line-height: 1.4;
+                    transition: color 0.2s ease;
+                }
+
+                .password-check-item.valid {
+                    color: #229447;
+                }
+
+                .password-check-icon {
+                    width: 15px;
+                    height: 15px;
+                    flex: 0 0 15px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    background: #eeeeee;
+                    color: #999;
+                    font-size: 9px;
+                    font-weight: 700;
+                }
+
+                .password-check-item.valid .password-check-icon {
+                    background: #e8f7ed;
+                    color: #229447;
                 }
 
 
@@ -1349,6 +1438,11 @@ const Register = () => {
                 }
 
 
+                .register-password-checklist {
+                    grid-template-columns: 1fr;
+                }
+
+
                 /* =====================================================
                    MOBILE
                 ===================================================== */
@@ -1558,7 +1652,7 @@ const Register = () => {
                     <div className="register-logo-header">
 
                         <img
-                            src="https://scontent.fcgy2-2.fna.fbcdn.net/v/t1.15752-9/775468126_1793367781697550_3767041847597317415_n.png?stp=dst-png&cstp=mx532x469&ctp=s532x469&_nc_cat=103&ccb=1-7&_nc_sid=9f807c&_nc_eui2=AeEKTnmoEB20Fs5gE6WYWTxBd_QaoqEL1HV39BqioQvUdc9ZjhsVKyPy19OQYcSyO20Y_14PqMHIf2M01vrRKE4U&_nc_ohc=5YAYdBsPCPsQ7kNvwFjUQYD&_nc_oc=AdopjluXYgdM2PJ8fX0nZpqhgigmZIdAXn-EqtGpshgBSbu7e-3fcxU80OS6Uw2EUG4&_nc_zt=23&_nc_ht=scontent.fcgy2-2.fna&_nc_ss=7b2a8&oh=03_Q7cD6AFe_qZAOzICc2LJwC4u6B7mGN18VWGAWNhvIK8bMYGWLg&oe=6AB47416"
+                            src="/images/guimarasgo-logo.png"
                             alt="GuimarasGo Logo"
                             className="register-logo-image"
                         />
@@ -1739,9 +1833,59 @@ const Register = () => {
                                         handleChange
                                     }
                                     autoComplete="new-password"
-                                    minLength={6}
+                                    minLength={8}
                                     required
                                 />
+
+                            </div>
+
+
+                            {/* PASSWORD REQUIREMENTS */}
+
+                            <div className="register-password-requirements">
+
+                                <p className="register-password-requirements-title">
+                                    Password requirements
+                                </p>
+
+                                <div className="register-password-checklist">
+
+                                    <div className={passwordRequirements.minLength ? "password-check-item valid" : "password-check-item"}>
+                                        <span className="password-check-icon">
+                                            {passwordRequirements.minLength ? "✓" : "○"}
+                                        </span>
+                                        <span>At least 8 characters</span>
+                                    </div>
+
+                                    <div className={passwordRequirements.uppercase ? "password-check-item valid" : "password-check-item"}>
+                                        <span className="password-check-icon">
+                                            {passwordRequirements.uppercase ? "✓" : "○"}
+                                        </span>
+                                        <span>One uppercase letter</span>
+                                    </div>
+
+                                    <div className={passwordRequirements.lowercase ? "password-check-item valid" : "password-check-item"}>
+                                        <span className="password-check-icon">
+                                            {passwordRequirements.lowercase ? "✓" : "○"}
+                                        </span>
+                                        <span>One lowercase letter</span>
+                                    </div>
+
+                                    <div className={passwordRequirements.number ? "password-check-item valid" : "password-check-item"}>
+                                        <span className="password-check-icon">
+                                            {passwordRequirements.number ? "✓" : "○"}
+                                        </span>
+                                        <span>One number</span>
+                                    </div>
+
+                                    <div className={passwordRequirements.special ? "password-check-item valid" : "password-check-item"}>
+                                        <span className="password-check-icon">
+                                            {passwordRequirements.special ? "✓" : "○"}
+                                        </span>
+                                        <span>One special character</span>
+                                    </div>
+
+                                </div>
 
                             </div>
 
@@ -1766,7 +1910,7 @@ const Register = () => {
                                         handleChange
                                     }
                                     autoComplete="new-password"
-                                    minLength={6}
+                                    minLength={8}
                                     required
                                 />
 

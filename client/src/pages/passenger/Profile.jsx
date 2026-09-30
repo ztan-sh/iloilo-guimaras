@@ -16,6 +16,7 @@ const Profile = () => {
     name: "",
     email: "",
     phone: "",
+    profileImage: "",
 });
 
     // =========================================================
@@ -38,6 +39,7 @@ const Profile = () => {
     name: "",
     email: "",
     phone: "",
+    profileImage: "",
 });
 // =========================================================
 // LOAD LOGGED-IN USER
@@ -58,6 +60,16 @@ useEffect(() => {
         const parsedUser =
             JSON.parse(savedUser);
 
+        const savedProfileImage =
+            parsedUser.profileImage ||
+            localStorage.getItem(
+                `guimarasgo_profile_image_${parsedUser.email || ""}`
+            ) ||
+            sessionStorage.getItem(
+                `guimarasgo_profile_image_${parsedUser.email || ""}`
+            ) ||
+            "";
+
         setUser({
             name:
                 parsedUser.fullName || "",
@@ -66,7 +78,10 @@ useEffect(() => {
                 parsedUser.email || "",
 
             phone:
-                parsedUser.phoneNumber || ""
+                parsedUser.phoneNumber || "",
+
+            profileImage:
+                savedProfileImage
         });
 
     } catch (error) {
@@ -162,9 +177,147 @@ useEffect(() => {
             name: user.name,
             email: user.email,
             phone: user.phone,
+            profileImage: user.profileImage || "",
         });
 
         setActiveModal("edit");
+    };
+
+    // =========================================================
+    // PROFILE PHOTO
+    // =========================================================
+
+    const handleProfileImageChange = (event) => {
+        const file = event.target.files?.[0];
+
+        if (!file) {
+            return;
+        }
+
+        // Allow common image formats only.
+        const allowedTypes = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/webp",
+        ];
+
+        if (!allowedTypes.includes(file.type)) {
+            setModalMessage(
+                "Please choose a JPG, JPEG, PNG, or WEBP image."
+            );
+
+            event.target.value = "";
+            return;
+        }
+
+        // Keep the original file reasonably small before converting
+        // it into a browser-stored profile image.
+        if (file.size > 5 * 1024 * 1024) {
+            setModalMessage(
+                "Profile photo must be smaller than 5 MB."
+            );
+
+            event.target.value = "";
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            const image = new Image();
+
+            image.onload = () => {
+                const maxSize = 512;
+
+                let width = image.width;
+                let height = image.height;
+
+                if (width > height && width > maxSize) {
+                    height =
+                        Math.round(
+                            height * (maxSize / width)
+                        );
+
+                    width = maxSize;
+                } else if (
+                    height >= width &&
+                    height > maxSize
+                ) {
+                    width =
+                        Math.round(
+                            width * (maxSize / height)
+                        );
+
+                    height = maxSize;
+                }
+
+                const canvas =
+                    document.createElement("canvas");
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const context =
+                    canvas.getContext("2d");
+
+                context.drawImage(
+                    image,
+                    0,
+                    0,
+                    width,
+                    height
+                );
+
+                const compressedImage =
+                    canvas.toDataURL(
+                        "image/jpeg",
+                        0.82
+                    );
+
+                setEditForm((current) => ({
+                    ...current,
+                    profileImage:
+                        compressedImage,
+                }));
+
+                setModalMessage("");
+            };
+
+            image.onerror = () => {
+                setModalMessage(
+                    "Unable to read the selected profile photo."
+                );
+            };
+
+            image.src = reader.result;
+        };
+
+        reader.onerror = () => {
+            setModalMessage(
+                "Unable to read the selected profile photo."
+            );
+        };
+
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemoveProfileImage = () => {
+        setEditForm((current) => ({
+            ...current,
+            profileImage: "",
+        }));
+
+        const input =
+            document.getElementById(
+                "profile-image-upload"
+            );
+
+        if (input) {
+            input.value = "";
+        }
+
+        setModalMessage("");
     };
 
    const handleSaveProfile = async (event) => {
@@ -247,7 +400,10 @@ useEffect(() => {
                 data.user.email,
 
             phone:
-                data.user.phoneNumber
+                data.user.phoneNumber,
+
+            profileImage:
+                editForm.profileImage || ""
         });
 
         // =====================================
@@ -265,7 +421,10 @@ useEffect(() => {
                 data.user.email,
 
             phoneNumber:
-                data.user.phoneNumber
+                data.user.phoneNumber,
+
+            profileImage:
+                editForm.profileImage || ""
         };
 
         if (
@@ -280,6 +439,19 @@ useEffect(() => {
                 "user",
                 JSON.stringify(updatedUser)
             );
+
+            if (data.user.email) {
+                if (editForm.profileImage) {
+                    localStorage.setItem(
+                        `guimarasgo_profile_image_${data.user.email}`,
+                        editForm.profileImage
+                    );
+                } else {
+                    localStorage.removeItem(
+                        `guimarasgo_profile_image_${data.user.email}`
+                    );
+                }
+            }
         }
 
         if (
@@ -294,6 +466,19 @@ useEffect(() => {
                 "user",
                 JSON.stringify(updatedUser)
             );
+
+            if (data.user.email) {
+                if (editForm.profileImage) {
+                    sessionStorage.setItem(
+                        `guimarasgo_profile_image_${data.user.email}`,
+                        editForm.profileImage
+                    );
+                } else {
+                    sessionStorage.removeItem(
+                        `guimarasgo_profile_image_${data.user.email}`
+                    );
+                }
+            }
         }
 
         // =====================================
@@ -2521,6 +2706,173 @@ textarea {
 
 
 /* =========================================================
+   PROFILE PHOTO EDITOR
+========================================================= */
+
+.profile-photo-editor {
+    width: 100%;
+
+    display: flex;
+    align-items: center;
+
+    gap: 14px;
+
+    margin-bottom: 20px;
+
+    padding: 13px;
+
+    border: 1px solid #eeeeee;
+
+    border-radius: 14px;
+
+    background: #fffaf6;
+}
+
+.profile-photo-preview {
+    width: 72px;
+    height: 72px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    border-radius: 50%;
+
+    border: 3px solid #ffffff;
+
+    background:
+        linear-gradient(
+            135deg,
+            #fff0e1,
+            #ffe0c2
+        );
+
+    box-shadow:
+        0 5px 15px
+        rgba(255, 116, 23, 0.14);
+
+    font-size: 38px;
+}
+
+.profile-photo-preview img {
+    width: 100%;
+    height: 100%;
+
+    display: block;
+
+    object-fit: cover;
+}
+
+.profile-photo-content {
+    min-width: 0;
+
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+}
+
+.profile-photo-content strong {
+    color: #222222;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+.profile-photo-content > span {
+    color: #888888;
+
+    font-size: 10px;
+
+    line-height: 1.45;
+}
+
+.profile-photo-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 7px;
+
+    margin-top: 5px;
+}
+
+.profile-photo-button,
+.profile-photo-remove {
+    height: 32px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 0 11px;
+
+    border-radius: 8px;
+
+    font-family: "Poppins", sans-serif;
+
+    font-size: 10px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.profile-photo-button {
+    border: 1px solid #ff7417;
+
+    background: #ff7417;
+
+    color: #ffffff;
+}
+
+.profile-photo-button:hover {
+    background: #e9660c;
+
+    border-color: #e9660c;
+
+    transform: translateY(-1px);
+}
+
+.profile-photo-remove {
+    border: 1px solid #e0e0e0;
+
+    background: #ffffff;
+
+    color: #777777;
+}
+
+.profile-photo-remove:hover {
+    border-color: #ffb08a;
+
+    background: #fff5ee;
+
+    color: #d85c0c;
+
+    transform: translateY(-1px);
+}
+
+.profile-photo-content small {
+    color: #aaaaaa;
+
+    font-size: 8px;
+
+    line-height: 1.4;
+}
+
+
+/* =========================================================
    FORM GROUP
 ========================================================= */
 
@@ -3180,6 +3532,38 @@ textarea {
         font-size: 11px;
 
         margin-bottom: 17px;
+    }
+
+    .profile-photo-editor {
+        align-items: flex-start;
+
+        padding: 11px;
+
+        gap: 11px;
+    }
+
+    .profile-photo-preview {
+        width: 62px;
+        height: 62px;
+
+        font-size: 32px;
+    }
+
+    .profile-photo-content > span {
+        font-size: 9px;
+    }
+
+    .profile-photo-button,
+    .profile-photo-remove {
+        height: 30px;
+
+        padding: 0 9px;
+
+        font-size: 9px;
+    }
+
+    .profile-photo-content small {
+        font-size: 7px;
     }
 
     .profile-modal-actions {
@@ -3975,9 +4359,16 @@ textarea {
 
                                 <div className="profile-avatar">
 
-                                    <span>
-                                        👨🏻
-                                    </span>
+                                    {user.profileImage ? (
+                                        <img
+                                            src={user.profileImage}
+                                            alt="Profile"
+                                        />
+                                    ) : (
+                                        <span>
+                                            👨🏻
+                                        </span>
+                                    )}
 
                                 </div>
 
@@ -4226,6 +4617,79 @@ textarea {
                                 below. Make sure your information
                                 is accurate before saving.
                             </p>
+
+
+                            {/* PROFILE PHOTO */}
+
+                            <div className="profile-photo-editor">
+
+                                <div className="profile-photo-preview">
+
+                                    {editForm.profileImage ? (
+                                        <img
+                                            src={editForm.profileImage}
+                                            alt="Profile preview"
+                                        />
+                                    ) : (
+                                        <span>
+                                            👨🏻
+                                        </span>
+                                    )}
+
+                                </div>
+
+                                <div className="profile-photo-content">
+
+                                    <strong>
+                                        Profile Photo
+                                    </strong>
+
+                                    <span>
+                                        Add a photo so your profile is easier to recognize.
+                                    </span>
+
+                                    <div className="profile-photo-actions">
+
+                                        <label
+                                            htmlFor="profile-image-upload"
+                                            className="profile-photo-button"
+                                        >
+                                            {editForm.profileImage
+                                                ? "Change Photo"
+                                                : "Add Photo"}
+                                        </label>
+
+                                        {editForm.profileImage && (
+                                            <button
+                                                type="button"
+                                                className="profile-photo-remove"
+                                                onClick={
+                                                    handleRemoveProfileImage
+                                                }
+                                            >
+                                                Remove
+                                            </button>
+                                        )}
+
+                                    </div>
+
+                                    <input
+                                        id="profile-image-upload"
+                                        type="file"
+                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                        onChange={
+                                            handleProfileImageChange
+                                        }
+                                        hidden
+                                    />
+
+                                    <small>
+                                        JPG, PNG, or WEBP • Max 5 MB
+                                    </small>
+
+                                </div>
+
+                            </div>
 
 
                             <div className="profile-form-group">
