@@ -1,5 +1,6 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 
 import Trips from "./pages/Trips";
 
@@ -25,6 +26,13 @@ import StaffLogin from "./pages/Staff/StaffLogin";
 import StaffScanner from "./pages/Staff/StaffScanner";
 
 function App() {
+    // Capacitor returns true when the application is running
+    // inside the installed Android/iOS native shell.
+    //
+    // Normal browser/Vercel visitors remain on the public
+    // GuimarasGo landing page.
+    const isNativeApp = Capacitor.isNativePlatform();
+
     return (
         <Routes>
 
@@ -33,7 +41,11 @@ function App() {
             ========================================= */}
             <Route
                 path="/"
-                element={<LandingPage />}
+                element={
+                    isNativeApp
+                        ? <Navigate to="/login" replace />
+                        : <LandingPage />
+                }
             />
 
             {/* GET THE APP */}
