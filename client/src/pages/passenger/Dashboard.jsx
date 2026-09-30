@@ -2489,18 +2489,6 @@ const Dashboard = () => {
 
                         </div>
 
-
-                        <button
-                            type="button"
-                            className="menu-button"
-                            onClick={
-                                handleLogoutClick
-                            }
-                            aria-label="Logout"
-                        >
-                            ⇥
-                        </button>
-
                     </header>
 
 

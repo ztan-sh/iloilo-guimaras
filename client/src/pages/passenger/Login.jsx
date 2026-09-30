@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { FaApple } from "react-icons/fa";
+import { FiEye, FiEyeOff } from "react-icons/fi";
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
@@ -12,6 +13,7 @@ const Login = () => {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [loading, setLoading] = useState(false);
 
@@ -629,6 +631,60 @@ const Login = () => {
                         0 0 0 3px
                         rgba(255, 120, 24, 0.10);
                 }
+
+                /* =====================================================
+                   PASSWORD FIELD
+                ===================================================== */
+
+                .password-input-wrapper {
+                    position: relative;
+                    width: 100%;
+                }
+
+                .password-input-wrapper input {
+                    padding-right: 42px;
+                }
+
+                .password-toggle {
+                    position: absolute;
+                    top: 50%;
+                    right: 10px;
+                    width: 30px;
+                    height: 30px;
+                    transform: translateY(-50%);
+
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+
+                    border: none;
+                    background: transparent;
+
+                    color: #777777;
+                    cursor: pointer;
+
+                    border-radius: 4px;
+                    transition:
+                        color 0.2s ease,
+                        background 0.2s ease;
+                }
+
+                .password-toggle:hover {
+                    color: #ff7818;
+                    background: rgba(255, 120, 24, 0.08);
+                }
+
+                .password-toggle:focus-visible {
+                    outline: 2px solid rgba(255, 120, 24, 0.35);
+                    outline-offset: 1px;
+                }
+
+                .password-toggle svg {
+                    width: 17px;
+                    height: 17px;
+                    stroke-width: 2;
+                }
+
 
 
                 /* =====================================================
@@ -1717,19 +1773,52 @@ const Login = () => {
                                     Password
                                 </label>
 
-                                <input
-                                    id="password"
-                                    type="password"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(event) =>
-                                        setPassword(
-                                            event.target.value
-                                        )
-                                    }
-                                    autoComplete="current-password"
-                                    required
-                                />
+                                <div className="password-input-wrapper">
+                                    <input
+                                        id="password"
+                                        type={
+                                            showPassword
+                                                ? "text"
+                                                : "password"
+                                        }
+                                        placeholder="••••••••"
+                                        value={password}
+                                        onChange={(event) =>
+                                            setPassword(
+                                                event.target.value
+                                            )
+                                        }
+                                        autoComplete="current-password"
+                                        required
+                                    />
+
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() =>
+                                            setShowPassword(
+                                                (previous) =>
+                                                    !previous
+                                            )
+                                        }
+                                        aria-label={
+                                            showPassword
+                                                ? "Hide password"
+                                                : "Show password"
+                                        }
+                                        title={
+                                            showPassword
+                                                ? "Hide password"
+                                                : "Show password"
+                                        }
+                                    >
+                                        {showPassword ? (
+                                            <FiEyeOff />
+                                        ) : (
+                                            <FiEye />
+                                        )}
+                                    </button>
+                                </div>
 
                             </div>
 
