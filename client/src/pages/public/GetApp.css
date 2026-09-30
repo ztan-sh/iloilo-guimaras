@@ -1,0 +1,542 @@
+* {
+    box-sizing: border-box;
+}
+
+.get-app-page {
+    position: relative;
+    min-height: 100vh;
+    padding: 22px 24px 45px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    overflow-x: hidden;
+
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.get-app-background {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+
+    background-image:
+        linear-gradient(
+            rgba(0, 0, 0, 0.46),
+            rgba(0, 0, 0, 0.46)
+        ),
+        url("https://orbitshub.com/wp-content/uploads/2023/10/what-exactly-are-roro-ships-1024x576.jpg");
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.get-app-header {
+    width: min(1130px, 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.get-app-brand {
+    color: #ffffff;
+    font-size: 21px;
+    font-weight: 700;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.get-app-back-button {
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 8px;
+
+    padding: 9px 16px;
+
+    background: rgba(255, 255, 255, 0.94);
+    color: #266eff;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    box-shadow: 0 7px 18px rgba(0, 0, 0, 0.14);
+
+    transition: 0.2s ease;
+}
+
+.get-app-back-button:hover {
+    background: #266eff;
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+.get-app-card {
+    width: min(1030px, 100%);
+
+    padding: 40px 38px 30px;
+
+    text-align: center;
+
+    background: rgba(255, 255, 255, 0.93);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    border-radius: 20px;
+
+    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.23);
+
+    backdrop-filter: blur(9px);
+    -webkit-backdrop-filter: blur(9px);
+}
+
+.get-app-hero {
+    max-width: 720px;
+    margin: 0 auto 30px;
+}
+
+.get-app-logo {
+    width: 60px;
+    height: 60px;
+
+    margin: 0 auto 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 16px;
+
+    background: #266eff;
+    color: #ffffff;
+
+    font-size: 28px;
+
+    box-shadow: 0 9px 22px rgba(38, 110, 255, 0.26);
+}
+
+.get-app-eyebrow {
+    margin: 0 0 4px;
+
+    color: #266eff;
+
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
+
+.get-app-card h1 {
+    margin: 0;
+
+    color: #111111;
+
+    font-size: clamp(40px, 5vw, 56px);
+    line-height: 1.05;
+    font-weight: 700;
+    letter-spacing: -2px;
+}
+
+.get-app-device-message {
+    margin: 8px 0 5px;
+
+    color: #252525;
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.get-app-subtitle {
+    margin: 0 auto;
+
+    color: #5b5b5b;
+
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.device-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+
+    text-align: left;
+}
+
+.device-card {
+    min-width: 0;
+
+    padding: 24px;
+
+    border: 1px solid #e2e5eb;
+    border-radius: 16px;
+
+    background: #ffffff;
+
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.075);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.device-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(38, 110, 255, 0.5);
+    box-shadow: 0 13px 30px rgba(0, 0, 0, 0.11);
+}
+
+.device-card-active {
+    transform: translateY(-3px);
+
+    border: 2px solid #266eff;
+
+    box-shadow:
+        0 0 0 4px rgba(38, 110, 255, 0.08),
+        0 14px 32px rgba(0, 0, 0, 0.13);
+}
+
+.ios-selected {
+    animation: iosFocus 0.65s ease-out;
+}
+
+@keyframes iosFocus {
+    0% {
+        transform: translateY(0) scale(0.985);
+    }
+
+    60% {
+        transform: translateY(-5px) scale(1.01);
+    }
+
+    100% {
+        transform: translateY(-3px) scale(1);
+    }
+}
+
+.device-card-top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.device-icon {
+    flex: 0 0 auto;
+
+    width: 54px;
+    height: 54px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 14px;
+
+    font-size: 27px;
+}
+
+.android-icon {
+    background: #eef8ef;
+}
+
+.ios-icon {
+    background: #f1f3f7;
+}
+
+.device-label {
+    display: block;
+
+    margin-bottom: 3px;
+
+    color: #266eff;
+
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+}
+
+.device-card h2 {
+    margin: 0;
+
+    color: #111111;
+
+    font-size: 22px;
+    line-height: 1.15;
+}
+
+.device-description {
+    min-height: 43px;
+
+    margin: 0 0 17px;
+
+    color: #5a5a5a;
+
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.device-primary-button {
+    width: 100%;
+    min-height: 43px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 10px 15px;
+
+    border-radius: 7px;
+    border: none;
+
+    background: #266eff;
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    text-decoration: none;
+    text-align: center;
+
+    transition: 0.2s ease;
+}
+
+.device-primary-button:hover {
+    background: #1559df;
+    transform: translateY(-1px);
+    box-shadow: 0 7px 16px rgba(38, 110, 255, 0.22);
+}
+
+.qr-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin: 20px 0 15px;
+
+    color: #999999;
+
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.9px;
+}
+
+.qr-divider::before,
+.qr-divider::after {
+    content: "";
+    flex: 1;
+
+    height: 1px;
+
+    background: #e4e4e4;
+}
+
+.qr-wrapper {
+    width: 176px;
+    height: 176px;
+
+    margin: 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 10px;
+
+    background: #ffffff;
+
+    border: 1px solid #dfe3e8;
+    border-radius: 10px;
+
+    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.06);
+}
+
+.qr-wrapper img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: contain;
+}
+
+.qr-help {
+    margin: 10px 0 0;
+
+    color: #777777;
+
+    font-size: 11px;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.ios-install-steps {
+    margin-top: 18px;
+    padding: 13px;
+
+    display: grid;
+    gap: 8px;
+
+    border-radius: 10px;
+
+    background: #f6f8fb;
+}
+
+.ios-step {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.ios-step span {
+    width: 23px;
+    height: 23px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #266eff;
+    color: #ffffff;
+
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.ios-step p {
+    margin: 0;
+
+    color: #555555;
+
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.ios-step strong {
+    color: #266eff;
+}
+
+.ios-note {
+    width: min(690px, 100%);
+
+    margin: 24px auto 20px;
+    padding: 13px 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 11px;
+
+    border-radius: 10px;
+
+    background: #f5f7fa;
+
+    color: #555555;
+
+    text-align: left;
+}
+
+.ios-note-icon {
+    flex: 0 0 auto;
+    font-size: 22px;
+}
+
+.ios-note strong,
+.ios-note span {
+    display: block;
+}
+
+.ios-note strong {
+    margin-bottom: 2px;
+    color: #222222;
+    font-size: 12px;
+}
+
+.ios-note span {
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.web-version-button {
+    border: none;
+    padding: 5px;
+
+    background: transparent;
+    color: #266eff;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.web-version-button:hover {
+    color: #1559df;
+}
+
+@media (max-width: 850px) {
+    .device-options {
+        grid-template-columns: 1fr;
+    }
+
+    .get-app-card {
+        width: min(650px, 100%);
+    }
+}
+
+@media (max-width: 520px) {
+    .get-app-page {
+        padding: 15px 12px 30px;
+    }
+
+    .get-app-header {
+        margin-bottom: 15px;
+    }
+
+    .get-app-brand {
+        font-size: 18px;
+    }
+
+    .get-app-back-button {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .get-app-card {
+        padding: 30px 16px 24px;
+        border-radius: 16px;
+    }
+
+    .get-app-card h1 {
+        font-size: 40px;
+        letter-spacing: -1.3px;
+    }
+
+    .get-app-device-message {
+        font-size: 16px;
+    }
+
+    .get-app-subtitle {
+        font-size: 12px;
+    }
+
+    .device-card {
+        padding: 19px;
+    }
+
+    .qr-wrapper {
+        width: 160px;
+        height: 160px;
+    }
+
+    .ios-note {
+        align-items: flex-start;
+    }
+}

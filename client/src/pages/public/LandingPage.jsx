@@ -52,6 +52,74 @@ const LandingPage = () => {
                     padding: 40px;
                 }
 
+
+                /* =========================================
+                   TOP NAVIGATION
+                ========================================= */
+
+                .landing-nav {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    z-index: 5;
+
+                    display: flex;
+                    align-items: center;
+                    justify-content: flex-end;
+
+                    padding: 22px 30px;
+                }
+
+                .get-app-nav-button {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+
+                    min-width: 125px;
+                    height: 42px;
+                    padding: 0 18px;
+
+                    border: 1px solid rgba(255, 255, 255, 0.55);
+                    border-radius: 8px;
+
+                    background: rgba(255, 255, 255, 0.92);
+                    color: #266eff;
+
+                    font-size: 14px;
+                    font-weight: 700;
+
+                    text-decoration: none;
+                    cursor: pointer;
+
+                    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
+                    backdrop-filter: blur(8px);
+                    -webkit-backdrop-filter: blur(8px);
+
+                    transition:
+                        transform 0.2s ease,
+                        background 0.2s ease,
+                        color 0.2s ease,
+                        box-shadow 0.2s ease;
+                }
+
+                .get-app-nav-button:hover {
+                    background: #266eff;
+                    color: #ffffff;
+                    transform: translateY(-2px);
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.22);
+                }
+
+                .get-app-nav-button:active {
+                    transform: translateY(0);
+                }
+
+                .get-app-nav-icon {
+                    font-size: 16px;
+                    line-height: 1;
+                }
+
                 /* =========================================
                    CENTER GLASS FRAME
                 ========================================= */
@@ -70,7 +138,7 @@ const LandingPage = () => {
 
                     text-align: center;
 
-                    padding: 50px 40px;
+                    padding: 64px 40px 50px;
 
                     background: rgba(255, 255, 255, 0.62);
 
@@ -352,6 +420,21 @@ const LandingPage = () => {
                     line-height: 1;
                 }
 
+
+                @media (max-width: 768px) {
+
+                    .landing-nav {
+                        padding: 16px 18px;
+                    }
+
+                    .get-app-nav-button {
+                        min-width: 116px;
+                        height: 40px;
+                        padding: 0 15px;
+                        font-size: 13px;
+                    }
+                }
+
                 /* =========================================
                    TABLET
                 ========================================= */
@@ -524,6 +607,18 @@ const LandingPage = () => {
 
             <main className="landing-page">
 
+                {/* GET THE APP NAVIGATION */}
+
+                <nav className="landing-nav" aria-label="Application navigation">
+                    <a
+                        href="/get-app"
+                        className="get-app-nav-button"
+                    >
+                        <span className="get-app-nav-icon">📱</span>
+                        Get the App
+                    </a>
+                </nav>
+
                 <div className="landing-container">
 
                     {/* LOGO */}
@@ -565,18 +660,7 @@ const LandingPage = () => {
                                 Login
                             </button>
 
-                            {/* DOWNLOAD ANDROID APP */}
 
-                            <a
-                                href="/downloads/GuimarasGo.apk"
-                                className="download-app-button"
-                                download="GuimarasGo.apk"
-                            >
-                                <span className="download-app-icon">
-                                    📱
-                                </span>
-                                Download Android App
-                            </a>
 
                         </div>
 

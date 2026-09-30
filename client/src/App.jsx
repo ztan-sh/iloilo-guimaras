@@ -9,15 +9,13 @@ import Payment from "./pages/passenger/Payment";
 import MayaPayment from "./pages/passenger/MayaPayment";
 import Confirmation from "./pages/passenger/confirmation";
 
-
-
-
 import Bookings from "./pages/Bookings";
 import Profile from "./pages/passenger/Profile";
 import Login from "./pages/passenger/Login";
 import Register from "./pages/passenger/Register";
 
 import LandingPage from "./pages/public/LandingPage";
+import GetApp from "./pages/public/GetApp";
 
 import AdminRegister from "./pages/Admin/AdminRegister";
 import AdminLogin from "./pages/Admin/AdminLogin";
@@ -25,7 +23,6 @@ import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 import StaffLogin from "./pages/Staff/StaffLogin";
 import StaffScanner from "./pages/Staff/StaffScanner";
-
 
 function App() {
     return (
@@ -39,6 +36,11 @@ function App() {
                 element={<LandingPage />}
             />
 
+            {/* GET THE APP */}
+            <Route
+                path="/get-app"
+                element={<GetApp />}
+            />
 
             {/* =========================================
                 PASSENGER / TOURIST
@@ -104,7 +106,6 @@ function App() {
                 element={<Trips />}
             />
 
-
             {/* =========================================
                 ADMIN
             ========================================= */}
@@ -126,7 +127,6 @@ function App() {
                 path="/admin-dashboard"
                 element={<AdminDashboard />}
             />
-
 
             {/* =========================================
                 STAFF
