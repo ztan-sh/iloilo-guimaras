@@ -5,6 +5,8 @@
 .get-app-page {
     position: relative;
     min-height: 100vh;
+    min-height: 100dvh;
+
     padding: 22px 24px 45px;
 
     display: flex;
@@ -13,7 +15,10 @@
 
     overflow-x: hidden;
 
-    font-family: Arial, Helvetica, sans-serif;
+    font-family:
+        Arial,
+        Helvetica,
+        sans-serif;
 }
 
 .get-app-background {
@@ -23,8 +28,8 @@
 
     background-image:
         linear-gradient(
-            rgba(0, 0, 0, 0.46),
-            rgba(0, 0, 0, 0.46)
+            rgba(0, 0, 0, 0.48),
+            rgba(0, 0, 0, 0.48)
         ),
         url("https://orbitshub.com/wp-content/uploads/2023/10/what-exactly-are-roro-ships-1024x576.jpg");
 
@@ -34,18 +39,23 @@
 }
 
 .get-app-header {
-    width: min(1130px, 100%);
+    width: min(1050px, 100%);
+
     display: flex;
     align-items: center;
     justify-content: space-between;
+
     margin-bottom: 22px;
 }
 
 .get-app-brand {
     color: #ffffff;
+
     font-size: 21px;
     font-weight: 700;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+
+    text-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 .get-app-back-button {
@@ -62,7 +72,8 @@
 
     cursor: pointer;
 
-    box-shadow: 0 7px 18px rgba(0, 0, 0, 0.14);
+    box-shadow:
+        0 7px 18px rgba(0, 0, 0, 0.14);
 
     transition: 0.2s ease;
 }
@@ -70,21 +81,24 @@
 .get-app-back-button:hover {
     background: #266eff;
     color: #ffffff;
+
     transform: translateY(-2px);
 }
 
 .get-app-card {
-    width: min(1030px, 100%);
+    width: min(920px, 100%);
 
     padding: 40px 38px 30px;
 
     text-align: center;
 
-    background: rgba(255, 255, 255, 0.93);
+    background: rgba(255, 255, 255, 0.94);
+
     border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: 20px;
 
-    box-shadow: 0 20px 55px rgba(0, 0, 0, 0.23);
+    box-shadow:
+        0 20px 55px rgba(0, 0, 0, 0.23);
 
     backdrop-filter: blur(9px);
     -webkit-backdrop-filter: blur(9px);
@@ -92,6 +106,7 @@
 
 .get-app-hero {
     max-width: 720px;
+
     margin: 0 auto 30px;
 }
 
@@ -112,7 +127,8 @@
 
     font-size: 28px;
 
-    box-shadow: 0 9px 22px rgba(38, 110, 255, 0.26);
+    box-shadow:
+        0 9px 22px rgba(38, 110, 255, 0.26);
 }
 
 .get-app-eyebrow {
@@ -137,7 +153,7 @@
 }
 
 .get-app-device-message {
-    margin: 8px 0 5px;
+    margin: 9px 0 6px;
 
     color: #252525;
 
@@ -146,6 +162,8 @@
 }
 
 .get-app-subtitle {
+    max-width: 650px;
+
     margin: 0 auto;
 
     color: #5b5b5b;
@@ -154,100 +172,60 @@
     line-height: 1.55;
 }
 
-.device-options {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px;
+/* =========================================================
+   ANDROID APP CARD
+========================================================= */
+
+.android-app-card {
+    width: min(720px, 100%);
+
+    margin: 0 auto;
+
+    padding: 28px;
 
     text-align: left;
-}
-
-.device-card {
-    min-width: 0;
-
-    padding: 24px;
-
-    border: 1px solid #e2e5eb;
-    border-radius: 16px;
 
     background: #ffffff;
 
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.075);
-
-    transition:
-        transform 0.2s ease,
-        box-shadow 0.2s ease,
-        border-color 0.2s ease;
-}
-
-.device-card:hover {
-    transform: translateY(-3px);
-    border-color: rgba(38, 110, 255, 0.5);
-    box-shadow: 0 13px 30px rgba(0, 0, 0, 0.11);
-}
-
-.device-card-active {
-    transform: translateY(-3px);
-
-    border: 2px solid #266eff;
+    border: 1px solid #e1e5eb;
+    border-radius: 18px;
 
     box-shadow:
-        0 0 0 4px rgba(38, 110, 255, 0.08),
-        0 14px 32px rgba(0, 0, 0, 0.13);
+        0 10px 30px rgba(0, 0, 0, 0.08);
 }
 
-.ios-selected {
-    animation: iosFocus 0.65s ease-out;
-}
-
-@keyframes iosFocus {
-    0% {
-        transform: translateY(0) scale(0.985);
-    }
-
-    60% {
-        transform: translateY(-5px) scale(1.01);
-    }
-
-    100% {
-        transform: translateY(-3px) scale(1);
-    }
-}
-
-.device-card-top {
+.android-card-header {
     display: flex;
     align-items: center;
+
     gap: 14px;
-    margin-bottom: 14px;
+
+    margin-bottom: 13px;
 }
 
 .device-icon {
     flex: 0 0 auto;
 
-    width: 54px;
-    height: 54px;
+    width: 56px;
+    height: 56px;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    border-radius: 14px;
+    border-radius: 15px;
 
-    font-size: 27px;
+    font-size: 28px;
 }
 
 .android-icon {
     background: #eef8ef;
 }
 
-.ios-icon {
-    background: #f1f3f7;
-}
-
 .device-label {
     display: block;
 
-    margin-bottom: 3px;
+    margin-bottom: 4px;
 
     color: #266eff;
 
@@ -256,63 +234,167 @@
     letter-spacing: 0.8px;
 }
 
-.device-card h2 {
+.android-app-card h2 {
     margin: 0;
 
     color: #111111;
 
-    font-size: 22px;
+    font-size: 23px;
     line-height: 1.15;
 }
 
-.device-description {
-    min-height: 43px;
+.android-status {
+    width: fit-content;
 
-    margin: 0 0 17px;
+    display: inline-flex;
+    align-items: center;
+
+    gap: 7px;
+
+    margin-bottom: 15px;
+    padding: 6px 10px;
+
+    border-radius: 999px;
+
+    background: #eef9f1;
+    color: #17803d;
+
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    background: #20a34a;
+}
+
+.device-description {
+    margin: 0 0 18px;
 
     color: #5a5a5a;
 
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 .device-primary-button {
     width: 100%;
-    min-height: 43px;
+    min-height: 48px;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    padding: 10px 15px;
+    gap: 9px;
 
-    border-radius: 7px;
+    padding: 11px 16px;
+
+    border-radius: 9px;
     border: none;
 
     background: #266eff;
     color: #ffffff;
 
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
 
     text-decoration: none;
     text-align: center;
 
     transition: 0.2s ease;
+
+    box-shadow:
+        0 8px 18px rgba(38, 110, 255, 0.18);
 }
 
 .device-primary-button:hover {
     background: #1559df;
-    transform: translateY(-1px);
-    box-shadow: 0 7px 16px rgba(38, 110, 255, 0.22);
+
+    transform: translateY(-2px);
+
+    box-shadow:
+        0 10px 22px rgba(38, 110, 255, 0.25);
+}
+
+.button-icon {
+    font-size: 19px;
+    line-height: 1;
+}
+
+/* =========================================================
+   APK INFORMATION
+========================================================= */
+
+.apk-details {
+    margin-top: 18px;
+
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    border: 1px solid #e8ebef;
+    border-radius: 11px;
+
+    overflow: hidden;
+
+    background: #fafbfc;
+}
+
+.apk-detail {
+    min-width: 0;
+
+    padding: 12px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+
+    border-right: 1px solid #e8ebef;
+}
+
+.apk-detail:last-child {
+    border-right: none;
+}
+
+.apk-detail span {
+    color: #8a8f98;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+.apk-detail strong {
+    color: #222222;
+
+    font-size: 12px;
+
+    overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   QR SECTION
+========================================================= */
+
+.qr-section {
+    margin-top: 24px;
+    padding-top: 2px;
 }
 
 .qr-divider {
     display: flex;
     align-items: center;
+
     gap: 10px;
 
-    margin: 20px 0 15px;
+    margin: 0 0 20px;
 
     color: #999999;
 
@@ -324,6 +406,7 @@
 .qr-divider::before,
 .qr-divider::after {
     content: "";
+
     flex: 1;
 
     height: 1px;
@@ -331,9 +414,26 @@
     background: #e4e4e4;
 }
 
+.qr-content {
+    display: grid;
+    grid-template-columns:
+        190px minmax(0, 1fr);
+
+    align-items: center;
+
+    gap: 28px;
+
+    padding: 20px;
+
+    border-radius: 14px;
+
+    background: #f7f9fc;
+    border: 1px solid #e8ebf0;
+}
+
 .qr-wrapper {
-    width: 176px;
-    height: 176px;
+    width: 180px;
+    height: 180px;
 
     margin: 0 auto;
 
@@ -346,9 +446,10 @@
     background: #ffffff;
 
     border: 1px solid #dfe3e8;
-    border-radius: 10px;
+    border-radius: 11px;
 
-    box-shadow: 0 5px 14px rgba(0, 0, 0, 0.06);
+    box-shadow:
+        0 5px 14px rgba(0, 0, 0, 0.06);
 }
 
 .qr-wrapper img {
@@ -360,35 +461,41 @@
     object-fit: contain;
 }
 
-.qr-help {
-    margin: 10px 0 0;
-
-    color: #777777;
-
-    font-size: 11px;
-    line-height: 1.45;
-    text-align: center;
+.qr-copy {
+    min-width: 0;
 }
 
-.ios-install-steps {
-    margin-top: 18px;
-    padding: 13px;
+.qr-copy h3 {
+    margin: 0 0 7px;
 
+    color: #222222;
+
+    font-size: 18px;
+}
+
+.qr-copy > p {
+    margin: 0 0 15px;
+
+    color: #666666;
+
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.quick-steps {
     display: grid;
-    gap: 8px;
 
-    border-radius: 10px;
-
-    background: #f6f8fb;
-}
-
-.ios-step {
-    display: flex;
-    align-items: center;
     gap: 9px;
 }
 
-.ios-step span {
+.quick-step {
+    display: flex;
+    align-items: flex-start;
+
+    gap: 9px;
+}
+
+.quick-step span {
     width: 23px;
     height: 23px;
 
@@ -407,62 +514,144 @@
     font-weight: 800;
 }
 
-.ios-step p {
-    margin: 0;
+.quick-step p {
+    margin: 2px 0 0;
 
     color: #555555;
 
     font-size: 11px;
-    line-height: 1.35;
+    line-height: 1.4;
 }
 
-.ios-step strong {
+.quick-step strong {
     color: #266eff;
 }
 
-.ios-note {
-    width: min(690px, 100%);
+/* =========================================================
+   INSTALLATION NOTE
+========================================================= */
 
-    margin: 24px auto 20px;
-    padding: 13px 16px;
+.installation-note {
+    width: min(720px, 100%);
+
+    margin: 22px auto 12px;
+    padding: 14px 16px;
 
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+
     gap: 11px;
 
-    border-radius: 10px;
+    border: 1px solid #e6e9ee;
+    border-radius: 11px;
 
-    background: #f5f7fa;
+    background: #f7f8fa;
 
     color: #555555;
 
     text-align: left;
 }
 
-.ios-note-icon {
+.installation-note-icon {
+    width: 23px;
+    height: 23px;
+
     flex: 0 0 auto;
-    font-size: 22px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #eaf1ff;
+    color: #266eff;
+
+    font-size: 12px;
+    font-weight: 800;
 }
 
-.ios-note strong,
-.ios-note span {
+.installation-note strong {
     display: block;
-}
 
-.ios-note strong {
-    margin-bottom: 2px;
+    margin-bottom: 3px;
+
     color: #222222;
+
     font-size: 12px;
 }
 
-.ios-note span {
+.installation-note span {
+    display: block;
+
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* =========================================================
+   SECURITY NOTE
+========================================================= */
+
+.security-note {
+    width: min(720px, 100%);
+
+    margin: 0 auto 18px;
+    padding: 13px 16px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    border-radius: 11px;
+
+    background: #f0f7ff;
+    border: 1px solid #dceaff;
+
+    text-align: left;
+}
+
+.security-icon {
+    width: 27px;
+    height: 27px;
+
+    flex: 0 0 auto;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #266eff;
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.security-note strong {
+    display: block;
+
+    margin-bottom: 2px;
+
+    color: #222222;
+
+    font-size: 12px;
+}
+
+.security-note p {
+    margin: 0;
+
+    color: #666666;
+
     font-size: 11px;
     line-height: 1.45;
 }
 
 .web-version-button {
     border: none;
+
     padding: 5px;
 
     background: transparent;
@@ -481,15 +670,33 @@
     color: #1559df;
 }
 
-@media (max-width: 850px) {
-    .device-options {
-        grid-template-columns: 1fr;
-    }
+/* =========================================================
+   TABLET
+========================================================= */
 
+@media (max-width: 760px) {
     .get-app-card {
         width: min(650px, 100%);
     }
+
+    .qr-content {
+        grid-template-columns: 1fr;
+
+        text-align: center;
+    }
+
+    .quick-step {
+        text-align: left;
+    }
+
+    .qr-copy {
+        width: 100%;
+    }
 }
+
+/* =========================================================
+   MOBILE
+========================================================= */
 
 @media (max-width: 520px) {
     .get-app-page {
@@ -506,29 +713,69 @@
 
     .get-app-back-button {
         padding: 8px 12px;
+
         font-size: 12px;
     }
 
     .get-app-card {
-        padding: 30px 16px 24px;
+        padding: 30px 15px 24px;
+
         border-radius: 16px;
     }
 
+    .get-app-logo {
+        width: 54px;
+        height: 54px;
+
+        font-size: 25px;
+    }
+
     .get-app-card h1 {
-        font-size: 40px;
+        font-size: 39px;
+
         letter-spacing: -1.3px;
     }
 
     .get-app-device-message {
-        font-size: 16px;
+        font-size: 15px;
+        line-height: 1.35;
     }
 
     .get-app-subtitle {
         font-size: 12px;
     }
 
-    .device-card {
+    .android-app-card {
         padding: 19px;
+    }
+
+    .android-card-header {
+        align-items: flex-start;
+    }
+
+    .android-app-card h2 {
+        font-size: 20px;
+    }
+
+    .device-description {
+        font-size: 12px;
+    }
+
+    .apk-details {
+        grid-template-columns: 1fr;
+    }
+
+    .apk-detail {
+        border-right: none;
+        border-bottom: 1px solid #e8ebef;
+    }
+
+    .apk-detail:last-child {
+        border-bottom: none;
+    }
+
+    .qr-content {
+        padding: 15px;
     }
 
     .qr-wrapper {
@@ -536,7 +783,51 @@
         height: 160px;
     }
 
-    .ios-note {
+    .qr-copy h3 {
+        font-size: 16px;
+    }
+
+    .installation-note,
+    .security-note {
         align-items: flex-start;
+    }
+}
+
+/* =========================================================
+   VERY SMALL PHONES
+========================================================= */
+
+@media (max-width: 360px) {
+    .get-app-page {
+        padding-left: 9px;
+        padding-right: 9px;
+    }
+
+    .get-app-card {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .get-app-card h1 {
+        font-size: 34px;
+    }
+
+    .android-app-card {
+        padding: 16px;
+    }
+
+    .device-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 25px;
+    }
+
+    .android-app-card h2 {
+        font-size: 18px;
+    }
+
+    .qr-wrapper {
+        width: 145px;
+        height: 145px;
     }
 }
