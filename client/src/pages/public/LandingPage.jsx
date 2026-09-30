@@ -1,8 +1,14 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 
 const LandingPage = () => {
     const navigate = useNavigate();
+
+    // Keep "Get the App" on the public website.
+    // Hide it inside the installed Android app because
+    // the user is already using the app.
+    const isNativeApp = Capacitor.isNativePlatform();
 
     return (
         <>
@@ -607,17 +613,23 @@ const LandingPage = () => {
 
             <main className="landing-page">
 
-                {/* GET THE APP NAVIGATION */}
-
-                <nav className="landing-nav" aria-label="Application navigation">
-                    <a
-                        href="/get-app"
-                        className="get-app-nav-button"
+                {/* GET THE APP NAVIGATION
+                    Visible on the website only.
+                    Hidden inside the installed Android app. */}
+                {!isNativeApp && (
+                    <nav
+                        className="landing-nav"
+                        aria-label="Application navigation"
                     >
-                        <span className="get-app-nav-icon">📱</span>
-                        Get the App
-                    </a>
-                </nav>
+                        <a
+                            href="/get-app"
+                            className="get-app-nav-button"
+                        >
+                            <span className="get-app-nav-icon">📱</span>
+                            Get the App
+                        </a>
+                    </nav>
+                )}
 
                 <div className="landing-container">
 
