@@ -49,7 +49,7 @@ const allowedOrigins = [
     "capacitor://localhost",
 
     // Production website
-    "https://iloilo-guimaras.vercel.app/"
+    "https://iloilo-guimaras.vercel.app"
 ];
 
 
