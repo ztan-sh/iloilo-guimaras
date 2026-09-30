@@ -159,6 +159,9 @@ const AdminDashboard = () => {
         confirmPassword: ""
     });
 
+    const [staffSearch, setStaffSearch] = useState("");
+    const [staffStatusFilter, setStaffStatusFilter] = useState("all");
+
     // =========================================================
     // SHOW NOTIFICATION
     // =========================================================
@@ -357,6 +360,7 @@ const AdminDashboard = () => {
 
     const getBookingVesselName = (booking) => {
         const directName =
+            booking?._resolvedFerryName ||
             booking?.vesselName ||
             booking?.ferryName ||
             booking?.vessel ||
@@ -420,9 +424,14 @@ const AdminDashboard = () => {
     // LOAD LIVE FERRY CAPACITY
     // =========================================================
 
-    const loadFerryCapacities = async () => {
+    const loadFerryCapacities = async (options = {}) => {
+        const { silent = false } = options;
+
         try {
-            setCapacityLoading(true);
+            if (!silent) {
+                setCapacityLoading(true);
+            }
+
             setCapacityError("");
 
             const response = await fetch(
@@ -431,7 +440,8 @@ const AdminDashboard = () => {
                     method: "GET",
                     headers: {
                         Accept: "application/json"
-                    }
+                    },
+                    cache: "no-store"
                 }
             );
 
@@ -457,7 +467,9 @@ const AdminDashboard = () => {
                 "Unable to load ferry capacity."
             );
         } finally {
-            setCapacityLoading(false);
+            if (!silent) {
+                setCapacityLoading(false);
+            }
         }
     };
 
@@ -648,7 +660,196 @@ const AdminDashboard = () => {
                 throw new Error("Booking information was not returned by the server.");
             }
 
-            setBookingSearchResult(data.booking);
+            /*
+             * Ferry Capacity is the source of truth for the scheduled
+             * vessel. Older bookings may not have saved ferryName /
+             * vesselName, so resolve the vessel from the capacity
+             * schedule using the booking date and departure time.
+             */
+            let bookingWithFerry = data.booking;
+
+            try {
+                const bookingDate = normalizeBookingDate(
+                    data.booking?.date ||
+                    data.booking?.travelDate ||
+                    data.booking?.departureDate ||
+                    ""
+                );
+
+                const bookingDepartureTime =
+                    data.booking?.departureTime ||
+                    data.booking?.time ||
+                    data.booking?.tripTime ||
+                    data.booking?.selectedFerry?.departureTime ||
+                    data.booking?.selectedFerry?.time ||
+                    data.booking?.selectedTrip?.departureTime ||
+                    data.booking?.selectedTrip?.time ||
+                    "";
+
+                if (bookingDate && bookingDepartureTime) {
+                    const capacityResponse = await fetch(
+                        `${API_URL}/bookings/capacity?date=${encodeURIComponent(bookingDate)}`,
+                        {
+                            method: "GET",
+                            headers: {
+                                Accept: "application/json"
+                            },
+                            cache: "no-store"
+                        }
+                    );
+
+                    if (capacityResponse.ok) {
+                        const capacityData =
+                            await capacityResponse.json();
+
+                        const capacities = Array.isArray(
+                            capacityData?.capacities
+                        )
+                            ? capacityData.capacities
+                            : [];
+
+                        const normalizeValue = (value) =>
+                            String(value || "")
+                                .trim()
+                                .replace(/\s+/g, " ")
+                                .toLowerCase();
+
+                        const normalizeTime = (value) => {
+                            const valueText =
+                                String(value || "")
+                                    .trim()
+                                    .toUpperCase();
+
+                            const timeMatch =
+                                valueText.match(
+                                    /^(\d{1,2}):(\d{2})\s*(AM|PM)$/
+                                );
+
+                            if (timeMatch) {
+                                let hour =
+                                    Number(timeMatch[1]);
+                                const minute =
+                                    timeMatch[2];
+                                const period =
+                                    timeMatch[3];
+
+                                if (
+                                    period === "AM" &&
+                                    hour === 12
+                                ) {
+                                    hour = 0;
+                                }
+
+                                if (
+                                    period === "PM" &&
+                                    hour !== 12
+                                ) {
+                                    hour += 12;
+                                }
+
+                                return `${String(hour).padStart(2, "0")}:${minute}`;
+                            }
+
+                            if (
+                                /^\d{1,2}:\d{2}$/.test(
+                                    valueText
+                                )
+                            ) {
+                                const [hour, minute] =
+                                    valueText.split(":");
+
+                                return `${String(Number(hour)).padStart(2, "0")}:${minute}`;
+                            }
+
+                            return valueText;
+                        };
+
+                        const targetFerryId = normalizeValue(
+                            data.booking?.ferryId ||
+                            data.booking?.selectedFerry?.id ||
+                            data.booking?.selectedTrip?.id ||
+                            ""
+                        );
+
+                        const targetFerryName = normalizeValue(
+                            data.booking?.vesselName ||
+                            data.booking?.ferryName ||
+                            data.booking?.vessel ||
+                            data.booking?.ferry ||
+                            ""
+                        );
+
+                        const targetTime =
+                            normalizeTime(
+                                bookingDepartureTime
+                            );
+
+                        const matchedFerry =
+                            capacities.find((ferry) => {
+                                const ferryId =
+                                    normalizeValue(
+                                        ferry?.id ||
+                                        ferry?.ferryId ||
+                                        ferry?.vesselId ||
+                                        ""
+                                    );
+
+                                const ferryName =
+                                    normalizeValue(
+                                        ferry?.vesselName ||
+                                        ferry?.ferryName ||
+                                        ferry?.vessel ||
+                                        ferry?.ferry ||
+                                        ""
+                                    );
+
+                                const ferryTime =
+                                    normalizeTime(
+                                        ferry?.departureTime ||
+                                        ferry?.time ||
+                                        ""
+                                    );
+
+                                if (
+                                    targetFerryId &&
+                                    ferryId &&
+                                    targetFerryId === ferryId
+                                ) {
+                                    return true;
+                                }
+
+                                if (
+                                    targetFerryName &&
+                                    ferryName &&
+                                    targetFerryName === ferryName
+                                ) {
+                                    return true;
+                                }
+
+                                return (
+                                    targetTime &&
+                                    ferryTime &&
+                                    targetTime === ferryTime
+                                );
+                            });
+
+                        if (matchedFerry?.vesselName) {
+                            bookingWithFerry = {
+                                ...data.booking,
+                                _resolvedFerryName:
+                                    matchedFerry.vesselName
+                            };
+                        }
+                    }
+                }
+            } catch (capacityLookupError) {
+                console.warn(
+                    "Unable to resolve ferry from capacity schedule:",
+                    capacityLookupError
+                );
+            }
+
+            setBookingSearchResult(bookingWithFerry);
         } catch (error) {
             console.error("Booking reference search error:", error);
             setBookingSearchError(
@@ -786,10 +987,14 @@ const AdminDashboard = () => {
         loadFerryCapacities();
         loadFerryBookings();
 
+        /*
+         * Keep Ferry Capacity live without visibly reloading the
+         * section every few seconds. Background updates are silent.
+         */
         const interval = setInterval(() => {
-            loadFerryCapacities();
+            loadFerryCapacities({ silent: true });
             loadFerryBookings();
-        }, 5000);
+        }, 15000);
 
         return () => clearInterval(interval);
     }, []);
@@ -1478,9 +1683,19 @@ const AdminDashboard = () => {
             return;
         }
 
-        if (staffForm.password.length < 6) {
+        if (staffForm.password.length < 8) {
             showNotification(
-                "Password must be at least 6 characters.",
+                "Password must be at least 8 characters.",
+                "error"
+            );
+            return;
+        }
+
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailPattern.test(staffForm.email.trim())) {
+            showNotification(
+                "Please enter a valid staff email address.",
                 "error"
             );
             return;
@@ -1507,11 +1722,15 @@ const AdminDashboard = () => {
                 }
             );
 
-            const data = await response.json();
+            const contentType = response.headers.get("content-type") || "";
+            const data = contentType.includes("application/json")
+                ? await response.json()
+                : { message: await response.text() };
 
             if (!response.ok) {
                 throw new Error(
-                    data.message || "Unable to create staff account."
+                    data.message ||
+                    `Unable to create staff account. Server returned ${response.status}.`
                 );
             }
 
@@ -1698,6 +1917,68 @@ const AdminDashboard = () => {
     }, [activeView]);
 
     // =========================================================
+    // STAFF FILTERING
+    // =========================================================
+
+    const filteredStaff = staff.filter((item) => {
+        const search = staffSearch.trim().toLowerCase();
+        const matchesSearch =
+            !search ||
+            String(item?.name || "").toLowerCase().includes(search) ||
+            String(item?.email || "").toLowerCase().includes(search);
+
+        const matchesStatus =
+            staffStatusFilter === "all" ||
+            (staffStatusFilter === "active" && item?.isActive) ||
+            (staffStatusFilter === "inactive" && !item?.isActive);
+
+        return matchesSearch && matchesStatus;
+    });
+
+    // =========================================================
+    // DASHBOARD OPERATIONAL METRICS
+    // =========================================================
+
+    const todayBookings = ferryBookings.length;
+
+    const todayPassengers = ferryBookings.reduce((total, booking) => {
+        return total + (Number(
+            booking?.passengers ||
+            booking?.numberOfPassengers ||
+            booking?.passengerCount ||
+            1
+        ) || 1);
+    }, 0);
+
+    const verifiedRevenueToday = ferryBookings.reduce((total, booking) => {
+        const paymentStatus = String(booking?.paymentStatus || "").toUpperCase();
+        if (paymentStatus !== "VERIFIED") return total;
+
+        return total + (Number(
+            booking?.totalPaid ??
+            booking?.totalAmount ??
+            booking?.amountPaid ??
+            0
+        ) || 0);
+    }, 0);
+
+    const totalPassengerCapacity = ferryCapacities.reduce((total, ferry) => {
+        return total + (Number(ferry?.passengerCapacity) || 100);
+    }, 0);
+
+    const occupiedPassengerCapacity = ferryCapacities.reduce((total, ferry) => {
+        return total + (Number(ferry?.passengers) || 0);
+    }, 0);
+
+    const occupancyPercent = totalPassengerCapacity > 0
+        ? Math.min(100, Math.round((occupiedPassengerCapacity / totalPassengerCapacity) * 100))
+        : 0;
+
+    const nextDepartures = [...ferryCapacities]
+        .sort((a, b) => String(a?.departureTime || a?.time || "").localeCompare(String(b?.departureTime || b?.time || "")))
+        .slice(0, 4);
+
+    // =========================================================
     // FORMAT DATE
     // =========================================================
 
@@ -1768,35 +2049,67 @@ const AdminDashboard = () => {
         }
 
         /*
-         * Some versions of the booking data
-         * may return the proof directly as a string.
+         * Some older booking records may store the
+         * payment proof directly as a string.
          */
         if (typeof proof === "string") {
 
-            if (
-                proof.startsWith("http://") ||
-                proof.startsWith("https://")
-            ) {
-                return proof;
+            const proofValue =
+                proof.trim();
+
+            if (!proofValue) {
+                return null;
             }
 
-            return `${API_ORIGIN}${proof}`;
+            if (
+                proofValue.startsWith("http://") ||
+                proofValue.startsWith("https://") ||
+                proofValue.startsWith("data:") ||
+                proofValue.startsWith("blob:")
+            ) {
+                return proofValue;
+            }
+
+            return `${API_ORIGIN}/${proofValue.replace(/^\/+/, "")}`;
         }
 
         /*
          * Current Booking schema stores paymentProof
-         * as an object containing url.
+         * as an object. Prefer the saved URL, but also
+         * support older records that only have fileName.
          */
-        if (proof.url) {
+        const storedUrl =
+            proof.url ||
+            proof.image ||
+            proof.path ||
+            "";
+
+        if (storedUrl) {
+
+            const proofValue =
+                String(storedUrl).trim();
 
             if (
-                proof.url.startsWith("http://") ||
-                proof.url.startsWith("https://")
+                proofValue.startsWith("http://") ||
+                proofValue.startsWith("https://") ||
+                proofValue.startsWith("data:") ||
+                proofValue.startsWith("blob:")
             ) {
-                return proof.url;
+                return proofValue;
             }
 
-            return `${API_ORIGIN}${proof.url}`;
+            return `${API_ORIGIN}/${proofValue.replace(/^\/+/, "")}`;
+        }
+
+        /*
+         * Fallback for records that contain only the
+         * uploaded filename.
+         */
+        if (proof.fileName) {
+
+            return `${API_ORIGIN}/uploads/payment-proofs/${encodeURIComponent(
+                proof.fileName
+            )}`;
         }
 
         return null;
@@ -2229,6 +2542,86 @@ const AdminDashboard = () => {
 
 
                             {/* =================================================
+                                OPERATIONS SNAPSHOT
+                            ================================================= */}
+
+                            <div className="admin-operations-grid">
+                                <div className="admin-operation-card">
+                                    <div className="admin-operation-icon teal">●</div>
+                                    <div>
+                                        <span>Today's Bookings</span>
+                                        <strong>{todayBookings}</strong>
+                                        <small>Active bookings on today's departures</small>
+                                    </div>
+                                </div>
+
+                                <div className="admin-operation-card">
+                                    <div className="admin-operation-icon orange">👤</div>
+                                    <div>
+                                        <span>Passengers Today</span>
+                                        <strong>{todayPassengers}</strong>
+                                        <small>Passenger seats currently reserved</small>
+                                    </div>
+                                </div>
+
+                                <div className="admin-operation-card">
+                                    <div className="admin-operation-icon green">₱</div>
+                                    <div>
+                                        <span>Verified Revenue</span>
+                                        <strong>{formatAmount(verifiedRevenueToday)}</strong>
+                                        <small>Based on verified today's bookings</small>
+                                    </div>
+                                </div>
+
+                                <div className="admin-operation-card">
+                                    <div className="admin-operation-icon purple">↗</div>
+                                    <div>
+                                        <span>Passenger Occupancy</span>
+                                        <strong>{occupancyPercent}%</strong>
+                                        <small>{occupiedPassengerCapacity} of {totalPassengerCapacity || 0} seats occupied</small>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div className="admin-departure-panel">
+                                <div className="admin-departure-header">
+                                    <div>
+                                        <span className="eyebrow">TODAY'S OPERATIONS</span>
+                                        <h3>Departure Board</h3>
+                                        <p>Quick view of ferry schedules and remaining passenger capacity.</p>
+                                    </div>
+                                    <button type="button" className="refresh-button" onClick={() => { loadFerryCapacities(); loadFerryBookings(); }}>↻ Refresh</button>
+                                </div>
+
+                                <div className="admin-departure-list">
+                                    {nextDepartures.length === 0 ? (
+                                        <div className="admin-departure-empty">No ferry schedule is available right now.</div>
+                                    ) : (
+                                        nextDepartures.map((ferry) => {
+                                            const used = Number(ferry?.passengers) || 0;
+                                            const limit = Number(ferry?.passengerCapacity) || 100;
+                                            const remaining = Math.max(0, limit - used);
+                                            const closed = Boolean(ferry?.manualClosed) || remaining <= 0;
+                                            return (
+                                                <div className="admin-departure-row" key={`departure-${ferry?.id || ferry?.vesselName}`}>
+                                                    <div className="admin-departure-time">{ferry?.departureTime || ferry?.time || "—"}</div>
+                                                    <div className="admin-departure-vessel">
+                                                        <strong>{ferry?.vesselName || "Unknown Ferry"}</strong>
+                                                        <span>{used}/{limit} passengers occupied</span>
+                                                    </div>
+                                                    <div className={`admin-departure-status ${closed ? "closed" : "open"}`}>
+                                                        {closed ? "Closed" : `${remaining} seats left`}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
+
+
+                            {/* =================================================
                                 BOOKING REFERENCE SEARCH
                             ================================================= */}
 
@@ -2291,8 +2684,7 @@ const AdminDashboard = () => {
                                             <div><span>Payment Status</span><strong>{bookingSearchResult.paymentStatus || "—"}</strong></div>
                                             <div><span>Required Amount</span><strong>₱{Number(bookingSearchResult.requiredAmount || 0).toLocaleString()}</strong></div>
                                             <div><span>Total Paid</span><strong>{bookingSearchResult.totalPaid == null ? "—" : `₱${Number(bookingSearchResult.totalPaid).toLocaleString()}`}</strong></div>
-                                            <div><span>Boarding Status</span><strong>{bookingSearchResult.timedOutAt ? "TIMED OUT" : (bookingSearchResult.boardingStatus || "—")}</strong></div>
-                                            <div><span>Arrival / Time Out</span><strong>{bookingSearchResult.timedOutAt ? new Date(bookingSearchResult.timedOutAt).toLocaleString() : "—"}</strong></div>
+                                            <div><span>Boarding Status</span><strong>{bookingSearchResult.boardingStatus || "—"}</strong></div>
                                         </div>
 
                                         {bookingSearchResult.paymentProof?.url && (
@@ -3213,6 +3605,26 @@ const AdminDashboard = () => {
                                                                         proofUrl
                                                                     }
                                                                     alt="Payment Proof"
+                                                                    loading="lazy"
+                                                                    onError={(event) => {
+                                                                        const fileName =
+                                                                            payment?.paymentProof &&
+                                                                            typeof payment.paymentProof !== "string"
+                                                                                ? payment.paymentProof.fileName
+                                                                                : "";
+
+                                                                        if (
+                                                                            fileName &&
+                                                                            !event.currentTarget.dataset.fallback
+                                                                        ) {
+                                                                            event.currentTarget.dataset.fallback = "true";
+                                                                            event.currentTarget.src =
+                                                                                `${API_ORIGIN}/uploads/payment-proofs/${encodeURIComponent(fileName)}`;
+                                                                            return;
+                                                                        }
+
+                                                                        event.currentTarget.style.display = "none";
+                                                                    }}
                                                                 />
 
                                                                 <div className="proof-overlay">
@@ -3408,6 +3820,30 @@ const AdminDashboard = () => {
                             </div>
                         </div>
 
+                        <div className="staff-toolbar">
+                            <div className="staff-search-wrap">
+                                <span>⌕</span>
+                                <input
+                                    type="search"
+                                    value={staffSearch}
+                                    onChange={(event) => setStaffSearch(event.target.value)}
+                                    placeholder="Search staff by name or email"
+                                    aria-label="Search staff"
+                                />
+                            </div>
+                            <select
+                                className="staff-filter-select"
+                                value={staffStatusFilter}
+                                onChange={(event) => setStaffStatusFilter(event.target.value)}
+                                aria-label="Filter staff status"
+                            >
+                                <option value="all">All Staff</option>
+                                <option value="active">Active Only</option>
+                                <option value="inactive">Inactive Only</option>
+                            </select>
+                            <span className="staff-result-count">{filteredStaff.length} shown</span>
+                        </div>
+
                         {staffLoading ? (
                             <div className="staff-loading">
                                 <div className="loading-spinner"></div>
@@ -3444,7 +3880,7 @@ const AdminDashboard = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {staff.map(item => {
+                                            {filteredStaff.map(item => {
                                                 const id = item._id || item.id;
                                                 const busy = staffActionLoading === id;
 
@@ -3603,7 +4039,7 @@ const AdminDashboard = () => {
                                         type="password"
                                         value={staffForm.password}
                                         onChange={handleStaffFormChange}
-                                        placeholder="Minimum 6 characters"
+                                        placeholder="Minimum 8 characters"
                                         autoComplete="new-password"
                                         disabled={!!staffActionLoading}
                                     />
@@ -8197,6 +8633,400 @@ const AdminDashboard = () => {
 .admin-booking-proof-link { display: inline-block; margin-top: 12px; padding: 8px 11px; border-radius: 7px; background: #2f2f2f; color: #ffffff; text-decoration: none; font-size: 9px; font-weight: 800; }
 @media (max-width: 900px) { .admin-booking-info-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 600px) { .admin-booking-search-form { grid-template-columns: 1fr; } .admin-booking-search-form button { min-height: 40px; } .admin-booking-info-grid { grid-template-columns: 1fr; } }
+
+/* =========================================================
+   GUIMARASGO ADMIN REDESIGN OVERRIDES
+   UI + PRESENTATION ONLY
+========================================================= */
+
+.admin-dashboard,
+.admin-dashboard button,
+.admin-dashboard input,
+.admin-dashboard select,
+.admin-dashboard textarea {
+    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+.admin-dashboard {
+    background: #f7f8fa;
+    color: #171717;
+}
+
+.sidebar {
+    width: 240px;
+    padding: 24px 14px;
+    background: #ffffff;
+    border-right: 1px solid rgba(17, 24, 39, .08);
+    box-shadow: 8px 0 30px rgba(17, 24, 39, .025);
+}
+
+.sidebar-title {
+    color: #ff861c;
+    font-size: 22px;
+    letter-spacing: -.7px;
+}
+
+.side-item {
+    min-height: 46px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #59616d;
+}
+
+.side-item:hover {
+    background: #fff8f1;
+    color: #e97812;
+}
+
+.side-item.active {
+    background: linear-gradient(135deg, #fff1df, #fff8f2);
+    color: #e97812;
+    box-shadow: inset 3px 0 0 #ff861c;
+}
+
+.dashboard-content {
+    background: #f7f8fa;
+}
+
+.dashboard-header {
+    min-height: 78px;
+    padding: 0 36px;
+    background: rgba(255,255,255,.96);
+    border-bottom: 1px solid #e9ebef;
+}
+
+.dashboard-main {
+    padding: 30px 36px 28px;
+}
+
+.page-heading h2,
+.payments-header h2,
+.staff-header h2 {
+    font-size: 27px;
+    letter-spacing: -.8px;
+}
+
+.cards {
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    min-height: 132px;
+    padding: 20px;
+    border-radius: 16px;
+    border-color: #e9ebef;
+    box-shadow: 0 8px 26px rgba(17,24,39,.045);
+}
+
+.stat-card-button:hover {
+    border-color: #ffd5ad;
+}
+
+.admin-operations-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 16px;
+    margin: 0 0 18px;
+}
+
+.admin-operation-card {
+    min-height: 112px;
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    padding: 18px;
+    background: #fff;
+    border: 1px solid #e9ebef;
+    border-radius: 15px;
+    box-shadow: 0 7px 22px rgba(17,24,39,.035);
+}
+
+.admin-operation-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.admin-operation-icon.teal { background:#e8f8f6; color:#13877e; }
+.admin-operation-icon.orange { background:#fff0e1; color:#ef7d16; }
+.admin-operation-icon.green { background:#eaf8ef; color:#16804a; }
+.admin-operation-icon.purple { background:#f1edff; color:#6952b8; }
+
+.admin-operation-card span,
+.admin-operation-card small {
+    display:block;
+}
+
+.admin-operation-card span {
+    color:#707783;
+    font-size:10px;
+    font-weight:600;
+    margin-bottom:5px;
+}
+
+.admin-operation-card strong {
+    display:block;
+    color:#171717;
+    font-size:21px;
+    line-height:1.15;
+    margin-bottom:5px;
+}
+
+.admin-operation-card small {
+    color:#a0a6af;
+    font-size:9px;
+    line-height:1.35;
+}
+
+.admin-departure-panel {
+    margin: 0 0 20px;
+    padding: 20px;
+    background:#fff;
+    border:1px solid #e9ebef;
+    border-radius:16px;
+    box-shadow:0 8px 26px rgba(17,24,39,.035);
+}
+
+.admin-departure-header {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:14px;
+}
+
+.admin-departure-header h3 {
+    margin:0 0 4px;
+    font-size:17px;
+    letter-spacing:-.3px;
+}
+
+.admin-departure-header p {
+    margin:0;
+    color:#8b929d;
+    font-size:10px;
+}
+
+.admin-departure-list {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.admin-departure-row {
+    min-height:58px;
+    display:grid;
+    grid-template-columns:90px minmax(0,1fr) auto;
+    align-items:center;
+    gap:15px;
+    padding:10px 12px;
+    border:1px solid #eef0f2;
+    border-radius:11px;
+    background:#fcfcfd;
+}
+
+.admin-departure-time {
+    color:#e97812;
+    font-size:12px;
+    font-weight:800;
+}
+
+.admin-departure-vessel strong,
+.admin-departure-vessel span { display:block; }
+.admin-departure-vessel strong { font-size:11px; color:#222; }
+.admin-departure-vessel span { margin-top:2px; color:#9299a4; font-size:9px; }
+
+.admin-departure-status {
+    padding:6px 9px;
+    border-radius:999px;
+    font-size:9px;
+    font-weight:700;
+    white-space:nowrap;
+}
+
+.admin-departure-status.open { background:#eaf8ef; color:#16804a; }
+.admin-departure-status.closed { background:#fff0f0; color:#d32f2f; }
+.admin-departure-empty { padding:18px; text-align:center; color:#969ca6; font-size:11px; }
+
+.admin-booking-search-card,
+.admin-capacity-card,
+.payments-container,
+.staff-page {
+    border-radius:16px;
+}
+
+.admin-booking-search-card,
+.admin-capacity-card {
+    border-color:#e9ebef;
+    box-shadow:0 8px 26px rgba(17,24,39,.035);
+}
+
+.staff-page {
+    width:100%;
+}
+
+.staff-header {
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:20px;
+    margin-bottom:18px;
+}
+
+.staff-header-actions {
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.staff-add-button,
+.refresh-button {
+    border-radius:10px;
+}
+
+.staff-add-button {
+    background:linear-gradient(135deg,#ff861c,#ff9b3d);
+    box-shadow:0 7px 18px rgba(255,134,28,.18);
+}
+
+.staff-summary-card {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:1px;
+    margin-bottom:14px;
+    overflow:hidden;
+    background:#e9ebef;
+    border:1px solid #e9ebef;
+    border-radius:15px;
+}
+
+.staff-summary-card > div {
+    min-height:92px;
+    padding:17px 20px;
+    background:#fff;
+}
+
+.staff-summary-card span { display:block; color:#7e858f; font-size:10px; margin-bottom:8px; }
+.staff-summary-card strong { color:#171717; font-size:24px; }
+
+.staff-toolbar {
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+}
+
+.staff-search-wrap {
+    min-height:42px;
+    flex:1;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:0 12px;
+    background:#fff;
+    border:1px solid #e2e5e9;
+    border-radius:10px;
+}
+
+.staff-search-wrap span { color:#8d949e; font-size:17px; }
+.staff-search-wrap input { width:100%; border:0; outline:0; color:#222; font-size:11px; background:transparent; }
+.staff-search-wrap input::placeholder { color:#a8adb5; }
+
+.staff-filter-select {
+    min-height:42px;
+    padding:0 12px;
+    border:1px solid #e2e5e9;
+    border-radius:10px;
+    background:#fff;
+    color:#444;
+    font-size:11px;
+    outline:none;
+}
+
+.staff-result-count {
+    color:#8e949d;
+    font-size:10px;
+    white-space:nowrap;
+}
+
+.staff-table-card {
+    border:1px solid #e9ebef;
+    border-radius:15px;
+    background:#fff;
+    box-shadow:0 8px 26px rgba(17,24,39,.035);
+    overflow:hidden;
+}
+
+.staff-table th {
+    background:#fafbfc;
+    color:#737b86;
+    font-size:9px;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+}
+
+.staff-table td { font-size:10px; border-top-color:#f0f1f3; }
+.staff-table tbody tr:hover { background:#fffaf5; }
+
+.staff-status.active { background:#eaf8ef; color:#16804a; }
+.staff-status.inactive { background:#f2f3f5; color:#737982; }
+
+.staff-modal {
+    width:min(500px, calc(100% - 30px));
+    border-radius:18px;
+    border:1px solid rgba(255,134,28,.12);
+    box-shadow:0 25px 70px rgba(18,25,38,.18);
+}
+
+.staff-modal input:focus,
+.staff-modal select:focus {
+    border-color:#ff861c;
+    box-shadow:0 0 0 3px rgba(255,134,28,.10);
+}
+
+.notification {
+    border-radius:12px;
+    box-shadow:0 14px 40px rgba(17,24,39,.15);
+}
+
+@media (max-width: 1050px) {
+    .admin-operations-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .cards { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+@media (max-width: 760px) {
+    .sidebar { width:76px; padding:18px 8px; }
+    .brand-section { padding:0 7px; }
+    .sidebar-title { font-size:0; }
+    .sidebar-title::after { content:"GG"; font-size:18px; }
+    .admin-label { display:none; }
+    .side-item { justify-content:center; padding:0 6px; font-size:0; }
+    .side-item::before { content:"•"; font-size:18px; }
+    .side-item span { display:none; }
+    .pending-badge { display:none; }
+    .dashboard-header { padding:0 18px; }
+    .dashboard-main { padding:22px 16px; }
+    .admin-operations-grid { grid-template-columns:1fr 1fr; }
+    .staff-header { align-items:stretch; flex-direction:column; }
+    .staff-toolbar { flex-wrap:wrap; }
+    .staff-search-wrap { min-width:100%; }
+}
+
+@media (max-width: 520px) {
+    .cards,
+    .admin-operations-grid,
+    .staff-summary-card { grid-template-columns:1fr; }
+    .admin-departure-row { grid-template-columns:72px minmax(0,1fr); }
+    .admin-departure-status { grid-column:2; justify-self:start; }
+    .staff-header-actions { width:100%; }
+    .staff-header-actions > * { flex:1; }
+}
 `}</style>
 
         </main>

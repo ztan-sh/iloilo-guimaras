@@ -1,21 +1,19 @@
-const bcrypt = require("bcryptjs");
 const Staff = require("../models/Staff");
 
 
 // =========================================================
-// CREATE STAFF ACCOUNT
-// =========================================================
-// Admin creates a staff account that can be used to log in
-// to the Staff Dashboard and Scanner.
+// CREATE STAFF
 // =========================================================
 
 const createStaff = async (req, res) => {
+
     try {
 
         const {
             name,
             email,
-            password
+            password,
+            confirmPassword
         } = req.body;
 
 
@@ -23,12 +21,45 @@ const createStaff = async (req, res) => {
         // VALIDATION
         // =====================================================
 
-        if (!name || !email || !password) {
+        if (
+            !name ||
+            !email ||
+            !password ||
+            !confirmPassword
+        ) {
 
             return res.status(400).json({
                 success: false,
                 message:
-                    "Name, email, and password are required."
+                    "Please complete all required fields."
+            });
+        }
+
+
+        // =====================================================
+        // CHECK PASSWORD
+        // =====================================================
+
+        if (password !== confirmPassword) {
+
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Passwords do not match."
+            });
+        }
+
+
+        // =====================================================
+        // PASSWORD LENGTH
+        // =====================================================
+
+        if (password.length < 8) {
+
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Password must be at least 8 characters."
             });
         }
 
@@ -39,20 +70,6 @@ const createStaff = async (req, res) => {
 
         const normalizedEmail =
             email.trim().toLowerCase();
-
-
-        // =====================================================
-        // PASSWORD LENGTH
-        // =====================================================
-
-        if (password.length < 6) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Password must be at least 6 characters."
-            });
-        }
 
 
         // =====================================================
@@ -78,8 +95,13 @@ const createStaff = async (req, res) => {
         // =====================================================
         // CREATE STAFF
         // =====================================================
-        // The Staff model already hashes the password using
-        // its pre-save middleware.
+        //
+        // IMPORTANT:
+        // Do NOT hash the password here.
+        //
+        // Staff.js already contains the bcrypt
+        // pre-save middleware that hashes it.
+        //
         // =====================================================
 
         const staff =
@@ -132,7 +154,6 @@ const createStaff = async (req, res) => {
             }
         });
 
-
     } catch (error) {
 
         console.error(
@@ -140,11 +161,8 @@ const createStaff = async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
             success: false,
-
             message:
                 "Unable to create staff account."
         });
@@ -152,11 +170,8 @@ const createStaff = async (req, res) => {
 };
 
 
-
 // =========================================================
 // GET ALL STAFF
-// =========================================================
-// Admin can see all staff accounts.
 // =========================================================
 
 const getAllStaff = async (req, res) => {
@@ -175,23 +190,22 @@ const getAllStaff = async (req, res) => {
 
             success: true,
 
+            count:
+                staff.length,
+
             staff
 
         });
 
-
     } catch (error) {
 
         console.error(
-            "Get all staff error:",
+            "Get staff error:",
             error
         );
 
-
         return res.status(500).json({
-
             success: false,
-
             message:
                 "Unable to retrieve staff accounts."
         });
@@ -199,9 +213,8 @@ const getAllStaff = async (req, res) => {
 };
 
 
-
 // =========================================================
-// GET STAFF BY ID
+// GET SINGLE STAFF
 // =========================================================
 
 const getStaffById = async (req, res) => {
@@ -217,9 +230,7 @@ const getStaffById = async (req, res) => {
         if (!staff) {
 
             return res.status(404).json({
-
                 success: false,
-
                 message:
                     "Staff account not found."
             });
@@ -234,304 +245,20 @@ const getStaffById = async (req, res) => {
 
         });
 
-
     } catch (error) {
 
         console.error(
-            "Get staff error:",
+            "Get staff by ID error:",
             error
         );
 
-
         return res.status(500).json({
-
             success: false,
-
             message:
                 "Unable to retrieve staff account."
         });
     }
 };
-
-
-
-// =========================================================
-// UPDATE STAFF
-// =========================================================
-// Admin can update staff name, email, password and status.
-// =========================================================
-
-const updateStaff = async (req, res) => {
-
-    try {
-
-        const {
-            name,
-            email,
-            password,
-            isActive
-        } = req.body;
-
-
-        const staff =
-            await Staff.findById(
-                req.params.id
-            );
-
-
-        if (!staff) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message:
-                    "Staff account not found."
-            });
-        }
-
-
-        // =====================================================
-        // UPDATE NAME
-        // =====================================================
-
-        if (name !== undefined) {
-
-            if (!name.trim()) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    message:
-                        "Staff name cannot be empty."
-                });
-            }
-
-            staff.name =
-                name.trim();
-        }
-
-
-        // =====================================================
-        // UPDATE EMAIL
-        // =====================================================
-
-        if (email !== undefined) {
-
-            const normalizedEmail =
-                email.trim().toLowerCase();
-
-
-            if (!normalizedEmail) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    message:
-                        "Staff email cannot be empty."
-                });
-            }
-
-
-            const emailExists =
-                await Staff.findOne({
-
-                    email:
-                        normalizedEmail,
-
-                    _id: {
-                        $ne:
-                            staff._id
-                    }
-
-                });
-
-
-            if (emailExists) {
-
-                return res.status(409).json({
-
-                    success: false,
-
-                    message:
-                        "Another staff account is already using this email."
-                });
-            }
-
-
-            staff.email =
-                normalizedEmail;
-        }
-
-
-        // =====================================================
-        // UPDATE PASSWORD
-        // =====================================================
-
-        if (password !== undefined) {
-
-            if (password.length < 6) {
-
-                return res.status(400).json({
-
-                    success: false,
-
-                    message:
-                        "Password must be at least 6 characters."
-                });
-            }
-
-
-            // Staff model pre-save middleware will hash it.
-            staff.password =
-                password;
-        }
-
-
-        // =====================================================
-        // UPDATE ACTIVE STATUS
-        // =====================================================
-
-        if (isActive !== undefined) {
-
-            staff.isActive =
-                Boolean(isActive);
-        }
-
-
-        await staff.save();
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            message:
-                "Staff account updated successfully.",
-
-            staff: {
-
-                id:
-                    staff._id,
-
-                name:
-                    staff.name,
-
-                email:
-                    staff.email,
-
-                role:
-                    staff.role,
-
-                isActive:
-                    staff.isActive
-            }
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "Update staff error:",
-            error
-        );
-
-
-        return res.status(500).json({
-
-            success: false,
-
-            message:
-                "Unable to update staff account."
-        });
-    }
-};
-
-
-
-// =========================================================
-// DEACTIVATE STAFF
-// =========================================================
-// Instead of deleting the account, we deactivate it.
-// This keeps the staff record in the database.
-// =========================================================
-
-const deactivateStaff = async (req, res) => {
-
-    try {
-
-        const staff =
-            await Staff.findById(
-                req.params.id
-            );
-
-
-        if (!staff) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message:
-                    "Staff account not found."
-            });
-        }
-
-
-        staff.isActive =
-            false;
-
-
-        await staff.save();
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            message:
-                "Staff account deactivated successfully.",
-
-            staff: {
-
-                id:
-                    staff._id,
-
-                name:
-                    staff.name,
-
-                email:
-                    staff.email,
-
-                role:
-                    staff.role,
-
-                isActive:
-                    staff.isActive
-            }
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "Deactivate staff error:",
-            error
-        );
-
-
-        return res.status(500).json({
-
-            success: false,
-
-            message:
-                "Unable to deactivate staff account."
-        });
-    }
-};
-
 
 
 // =========================================================
@@ -551,18 +278,14 @@ const activateStaff = async (req, res) => {
         if (!staff) {
 
             return res.status(404).json({
-
                 success: false,
-
                 message:
                     "Staff account not found."
             });
         }
 
 
-        staff.isActive =
-            true;
-
+        staff.isActive = true;
 
         await staff.save();
 
@@ -593,7 +316,6 @@ const activateStaff = async (req, res) => {
             }
         });
 
-
     } catch (error) {
 
         console.error(
@@ -601,11 +323,8 @@ const activateStaff = async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
             success: false,
-
             message:
                 "Unable to activate staff account."
         });
@@ -613,21 +332,16 @@ const activateStaff = async (req, res) => {
 };
 
 
-
 // =========================================================
-// DELETE STAFF
-// =========================================================
-// Permanent deletion.
-// Normally, deactivation is safer, but this endpoint is
-// available for admin management.
+// DEACTIVATE STAFF
 // =========================================================
 
-const deleteStaff = async (req, res) => {
+const deactivateStaff = async (req, res) => {
 
     try {
 
         const staff =
-            await Staff.findByIdAndDelete(
+            await Staff.findById(
                 req.params.id
             );
 
@@ -635,13 +349,87 @@ const deleteStaff = async (req, res) => {
         if (!staff) {
 
             return res.status(404).json({
-
                 success: false,
-
                 message:
                     "Staff account not found."
             });
         }
+
+
+        staff.isActive = false;
+
+        await staff.save();
+
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Staff account deactivated successfully.",
+
+            staff: {
+
+                id:
+                    staff._id,
+
+                name:
+                    staff.name,
+
+                email:
+                    staff.email,
+
+                role:
+                    staff.role,
+
+                isActive:
+                    staff.isActive
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Deactivate staff error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message:
+                "Unable to deactivate staff account."
+        });
+    }
+};
+
+
+// =========================================================
+// DELETE STAFF
+// =========================================================
+
+const deleteStaff = async (req, res) => {
+
+    try {
+
+        const staff =
+            await Staff.findById(
+                req.params.id
+            );
+
+
+        if (!staff) {
+
+            return res.status(404).json({
+                success: false,
+                message:
+                    "Staff account not found."
+            });
+        }
+
+
+        await Staff.findByIdAndDelete(
+            req.params.id
+        );
 
 
         return res.status(200).json({
@@ -650,8 +438,8 @@ const deleteStaff = async (req, res) => {
 
             message:
                 "Staff account deleted successfully."
-        });
 
+        });
 
     } catch (error) {
 
@@ -660,11 +448,8 @@ const deleteStaff = async (req, res) => {
             error
         );
 
-
         return res.status(500).json({
-
             success: false,
-
             message:
                 "Unable to delete staff account."
         });
@@ -672,6 +457,117 @@ const deleteStaff = async (req, res) => {
 };
 
 
+
+
+// =========================================================
+// UPDATE STAFF
+// =========================================================
+// Allows an Administrator to update a staff member's name,
+// email, and/or password. Staff.js hashes a changed password
+// automatically through its pre-save middleware.
+// =========================================================
+
+const updateStaff = async (req, res) => {
+
+    try {
+
+        const {
+            name,
+            email,
+            password,
+            confirmPassword
+        } = req.body;
+
+        const staff = await Staff.findById(req.params.id);
+
+        if (!staff) {
+            return res.status(404).json({
+                success: false,
+                message: "Staff account not found."
+            });
+        }
+
+        if (name !== undefined) {
+            const trimmedName = String(name).trim();
+
+            if (!trimmedName) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Staff name cannot be empty."
+                });
+            }
+
+            staff.name = trimmedName;
+        }
+
+        if (email !== undefined) {
+            const normalizedEmail = String(email).trim().toLowerCase();
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+            if (!emailPattern.test(normalizedEmail)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Please enter a valid email address."
+                });
+            }
+
+            const existingStaff = await Staff.findOne({
+                email: normalizedEmail,
+                _id: { $ne: staff._id }
+            });
+
+            if (existingStaff) {
+                return res.status(409).json({
+                    success: false,
+                    message: "A staff account with this email already exists."
+                });
+            }
+
+            staff.email = normalizedEmail;
+        }
+
+        if (password !== undefined && password !== "") {
+            if (password.length < 8) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Password must be at least 8 characters."
+                });
+            }
+
+            if (password !== confirmPassword) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Passwords do not match."
+                });
+            }
+
+            staff.password = password;
+        }
+
+        await staff.save();
+
+        return res.status(200).json({
+            success: true,
+            message: "Staff account updated successfully.",
+            staff: {
+                id: staff._id,
+                name: staff.name,
+                email: staff.email,
+                role: staff.role,
+                isActive: staff.isActive
+            }
+        });
+
+    } catch (error) {
+
+        console.error("Update staff error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to update staff account."
+        });
+    }
+};
 
 // =========================================================
 // EXPORT
@@ -687,9 +583,9 @@ module.exports = {
 
     updateStaff,
 
-    deactivateStaff,
-
     activateStaff,
+
+    deactivateStaff,
 
     deleteStaff
 

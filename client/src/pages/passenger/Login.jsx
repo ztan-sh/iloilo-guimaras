@@ -1078,11 +1078,7 @@ const Login = () => {
                     <section className="login-panel">
                         <div className="login-content">
                             <div className="login-heading">
-                                <h1>Welcome back</h1>
-                                <p>
-                                    Don't have an account?{" "}
-                                    <Link to="/register">Create one</Link>
-                                </p>
+                                <h1>Welcome back!</h1>
                             </div>
 
                             <form

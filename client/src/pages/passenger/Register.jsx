@@ -2059,10 +2059,6 @@ const Register = () => {
 
                         <div className="register-heading">
                             <h1>Create your account</h1>
-                            <p>
-                                Already have one?{" "}
-                                <Link to="/login">Log in</Link>
-                            </p>
                         </div>
 
                         <Link
