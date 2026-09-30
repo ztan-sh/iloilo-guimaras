@@ -1618,6 +1618,401 @@ const Register = () => {
                     }
                 }
 
+
+                /* =====================================================
+                   REFERENCE REGISTER UI — SPLIT LAYOUT
+                ===================================================== */
+
+                .register-page {
+                    min-height: 100vh;
+                    min-height: 100dvh;
+                    padding: 22px 28px;
+                    background: #214f4b;
+                    align-items: center;
+                }
+
+                .register-container {
+                    width: min(1100px, 100%);
+                    min-height: 590px;
+                    padding: 36px 0 36px 36px;
+                    display: grid;
+                    grid-template-columns: minmax(430px, 1fr) minmax(430px, 1fr);
+                    align-items: stretch;
+                    background: #1d1d1b;
+                    border: 0;
+                    border-radius: 0;
+                    overflow: hidden;
+                    box-shadow: none;
+                }
+
+                .register-visual-panel {
+                    position: relative;
+                    min-height: 590px;
+                    overflow: hidden;
+                    border-radius: 15px 0 0 15px;
+                    background:
+                        linear-gradient(180deg, rgba(0, 0, 0, .18), rgba(0, 0, 0, .52)),
+                        url("/images/register/register-background.jpg") center center / cover no-repeat;
+                }
+
+                .register-visual-panel::after {
+                    content: "";
+                    position: absolute;
+                    inset: 0;
+                    background: linear-gradient(180deg, rgba(0, 0, 0, .05) 0%, rgba(0, 0, 0, .08) 42%, rgba(0, 0, 0, .62) 100%);
+                    pointer-events: none;
+                }
+
+                .register-visual-back {
+                    position: absolute;
+                    top: 18px;
+                    left: 18px;
+                    z-index: 3;
+                    width: auto;
+                    height: 34px;
+                    padding: 0 13px;
+                    border: 1px solid rgba(255,255,255,.28);
+                    border-radius: 18px;
+                    background: rgba(255,255,255,.13);
+                    color: #fff;
+                    font-size: 12px;
+                    font-weight: 500;
+                    cursor: pointer;
+                    backdrop-filter: blur(7px);
+                    -webkit-backdrop-filter: blur(7px);
+                }
+
+                .register-visual-back:hover {
+                    background: rgba(255,255,255,.22);
+                    transform: none;
+                    border-color: rgba(255,255,255,.45);
+                    color: #fff;
+                }
+
+                .register-visual-logo {
+                    position: absolute;
+                    top: 18px;
+                    right: 20px;
+                    z-index: 3;
+                    width: 48px;
+                    height: 48px;
+                    object-fit: contain;
+                }
+
+                .register-visual-copy {
+                    position: absolute;
+                    left: 34px;
+                    right: 34px;
+                    bottom: 30px;
+                    z-index: 3;
+                    color: #fff;
+                }
+
+                .register-visual-copy h2 {
+                    margin: 0;
+                    max-width: 390px;
+                    font-size: clamp(30px, 3.2vw, 40px);
+                    line-height: .98;
+                    letter-spacing: -.8px;
+                    font-weight: 800;
+                    color: #fff;
+                }
+
+                .register-visual-copy h2 span {
+                    display: block;
+                    color: #ff8a24;
+                    font-family: Georgia, "Times New Roman", serif;
+                    font-style: italic;
+                    font-weight: 700;
+                }
+
+                .register-visual-copy p {
+                    max-width: 380px;
+                    margin: 14px 0 0;
+                    color: rgba(255,255,255,.92);
+                    font-size: 12px;
+                    line-height: 1.45;
+                }
+
+                .register-form-panel {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    padding: 38px 74px 34px;
+                    background: #1d1d1b;
+                    color: #fff;
+                }
+
+                .register-form-panel .register-heading {
+                    max-width: none;
+                    margin: 0 0 28px;
+                    text-align: left;
+                }
+
+                .register-form-panel .register-heading h1 {
+                    color: #fff;
+                    font-size: clamp(30px, 3vw, 39px);
+                    font-weight: 500;
+                    letter-spacing: -.8px;
+                }
+
+                .register-form-panel .register-heading p {
+                    margin-top: 5px;
+                    color: rgba(255,255,255,.72);
+                    font-size: 12px;
+                }
+
+                .register-form-panel .register-heading p a {
+                    color: #fff;
+                    text-decoration: underline;
+                }
+
+                .register-admin-link {
+                    display: block;
+                    margin: -18px 0 16px;
+                    text-align: right;
+                    color: rgba(255,255,255,.75);
+                    font-size: 10px;
+                    text-decoration: underline;
+                }
+
+                .register-form-panel .register-form {
+                    max-width: none;
+                    padding: 0;
+                    border: 0;
+                    border-radius: 0;
+                    background: transparent;
+                    box-shadow: none;
+                }
+
+                .register-form-panel .register-form-group {
+                    margin-bottom: 16px;
+                }
+
+                .register-form-panel .register-form-group label {
+                    display: none;
+                }
+
+                .register-form-panel .register-form-group input {
+                    height: 42px;
+                    padding: 0 14px;
+                    border: 0;
+                    border-radius: 6px;
+                    background: #5a5a5a;
+                    color: #fff;
+                    font-size: 11px;
+                }
+
+                .register-form-panel .register-form-group input::placeholder {
+                    color: rgba(255,255,255,.9);
+                }
+
+                .register-form-panel .register-form-group input:focus {
+                    border: 1px solid #ff8a24;
+                    box-shadow: 0 0 0 2px rgba(255,138,36,.16);
+                }
+
+                .register-form-panel .register-password-requirements {
+                    margin: -2px 0 16px;
+                    padding: 10px 12px;
+                    border: 1px solid rgba(255,255,255,.18);
+                    border-radius: 6px;
+                    background: #242422;
+                }
+
+                .register-form-panel .register-password-requirements-title {
+                    margin-bottom: 8px;
+                    color: #fff;
+                    font-size: 10px;
+                }
+
+                .register-form-panel .register-password-checklist {
+                    gap: 7px 18px;
+                }
+
+                .register-form-panel .password-check-item {
+                    color: rgba(255,255,255,.62);
+                    font-size: 9px;
+                }
+
+                .register-form-panel .password-check-item.valid {
+                    color: #5bd68a;
+                }
+
+                .register-form-panel .password-check-icon {
+                    width: 14px;
+                    height: 14px;
+                    flex-basis: 14px;
+                    border: 1px solid rgba(255,255,255,.35);
+                    border-radius: 50%;
+                    font-size: 8px;
+                }
+
+                .register-form-panel .password-check-item.valid .password-check-icon {
+                    border-color: #5bd68a;
+                    background: #5bd68a;
+                    color: #173b2a;
+                }
+
+                .register-form-panel .register-terms {
+                    margin: 3px 0 18px;
+                    color: rgba(255,255,255,.68);
+                    font-size: 9px;
+                }
+
+                .register-form-panel .register-terms input {
+                    width: 13px;
+                    height: 13px;
+                }
+
+                .register-form-panel .register-terms a {
+                    color: #fff;
+                }
+
+                .register-form-panel .register-primary-button {
+                    height: 42px;
+                    border-radius: 22px;
+                    background: #ff922f;
+                    font-size: 11px;
+                    font-weight: 600;
+                }
+
+                .register-form-panel .register-primary-button:hover {
+                    background: #ff9f47;
+                    transform: none;
+                    box-shadow: none;
+                }
+
+                .register-form-panel .register-divider {
+                    max-width: none;
+                    margin: 18px 0 12px;
+                    color: rgba(255,255,255,.45);
+                }
+
+                .register-form-panel .register-divider::before,
+                .register-form-panel .register-divider::after {
+                    background: rgba(255,255,255,.16);
+                }
+
+                .register-form-panel .register-social-login {
+                    max-width: none;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                }
+
+                .register-form-panel .register-social-button {
+                    min-height: 41px;
+                    border: 1px solid rgba(255,255,255,.48);
+                    border-radius: 22px;
+                    background: transparent;
+                    color: #fff;
+                    font-size: 10px;
+                }
+
+                .register-form-panel .register-social-button:hover {
+                    background: rgba(255,255,255,.07);
+                    border-color: #fff;
+                    transform: none;
+                    box-shadow: none;
+                }
+
+                .register-form-panel .register-login-section {
+                    margin-top: 18px;
+                    display: flex;
+                    justify-content: center;
+                    gap: 4px;
+                }
+
+                .register-form-panel .register-login-text,
+                .register-form-panel .register-login-link {
+                    margin: 0;
+                    color: rgba(255,255,255,.62);
+                    font-size: 9px;
+                }
+
+                .register-form-panel .register-login-link {
+                    color: #fff;
+                }
+
+                .register-form-panel .register-footer {
+                    margin-top: 20px;
+                    gap: 24px;
+                    color: rgba(255,255,255,.28);
+                    font-size: 8px;
+                }
+
+                .register-back-button,
+                .register-logo-header {
+                    display: none;
+                }
+
+                @media (max-width: 900px) {
+                    .register-page {
+                        padding: 18px;
+                    }
+
+                    .register-container {
+                        grid-template-columns: 1fr;
+                        max-width: 560px;
+                        padding: 24px 24px 0;
+                    }
+
+                    .register-visual-panel {
+                        min-height: 390px;
+                        border-radius: 15px;
+                    }
+
+                    .register-form-panel {
+                        padding: 34px 42px 38px;
+                    }
+                }
+
+                @media (max-width: 560px) {
+                    .register-page {
+                        padding: 0;
+                        align-items: stretch;
+                    }
+
+                    .register-container {
+                        width: 100%;
+                        min-height: 100dvh;
+                        padding: 16px 16px 0;
+                        border-radius: 0;
+                    }
+
+                    .register-visual-panel {
+                        min-height: 330px;
+                        border-radius: 14px;
+                    }
+
+                    .register-visual-copy {
+                        left: 24px;
+                        right: 24px;
+                        bottom: 24px;
+                    }
+
+                    .register-visual-copy h2 {
+                        font-size: 31px;
+                    }
+
+                    .register-visual-copy p {
+                        font-size: 11px;
+                    }
+
+                    .register-form-panel {
+                        padding: 30px 22px 34px;
+                    }
+
+                    .register-form-panel .register-heading h1 {
+                        font-size: 29px;
+                    }
+
+                    .register-form-panel .register-password-checklist {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
             `}</style>
 
 
@@ -1629,227 +2024,122 @@ const Register = () => {
 
                 <div className="register-container">
 
-                    {/* =================================================
-                       BACK BUTTON
-                    ================================================= */}
+                    <section className="register-visual-panel">
 
-                    <button
-                        type="button"
-                        className="register-back-button"
-                        onClick={() =>
-                            navigate("/Login")
-                        }
-                        aria-label="Go back"
-                    >
-                        ←
-                    </button>
-
-
-                    {/* =================================================
-                       LOGO
-                    ================================================= */}
-
-                    <div className="register-logo-header">
+                        <button
+                            type="button"
+                            className="register-visual-back"
+                            onClick={() => navigate("/login")}
+                            aria-label="Go back"
+                        >
+                            ← Back
+                        </button>
 
                         <img
                             src="/images/guimarasgo-logo.png"
                             alt="GuimarasGo Logo"
-                            className="register-logo-image"
+                            className="register-visual-logo"
                         />
 
-                    </div>
-
-
-                    {/* =================================================
-                       CONTENT
-                    ================================================= */}
-
-                    <div className="register-content">
-
-                        {/* HEADING */}
-
-                        <div className="register-heading">
-
-                            <h1>
-                                Create Account
-                            </h1>
+                        <div className="register-visual-copy">
+                            <h2>
+                                Skip the line.
+                                <span>Book your crossing.</span>
+                            </h2>
 
                             <p>
-                                Create your account to reserve
-                                your ferry trip.
+                                Create an account to check schedules, book slots,
+                                and get your crossing details in seconds.
                             </p>
-
                         </div>
 
+                    </section>
 
-                        {/* =================================================
-                           REGISTRATION FORM
-                        ================================================= */}
+                    <section className="register-form-panel">
 
-                        {/* =================================================
-                           REGISTRATION TYPE
-                        ================================================= */}
-
-                        <div className="register-type-section">
-                            <p className="register-type-title">
-                                Choose Account Type
+                        <div className="register-heading">
+                            <h1>Create your account</h1>
+                            <p>
+                                Already have one?{" "}
+                                <Link to="/login">Log in</Link>
                             </p>
-
-                            <div className="register-type-options">
-
-                                <button
-                                    type="button"
-                                    className="register-type-option register-type-option-active"
-                                >
-                                    <span className="register-type-option-title">
-                                        Passenger
-                                    </span>
-
-                                    <span className="register-type-option-description">
-                                        Register to book ferry trips.
-                                    </span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="register-type-option"
-                                    onClick={() =>
-                                        navigate("/admin-register")
-                                    }
-                                >
-                                    <span className="register-type-option-title">
-                                        Administrator
-                                    </span>
-
-                                    <span className="register-type-option-description">
-                                        Requires an Admin Registration Code.
-                                    </span>
-                                </button>
-
-                            </div>
                         </div>
 
+                        <Link
+                            to="/admin-register"
+                            className="register-admin-link"
+                        >
+                            Administrator registration
+                        </Link>
 
                         <form
                             className="register-form"
                             onSubmit={handleSubmit}
                         >
 
-                            {/* FULL NAME */}
-
                             <div className="register-form-group">
-
-                                <label htmlFor="fullName">
-                                    Full Name
-                                </label>
-
+                                <label htmlFor="fullName">Full Name</label>
                                 <input
                                     id="fullName"
                                     name="fullName"
                                     type="text"
-                                    placeholder="Enter your full name"
-                                    value={
-                                        formData.fullName
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
+                                    placeholder="Fullname"
+                                    value={formData.fullName}
+                                    onChange={handleChange}
                                     autoComplete="name"
                                     required
                                 />
-
                             </div>
 
-
-                            {/* EMAIL */}
-
                             <div className="register-form-group">
-
-                                <label htmlFor="registerEmail">
-                                    Email Address
-                                </label>
-
+                                <label htmlFor="registerEmail">Email Address</label>
                                 <input
                                     id="registerEmail"
                                     name="email"
                                     type="email"
-                                    placeholder="you@example.com"
-                                    value={
-                                        formData.email
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
+                                    placeholder="Email"
+                                    value={formData.email}
+                                    onChange={handleChange}
                                     autoComplete="email"
                                     required
                                 />
-
                             </div>
 
-
-                            {/* PHONE NUMBER */}
-
                             <div className="register-form-group">
-
-                                <label htmlFor="phoneNumber">
-                                    Phone Number
-                                </label>
-
+                                <label htmlFor="phoneNumber">Phone Number</label>
                                 <input
                                     id="phoneNumber"
                                     name="phoneNumber"
                                     type="tel"
-                                    placeholder="09XXXXXXXXX"
-                                    value={
-                                        formData.phoneNumber
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
+                                    placeholder="Phone"
+                                    value={formData.phoneNumber}
+                                    onChange={handleChange}
                                     autoComplete="tel"
                                     required
                                 />
-
                             </div>
 
-
-                            {/* PASSWORD */}
-
                             <div className="register-form-group">
-
-                                <label htmlFor="registerPassword">
-                                    Password
-                                </label>
-
+                                <label htmlFor="registerPassword">Password</label>
                                 <input
                                     id="registerPassword"
                                     name="password"
                                     type="password"
-                                    placeholder="Create a password"
-                                    value={
-                                        formData.password
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
+                                    placeholder="Password"
+                                    value={formData.password}
+                                    onChange={handleChange}
                                     autoComplete="new-password"
                                     minLength={8}
                                     required
                                 />
-
                             </div>
 
-
-                            {/* PASSWORD REQUIREMENTS */}
-
                             <div className="register-password-requirements">
-
                                 <p className="register-password-requirements-title">
                                     Password requirements
                                 </p>
 
                                 <div className="register-password-checklist">
-
                                     <div className={passwordRequirements.minLength ? "password-check-item valid" : "password-check-item"}>
                                         <span className="password-check-icon">
                                             {passwordRequirements.minLength ? "✓" : "○"}
@@ -1861,144 +2151,81 @@ const Register = () => {
                                         <span className="password-check-icon">
                                             {passwordRequirements.uppercase ? "✓" : "○"}
                                         </span>
-                                        <span>One uppercase letter</span>
+                                        <span>1 uppercase letter (A–Z)</span>
                                     </div>
 
                                     <div className={passwordRequirements.lowercase ? "password-check-item valid" : "password-check-item"}>
                                         <span className="password-check-icon">
                                             {passwordRequirements.lowercase ? "✓" : "○"}
                                         </span>
-                                        <span>One lowercase letter</span>
+                                        <span>1 lowercase letter (a–z)</span>
                                     </div>
 
                                     <div className={passwordRequirements.number ? "password-check-item valid" : "password-check-item"}>
                                         <span className="password-check-icon">
                                             {passwordRequirements.number ? "✓" : "○"}
                                         </span>
-                                        <span>One number</span>
+                                        <span>1 number (0–9)</span>
                                     </div>
 
                                     <div className={passwordRequirements.special ? "password-check-item valid" : "password-check-item"}>
                                         <span className="password-check-icon">
                                             {passwordRequirements.special ? "✓" : "○"}
                                         </span>
-                                        <span>One special character</span>
+                                        <span>1 special character (!@#$%)</span>
                                     </div>
-
                                 </div>
-
                             </div>
 
-
-                            {/* CONFIRM PASSWORD */}
-
                             <div className="register-form-group">
-
-                                <label htmlFor="confirmPassword">
-                                    Confirm Password
-                                </label>
-
+                                <label htmlFor="confirmPassword">Confirm Password</label>
                                 <input
                                     id="confirmPassword"
                                     name="confirmPassword"
                                     type="password"
-                                    placeholder="Confirm your password"
-                                    value={
-                                        formData.confirmPassword
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
+                                    placeholder="Confirm password"
+                                    value={formData.confirmPassword}
+                                    onChange={handleChange}
                                     autoComplete="new-password"
                                     minLength={8}
                                     required
                                 />
-
                             </div>
 
-
-                            {/* TERMS */}
-
                             <label className="register-terms">
-
                                 <input
                                     type="checkbox"
                                     name="agreeTerms"
-                                    checked={
-                                        formData.agreeTerms
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
+                                    checked={formData.agreeTerms}
+                                    onChange={handleChange}
                                 />
-
                                 <span>
-
                                     I agree to the{" "}
-
-                                    <a
-                                        href="#terms"
-                                        onClick={(
-                                            event
-                                        ) =>
-                                            event.stopPropagation()
-                                        }
-                                    >
+                                    <a href="#terms" onClick={(event) => event.stopPropagation()}>
                                         Terms of Service
                                     </a>
-
                                     {" "}and{" "}
-
-                                    <a
-                                        href="#privacy"
-                                        onClick={(
-                                            event
-                                        ) =>
-                                            event.stopPropagation()
-                                        }
-                                    >
+                                    <a href="#privacy" onClick={(event) => event.stopPropagation()}>
                                         Privacy Policy
-                                    </a>.
-
+                                    </a>
                                 </span>
-
                             </label>
-
-
-                            {/* CREATE ACCOUNT */}
 
                             <button
                                 type="submit"
                                 className="register-primary-button"
                                 disabled={loading}
                             >
-                                {loading
-                                    ? "Creating Account..."
-                                    : "Create Account"}
+                                {loading ? "Creating Account..." : "Create account"}
                             </button>
 
                         </form>
 
-
-                        {/* =================================================
-                           DIVIDER
-                        ================================================= */}
-
                         <div className="register-divider">
-
-                            <span>
-                                Or continue with
-                            </span>
-
+                            <span>Or continue with</span>
                         </div>
 
-
-                        {/* =================================================
-                           SOCIAL REGISTRATION
-                        ================================================= */}
-
                         <div className="register-social-login">
-
                             <button
                                 type="button"
                                 className="register-social-button"
@@ -2010,17 +2237,9 @@ const Register = () => {
                                     )
                                 }
                             >
-
-                                <FcGoogle
-                                    className="register-social-icon"
-                                />
-
-                                <span>
-                                    Continue with Google
-                                </span>
-
+                                <FcGoogle className="register-social-icon" />
+                                <span>Continue with Google</span>
                             </button>
-
 
                             <button
                                 type="button"
@@ -2033,61 +2252,27 @@ const Register = () => {
                                     )
                                 }
                             >
-
-                                <FaApple
-                                    className="register-social-icon register-apple-icon"
-                                />
-
-                                <span>
-                                    Continue with Apple
-                                </span>
-
+                                <FaApple className="register-social-icon register-apple-icon" />
+                                <span>Apple</span>
                             </button>
-
                         </div>
 
-
-                        {/* =================================================
-                           LOGIN
-                        ================================================= */}
-
                         <div className="register-login-section">
-
                             <p className="register-login-text">
                                 Already have an account?
                             </p>
-
-                            <Link
-                                to="/login"
-                                className="register-login-link"
-                            >
-                                Sign In
+                            <Link to="/login" className="register-login-link">
+                                Log in
                             </Link>
-
                         </div>
-
-
-                        {/* =================================================
-                           FOOTER
-                        ================================================= */}
 
                         <div className="register-footer">
-
-                            <span>
-                                Privacy Policy
-                            </span>
-
-                            <span>
-                                Terms of Service
-                            </span>
-
-                            <span>
-                                Help Center
-                            </span>
-
+                            <span>Privacy Policy</span>
+                            <span>Terms of Service</span>
+                            <span>Help Center</span>
                         </div>
 
-                    </div>
+                    </section>
 
                 </div>
 

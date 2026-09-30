@@ -5,9 +5,7 @@ const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
     "http://localhost:5000/api";
 
-
 const AdminRegister = () => {
-
     const navigate = useNavigate();
 
     const [form, setForm] = useState({
@@ -15,27 +13,24 @@ const AdminRegister = () => {
         email: "",
         password: "",
         confirmPassword: "",
-        registrationCode: ""
+        registrationCode: "",
     });
 
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
-
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [showRegistrationCode, setShowRegistrationCode] = useState(false);
 
     const handleChange = (event) => {
-
         setForm({
             ...form,
-            [event.target.name]:
-                event.target.value
+            [event.target.name]: event.target.value,
         });
-
     };
 
-
     const handleSubmit = async (event) => {
-
         event.preventDefault();
 
         setError("");
@@ -43,435 +38,755 @@ const AdminRegister = () => {
         setLoading(true);
 
         try {
+            const response = await fetch(
+                `${API_BASE_URL}/admin/register`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(form),
+                }
+            );
 
-            const response =
-                await fetch(
-                    `${API_BASE_URL}/admin/register`,
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify(form)
-                    }
-                );
-
-
-            const data =
-                await response.json();
-
+            const data = await response.json();
 
             if (!response.ok) {
-
                 throw new Error(
-                    data.message ||
-                    "Registration failed."
+                    data.message || "Registration failed."
                 );
             }
-
 
             setSuccess(
                 "Administrator account created successfully!"
             );
 
-
             setTimeout(() => {
-
-                navigate(
-                    "/login"
-                );
-
+                navigate("/login");
             }, 1200);
-
         } catch (error) {
-
-            setError(
-                error.message
-            );
-
+            setError(error.message);
         } finally {
-
             setLoading(false);
         }
     };
 
-
     return (
-        <main className="admin-auth-page">
-
-            <div className="admin-auth-card">
-
-                <button
-                    type="button"
-                    className="back-button"
-                    onClick={() =>
-                        navigate("/register")
-                    }
-                >
-                    ← Back
-                </button>
-
-                <div className="admin-logo">
-                    GO
-                </div>
-
-                <h1>
-                    Administrator Registration
-                </h1>
-
-                <p className="subtitle">
-                    Create your GuimarasGo administrator account.
-                </p>
-
-
-                {error && (
-                    <div className="error">
-                        {error}
-                    </div>
-                )}
-
-
-                {success && (
-                    <div className="success">
-                        {success}
-                    </div>
-                )}
-
-
-                <form
-                    onSubmit={handleSubmit}
-                >
-
-                    <label>
-                        Full Name
-                    </label>
-
-                    <input
-                        type="text"
-                        name="fullName"
-                        value={form.fullName}
-                        onChange={handleChange}
-                        placeholder="Enter your full name"
-                        required
-                    />
-
-
-                    <label>
-                        Email Address
-                    </label>
-
-                    <input
-                        type="email"
-                        name="email"
-                        value={form.email}
-                        onChange={handleChange}
-                        placeholder="admin@example.com"
-                        required
-                    />
-
-
-                    <label>
-                        Password
-                    </label>
-
-                    <input
-                        type="password"
-                        name="password"
-                        value={form.password}
-                        onChange={handleChange}
-                        placeholder="Minimum 6 characters"
-                        required
-                    />
-
-
-                    <label>
-                        Confirm Password
-                    </label>
-
-                    <input
-                        type="password"
-                        name="confirmPassword"
-                        value={form.confirmPassword}
-                        onChange={handleChange}
-                        placeholder="Confirm your password"
-                        required
-                    />
-
-
-                    <label>
-                        Admin Registration Code
-                    </label>
-
-                    <input
-                        type="password"
-                        name="registrationCode"
-                        value={
-                            form.registrationCode
-                        }
-                        onChange={handleChange}
-                        placeholder="Enter registration code"
-                        required
-                    />
-
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                    >
-                        {loading
-                            ? "Creating Account..."
-                            : "Create Administrator Account"}
-                    </button>
-
-                </form>
-
-
-                <p className="login-link">
-
-                    Already have an account?
-
-                    {" "}
+        <main className="admin-register-page">
+            <section className="admin-register-shell">
+                {/* LEFT VISUAL PANEL */}
+                <div className="admin-register-visual">
+                    <div className="visual-overlay" />
 
                     <button
                         type="button"
-                        onClick={() =>
-                            navigate(
-                                "/login"
-                            )
-                        }
+                        className="visual-back-button"
+                        onClick={() => navigate("/register")}
                     >
-                        Login
+                        ← Back
                     </button>
 
-                </p>
+                    <img
+                        className="visual-logo"
+                        src="/images/guimarasgo-logo.png"
+                        alt="GuimarasGo"
+                    />
 
-            </div>
+                    <div className="visual-copy">
+                        <h2>
+                            Secure the system.
+                            <br />
+                            <span>Manage the crossing.</span>
+                        </h2>
 
+                        <p>
+                            Create your administrator account to manage
+                            GuimarasGo securely and efficiently.
+                        </p>
+                    </div>
+                </div>
+
+                {/* RIGHT FORM PANEL */}
+                <div className="admin-register-form-panel">
+                    <div className="admin-register-form-content">
+                        <header className="form-header">
+                            <h1>Create your account</h1>
+
+                            <p>
+                                Already have one?{" "}
+                                <button
+                                    type="button"
+                                    className="inline-link"
+                                    onClick={() => navigate("/login")}
+                                >
+                                    Log in
+                                </button>
+                            </p>
+                        </header>
+
+                        {error && (
+                            <div
+                                className="status-message error"
+                                role="alert"
+                            >
+                                {error}
+                            </div>
+                        )}
+
+                        {success && (
+                            <div
+                                className="status-message success"
+                                role="status"
+                            >
+                                {success}
+                            </div>
+                        )}
+
+                        <form
+                            className="admin-register-form"
+                            onSubmit={handleSubmit}
+                        >
+                            <div className="field-group">
+                                <label htmlFor="fullName">
+                                    Full name
+                                </label>
+
+                                <input
+                                    id="fullName"
+                                    type="text"
+                                    name="fullName"
+                                    value={form.fullName}
+                                    onChange={handleChange}
+                                    placeholder="Full name"
+                                    autoComplete="name"
+                                    required
+                                />
+                            </div>
+
+                            <div className="field-group">
+                                <label htmlFor="email">
+                                    Email
+                                </label>
+
+                                <input
+                                    id="email"
+                                    type="email"
+                                    name="email"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    placeholder="Email"
+                                    autoComplete="email"
+                                    required
+                                />
+                            </div>
+
+                            <div className="field-group">
+                                <label htmlFor="password">
+                                    Password
+                                </label>
+
+                                <div className="password-field">
+                                    <input
+                                        id="password"
+                                        type={
+                                            showPassword
+                                                ? "text"
+                                                : "password"
+                                        }
+                                        name="password"
+                                        value={form.password}
+                                        onChange={handleChange}
+                                        placeholder="Password"
+                                        autoComplete="new-password"
+                                        required
+                                    />
+
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() =>
+                                            setShowPassword(
+                                                (value) => !value
+                                            )
+                                        }
+                                        aria-label={
+                                            showPassword
+                                                ? "Hide password"
+                                                : "Show password"
+                                        }
+                                    >
+                                        {showPassword ? "Hide" : "Show"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="field-group">
+                                <label htmlFor="confirmPassword">
+                                    Confirm password
+                                </label>
+
+                                <div className="password-field">
+                                    <input
+                                        id="confirmPassword"
+                                        type={
+                                            showConfirmPassword
+                                                ? "text"
+                                                : "password"
+                                        }
+                                        name="confirmPassword"
+                                        value={form.confirmPassword}
+                                        onChange={handleChange}
+                                        placeholder="Confirm password"
+                                        autoComplete="new-password"
+                                        required
+                                    />
+
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() =>
+                                            setShowConfirmPassword(
+                                                (value) => !value
+                                            )
+                                        }
+                                        aria-label={
+                                            showConfirmPassword
+                                                ? "Hide password"
+                                                : "Show password"
+                                        }
+                                    >
+                                        {showConfirmPassword
+                                            ? "Hide"
+                                            : "Show"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="field-group">
+                                <label htmlFor="registrationCode">
+                                    Admin code
+                                </label>
+
+                                <div className="password-field">
+                                    <input
+                                        id="registrationCode"
+                                        type={
+                                            showRegistrationCode
+                                                ? "text"
+                                                : "password"
+                                        }
+                                        name="registrationCode"
+                                        value={
+                                            form.registrationCode
+                                        }
+                                        onChange={handleChange}
+                                        placeholder="Admin registration code"
+                                        autoComplete="off"
+                                        required
+                                    />
+
+                                    <button
+                                        type="button"
+                                        className="password-toggle"
+                                        onClick={() =>
+                                            setShowRegistrationCode(
+                                                (value) => !value
+                                            )
+                                        }
+                                        aria-label={
+                                            showRegistrationCode
+                                                ? "Hide admin code"
+                                                : "Show admin code"
+                                        }
+                                    >
+                                        {showRegistrationCode
+                                            ? "Hide"
+                                            : "Show"}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="create-account-button"
+                                disabled={loading}
+                            >
+                                {loading
+                                    ? "Creating account..."
+                                    : "Create account"}
+                            </button>
+                        </form>
+
+                        <p className="bottom-login">
+                            Already have an account?{" "}
+                            <button
+                                type="button"
+                                onClick={() => navigate("/login")}
+                            >
+                                Log in
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            </section>
 
             <style>{`
-
                 * {
                     box-sizing: border-box;
                 }
 
-                .admin-auth-page {
+                .admin-register-page {
                     min-height: 100vh;
+                    width: 100%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-
-                    padding: 20px;
-
-                    background:
-                        linear-gradient(
-                            135deg,
-                            #f7f8fa,
-                            #eef3f8
-                        );
-
+                    padding: 30px 24px;
+                    background: #205b58;
                     font-family:
+                        Inter,
+                        Poppins,
                         Arial,
                         Helvetica,
                         sans-serif;
                 }
 
-                .admin-auth-card {
-                    width: 100%;
-                    max-width: 450px;
+                .admin-register-shell {
+                    width: min(1120px, 100%);
+                    min-height: 620px;
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) minmax(390px, 0.92fr);
+                    background: #1d1d1b;
+                    overflow: hidden;
+                    border-radius: 0;
+                    box-shadow: none;
+                }
 
-                    padding: 35px;
+                /* ------------------------------
+                   LEFT VISUAL
+                ------------------------------ */
 
-                    background: white;
+                .admin-register-visual {
+                    position: relative;
+                    min-height: 620px;
+                    margin: 36px 0 36px 36px;
+                    overflow: hidden;
+                    border-radius: 16px;
+                    background:
+                        linear-gradient(
+                            180deg,
+                            rgba(0, 0, 0, 0.08),
+                            rgba(0, 0, 0, 0.58)
+                        ),
+                        url("/images/register/register-background.jpg")
+                            center / cover no-repeat;
+                }
 
-                    border-radius: 20px;
-
-                    box-shadow:
-                        0 15px 40px
-                        rgba(
-                            0,
-                            0,
-                            0,
-                            0.10
+                .visual-overlay {
+                    position: absolute;
+                    inset: 0;
+                    background:
+                        linear-gradient(
+                            180deg,
+                            rgba(0, 0, 0, 0.06) 0%,
+                            rgba(0, 0, 0, 0.02) 45%,
+                            rgba(0, 0, 0, 0.62) 100%
                         );
+                    pointer-events: none;
                 }
 
-                .back-button {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    margin-bottom: 18px;
-                    padding: 10px 20px;
-                    border: 1px solid #dddddd;
-                    border-radius: 8px;
-                    background: white;
-                    color: #555555;
-                    font-size: 13px;
-                    font-weight: 600;
+                .visual-back-button {
+                    position: absolute;
+                    top: 18px;
+                    left: 18px;
+                    z-index: 3;
+                    border: 1px solid rgba(255, 255, 255, 0.35);
+                    border-radius: 999px;
+                    padding: 9px 14px;
+                    background: rgba(255, 255, 255, 0.12);
+                    color: #ffffff;
+                    font-size: 12px;
+                    font-weight: 500;
                     cursor: pointer;
-                    transition: 0.2s ease;
+                    backdrop-filter: blur(8px);
+                    -webkit-backdrop-filter: blur(8px);
+                    transition:
+                        background 0.2s ease,
+                        border-color 0.2s ease,
+                        transform 0.2s ease;
                 }
 
-                .back-button:hover {
-                    border-color: #f5a623;
-                    color: #f5a623;
+                .visual-back-button:hover {
+                    background: rgba(255, 255, 255, 0.2);
+                    border-color: rgba(255, 255, 255, 0.55);
+                    transform: translateY(-1px);
                 }
 
-                .admin-logo {
-                    width: 58px;
-                    height: 58px;
+                .visual-logo {
+                    position: absolute;
+                    top: 18px;
+                    right: 20px;
+                    z-index: 3;
+                    width: 54px;
+                    height: 44px;
+                    object-fit: contain;
+                    display: block;
+                }
 
-                    margin: 0 auto 18px;
+                .visual-copy {
+                    position: absolute;
+                    z-index: 2;
+                    left: 32px;
+                    right: 30px;
+                    bottom: 30px;
+                    color: #ffffff;
+                }
 
+                .visual-copy h2 {
+                    margin: 0;
+                    font-size: clamp(30px, 3vw, 46px);
+                    line-height: 0.98;
+                    letter-spacing: -1.5px;
+                    font-weight: 800;
+                }
+
+                .visual-copy h2 span {
+                    color: #ff8c2b;
+                    font-family: Georgia, "Times New Roman", serif;
+                    font-style: italic;
+                    font-weight: 700;
+                }
+
+                .visual-copy p {
+                    max-width: 390px;
+                    margin: 18px 0 0;
+                    color: rgba(255, 255, 255, 0.92);
+                    font-size: 13px;
+                    line-height: 1.45;
+                }
+
+                /* ------------------------------
+                   RIGHT FORM
+                ------------------------------ */
+
+                .admin-register-form-panel {
+                    min-width: 0;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-
-                    border-radius: 50%;
-
-                    background: #f5a623;
-
-                    color: white;
-
-                    font-size: 24px;
-                    font-weight: 900;
+                    padding: 52px 56px 52px 54px;
+                    background: #1d1d1b;
                 }
 
-                h1 {
+                .admin-register-form-content {
+                    width: min(100%, 440px);
+                }
+
+                .form-header {
+                    margin-bottom: 34px;
+                }
+
+                .form-header h1 {
                     margin: 0;
-
-                    text-align: center;
-
-                    font-size: 25px;
-
-                    color: #222;
+                    color: #ffffff;
+                    font-size: clamp(32px, 3vw, 43px);
+                    line-height: 1.05;
+                    font-weight: 500;
+                    letter-spacing: -1.2px;
                 }
 
-                .subtitle {
-                    text-align: center;
-
-                    color: #777;
-
-                    font-size: 13px;
-
-                    margin:
-                        8px 0 25px;
+                .form-header p {
+                    margin: 9px 0 0;
+                    color: rgba(255, 255, 255, 0.76);
+                    font-size: 12px;
                 }
 
-                form {
+                .inline-link {
+                    padding: 0;
+                    border: 0;
+                    background: transparent;
+                    color: #ffffff;
+                    text-decoration: underline;
+                    cursor: pointer;
+                    font: inherit;
+                }
+
+                .status-message {
+                    margin-bottom: 16px;
+                    padding: 11px 13px;
+                    border-radius: 8px;
+                    font-size: 12px;
+                    line-height: 1.4;
+                }
+
+                .status-message.error {
+                    color: #ffd9d9;
+                    background: rgba(220, 38, 38, 0.18);
+                    border: 1px solid rgba(248, 113, 113, 0.25);
+                }
+
+                .status-message.success {
+                    color: #d8ffe4;
+                    background: rgba(22, 163, 74, 0.18);
+                    border: 1px solid rgba(74, 222, 128, 0.25);
+                }
+
+                .admin-register-form {
                     display: flex;
                     flex-direction: column;
+                    gap: 16px;
                 }
 
-                label {
-                    margin:
-                        10px 0 6px;
-
-                    font-size: 13px;
-
-                    font-weight: 700;
-
-                    color: #333;
+                .field-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 7px;
                 }
 
-                input {
-                    height: 45px;
+                .field-group label {
+                    color: rgba(255, 255, 255, 0.86);
+                    font-size: 12px;
+                    font-weight: 500;
+                }
 
-                    padding:
-                        0 20px;
-
-                    border:
-                        1px solid #ddd;
-
-                    border-radius: 9px;
-
+                .field-group > input,
+                .password-field input {
+                    width: 100%;
+                    height: 46px;
+                    border: 1px solid transparent;
+                    border-radius: 7px;
                     outline: none;
-
-                    font-size: 14px;
+                    padding: 0 16px;
+                    background: #5a5a5a;
+                    color: #ffffff;
+                    font-family: inherit;
+                    font-size: 12px;
+                    transition:
+                        border-color 0.2s ease,
+                        box-shadow 0.2s ease,
+                        background 0.2s ease;
                 }
 
-                input:focus {
-                    border-color:
-                        #f28c28;
+                .field-group input::placeholder {
+                    color: rgba(255, 255, 255, 0.8);
                 }
 
-                form button {
-                    height: 48px;
+                .field-group > input:focus,
+                .password-field:focus-within input {
+                    background: #626262;
+                    border-color: #ff922f;
+                    box-shadow: 0 0 0 2px rgba(255, 146, 47, 0.12);
+                }
 
-                    margin-top: 22px;
+                .password-field {
+                    position: relative;
+                }
 
-                    border: none;
+                .password-field input {
+                    padding-right: 58px;
+                }
 
-                    border-radius: 9px;
-
-                    background: #333;
-
-                    color: white;
-
-                    font-size: 14px;
-
-                    font-weight: 700;
-
+                .password-toggle {
+                    position: absolute;
+                    top: 50%;
+                    right: 9px;
+                    transform: translateY(-50%);
+                    border: 0;
+                    background: transparent;
+                    color: rgba(255, 255, 255, 0.72);
+                    font-size: 10px;
+                    font-weight: 600;
                     cursor: pointer;
+                    padding: 5px;
                 }
 
-                form button:hover {
-                    background: #222;
+                .password-toggle:hover {
+                    color: #ffffff;
                 }
 
-                form button:disabled {
+                .create-account-button {
+                    width: 100%;
+                    height: 46px;
+                    margin-top: 6px;
+                    border: 0;
+                    border-radius: 999px;
+                    background: #ff922f;
+                    color: #ffffff;
+                    font-family: inherit;
+                    font-size: 12px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    transition:
+                        background 0.2s ease,
+                        transform 0.2s ease,
+                        opacity 0.2s ease;
+                }
+
+                .create-account-button:hover:not(:disabled) {
+                    background: #ff8120;
+                    transform: translateY(-1px);
+                }
+
+                .create-account-button:disabled {
                     opacity: 0.6;
                     cursor: not-allowed;
                 }
 
-                .error,
-                .success {
-                    padding: 11px;
-
-                    border-radius: 8px;
-
-                    margin-bottom: 15px;
-
-                    font-size: 12px;
-                }
-
-                .error {
-                    background: #fff0f0;
-                    color: #c62828;
-                }
-
-                .success {
-                    background: #effaf1;
-                    color: #2e7d32;
-                }
-
-                .login-link {
+                .bottom-login {
+                    margin: 24px 0 0;
                     text-align: center;
-
-                    margin:
-                        20px 0 0;
-
-                    color: #777;
-
-                    font-size: 13px;
+                    color: rgba(255, 255, 255, 0.58);
+                    font-size: 11px;
                 }
 
-                .login-link button {
-                    border: none;
+                .bottom-login button {
+                    padding: 0;
+                    border: 0;
                     background: transparent;
-
-                    color: #f28c28;
-
-                    font-weight: 700;
-
+                    color: #ffffff;
+                    text-decoration: underline;
+                    font: inherit;
                     cursor: pointer;
                 }
 
-            `}</style>
+                /* ------------------------------
+                   TABLET
+                ------------------------------ */
 
+                @media (max-width: 900px) {
+                    .admin-register-page {
+                        padding: 22px;
+                    }
+
+                    .admin-register-shell {
+                        grid-template-columns: minmax(0, 1fr) minmax(340px, 0.9fr);
+                    }
+
+                    .admin-register-visual {
+                        margin: 28px 0 28px 28px;
+                        min-height: 580px;
+                    }
+
+                    .admin-register-form-panel {
+                        padding: 40px 34px;
+                    }
+
+                    .visual-copy {
+                        left: 25px;
+                        right: 20px;
+                        bottom: 26px;
+                    }
+
+                    .visual-copy h2 {
+                        font-size: 34px;
+                    }
+                }
+
+                /* ------------------------------
+                   MOBILE
+                ------------------------------ */
+
+                @media (max-width: 720px) {
+                    .admin-register-page {
+                        min-height: 100vh;
+                        padding: 14px;
+                        align-items: flex-start;
+                    }
+
+                    .admin-register-shell {
+                        display: flex;
+                        flex-direction: column;
+                        width: 100%;
+                        min-height: 0;
+                        background: #1d1d1b;
+                    }
+
+                    .admin-register-visual {
+                        min-height: 430px;
+                        margin: 14px 14px 0;
+                        border-radius: 15px;
+                    }
+
+                    .visual-logo {
+                        width: 50px;
+                        height: 40px;
+                        top: 16px;
+                        right: 17px;
+                    }
+
+                    .visual-back-button {
+                        top: 16px;
+                        left: 16px;
+                    }
+
+                    .visual-copy {
+                        left: 24px;
+                        right: 24px;
+                        bottom: 24px;
+                    }
+
+                    .visual-copy h2 {
+                        font-size: 34px;
+                        letter-spacing: -1px;
+                    }
+
+                    .visual-copy p {
+                        max-width: 330px;
+                        margin-top: 14px;
+                        font-size: 12px;
+                    }
+
+                    .admin-register-form-panel {
+                        padding: 38px 24px 34px;
+                    }
+
+                    .admin-register-form-content {
+                        width: 100%;
+                    }
+
+                    .form-header {
+                        margin-bottom: 26px;
+                    }
+
+                    .form-header h1 {
+                        font-size: 32px;
+                    }
+
+                    .admin-register-form {
+                        gap: 14px;
+                    }
+                }
+
+                @media (max-width: 420px) {
+                    .admin-register-page {
+                        padding: 0;
+                    }
+
+                    .admin-register-shell {
+                        width: 100%;
+                    }
+
+                    .admin-register-visual {
+                        margin: 0;
+                        min-height: 400px;
+                        border-radius: 0 0 16px 16px;
+                    }
+
+                    .admin-register-form-panel {
+                        padding: 32px 18px 28px;
+                    }
+
+                    .visual-copy h2 {
+                        font-size: 31px;
+                    }
+
+                    .field-group > input,
+                    .password-field input,
+                    .create-account-button {
+                        height: 45px;
+                    }
+                }
+            `}</style>
         </main>
     );
 };
