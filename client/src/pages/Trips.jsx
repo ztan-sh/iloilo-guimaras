@@ -91,6 +91,16 @@ const Trips = () => {
         useState("");
 
     // =========================================================
+    // TRIP SEARCH
+    // =========================================================
+    // Allows passengers to quickly find a ferry by vessel name,
+    // departure time, or route.
+    // =========================================================
+
+    const [tripSearch, setTripSearch] =
+        useState("");
+
+    // =========================================================
     // TODAY
     //
     // IMPORTANT:
@@ -737,6 +747,40 @@ const Trips = () => {
     };
 
     // =========================================================
+    // FILTERED TRIPS
+    // =========================================================
+    // Search is intentionally client-side because the available
+    // trips are already loaded on this page.
+    // =========================================================
+
+    const normalizedTripSearch =
+        tripSearch.trim().toLowerCase();
+
+    const filteredTrips =
+        availableTrips.filter((trip) => {
+            if (!normalizedTripSearch) {
+                return true;
+            }
+
+            const searchableText = [
+                trip.vesselName,
+                trip.departureTime,
+                trip.time,
+                "Iloilo",
+                "Guimaras",
+                "Iloilo Guimaras"
+            ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+            return searchableText.includes(
+                normalizedTripSearch
+            );
+        });
+
+
+    // =========================================================
     // RETURN
     // =========================================================
 
@@ -884,6 +928,107 @@ const Trips = () => {
                     font-weight: 600;
 
                     color: #242424;
+                }
+
+                /* =================================================
+                   AVAILABLE TRIPS SEARCH
+                ================================================= */
+
+                .trips-section-heading-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 18px;
+                    margin-bottom: 16px;
+                }
+
+                .trips-section-heading-row .trips-section-title {
+                    margin: 0;
+                    flex: 0 0 auto;
+                }
+
+                .trip-search-box {
+                    position: relative;
+                    width: min(390px, 100%);
+                    height: 46px;
+                    display: flex;
+                    align-items: center;
+                    gap: 9px;
+                    padding: 0 12px;
+                    border: 1px solid #e4e4e4;
+                    border-radius: 12px;
+                    background: #ffffff;
+                    box-shadow: 0 4px 14px rgba(20, 20, 20, 0.04);
+                    transition:
+                        border-color 0.2s ease,
+                        box-shadow 0.2s ease,
+                        background 0.2s ease;
+                }
+
+                .trip-search-box:focus-within {
+                    border-color: #ff9b58;
+                    background: #fffdfa;
+                    box-shadow:
+                        0 0 0 3px rgba(255, 120, 24, 0.10),
+                        0 7px 20px rgba(20, 20, 20, 0.06);
+                }
+
+                .trip-search-icon {
+                    width: 27px;
+                    height: 27px;
+                    flex: 0 0 27px;
+                    display: grid;
+                    place-items: center;
+                    border-radius: 8px;
+                    background: #fff2e8;
+                    color: #ff7818;
+                    font-size: 13px;
+                }
+
+                .trip-search-box input {
+                    width: 100%;
+                    min-width: 0;
+                    height: 100%;
+                    padding: 0;
+                    border: none;
+                    outline: none;
+                    background: transparent;
+                    color: #222222;
+                    font-family: inherit;
+                    font-size: 12px;
+                    font-weight: 500;
+                }
+
+                .trip-search-box input::placeholder {
+                    color: #a1a1a1;
+                    font-weight: 400;
+                }
+
+                .trip-search-box input::-webkit-search-cancel-button {
+                    display: none;
+                }
+
+                .trip-search-clear {
+                    width: 27px;
+                    height: 27px;
+                    flex: 0 0 27px;
+                    display: grid;
+                    place-items: center;
+                    border: none;
+                    border-radius: 8px;
+                    background: #f7f7f7;
+                    color: #777777;
+                    font-size: 18px;
+                    line-height: 1;
+                    cursor: pointer;
+                    transition:
+                        background 0.2s ease,
+                        color 0.2s ease;
+                }
+
+                .trip-search-clear:hover {
+                    background: #fff0e4;
+                    color: #ff7818;
                 }
 
                 /* =================================================
@@ -1252,6 +1397,71 @@ const Trips = () => {
                 }
 
                 /* =================================================
+                   EMPTY SEARCH STATE
+                ================================================= */
+
+                .trips-empty-search {
+                    width: 100%;
+                    min-height: 210px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 7px;
+                    margin-top: 2px;
+                    padding: 30px 20px;
+                    border: 1px dashed #e7d8cc;
+                    border-radius: 16px;
+                    background: #fffaf6;
+                    text-align: center;
+                }
+
+                .trips-empty-search-icon {
+                    width: 48px;
+                    height: 48px;
+                    display: grid;
+                    place-items: center;
+                    margin-bottom: 4px;
+                    border-radius: 14px;
+                    background: #fff0e4;
+                    font-size: 21px;
+                }
+
+                .trips-empty-search strong {
+                    color: #262626;
+                    font-size: 14px;
+                    font-weight: 700;
+                }
+
+                .trips-empty-search span {
+                    color: #999999;
+                    font-size: 11px;
+                }
+
+                .trips-empty-search button {
+                    min-width: 105px;
+                    height: 36px;
+                    margin-top: 8px;
+                    padding: 0 14px;
+                    border: 1px solid #ffd0ae;
+                    border-radius: 9px;
+                    background: #ffffff;
+                    color: #ff7818;
+                    font-family: inherit;
+                    font-size: 11px;
+                    font-weight: 650;
+                    cursor: pointer;
+                    transition:
+                        background 0.2s ease,
+                        border-color 0.2s ease;
+                }
+
+                .trips-empty-search button:hover {
+                    background: #fff1e6;
+                    border-color: #ff9b58;
+                }
+
+                /* =================================================
                    INFO
                 ================================================= */
 
@@ -1332,6 +1542,16 @@ const Trips = () => {
 
                 @media (max-width: 800px) {
 
+                    .trips-section-heading-row {
+                        align-items: stretch;
+                        flex-direction: column;
+                        gap: 12px;
+                    }
+
+                    .trip-search-box {
+                        width: 100%;
+                    }
+
                     .trips-page {
                         padding:
                             28px
@@ -1356,6 +1576,18 @@ const Trips = () => {
                 ================================================= */
 
                 @media (max-width: 480px) {
+
+                    .trips-section-heading-row {
+                        gap: 10px;
+                    }
+
+                    .trip-search-box {
+                        height: 44px;
+                    }
+
+                    .trip-search-box input {
+                        font-size: 11px;
+                    }
 
                     .trips-page {
                         padding:
@@ -1532,9 +1764,45 @@ const Trips = () => {
                         TITLE
                     ================================================= */}
 
-                    <h2 className="trips-section-title">
-                        Available Ferries
-                    </h2>
+                    <div className="trips-section-heading-row">
+                        <h2 className="trips-section-title">
+                            Available Ferries
+                        </h2>
+
+                        <div className="trip-search-box">
+                            <span
+                                className="trip-search-icon"
+                                aria-hidden="true"
+                            >
+                                🔎
+                            </span>
+
+                            <input
+                                type="search"
+                                value={tripSearch}
+                                onChange={(event) =>
+                                    setTripSearch(
+                                        event.target.value
+                                    )
+                                }
+                                placeholder="Search ferry or departure time..."
+                                aria-label="Search available ferries"
+                            />
+
+                            {tripSearch && (
+                                <button
+                                    type="button"
+                                    className="trip-search-clear"
+                                    onClick={() =>
+                                        setTripSearch("")
+                                    }
+                                    aria-label="Clear ferry search"
+                                >
+                                    ×
+                                </button>
+                            )}
+                        </div>
+                    </div>
 
                     {/* =================================================
                         LIVE CAPACITY STATUS
@@ -1575,7 +1843,7 @@ const Trips = () => {
 
                     <div className="trips-list">
 
-                        {availableTrips.map(
+                        {filteredTrips.map(
                             (trip) => {
 
                                 const passengerUsed =
@@ -1815,6 +2083,31 @@ const Trips = () => {
                         )}
 
                     </div>
+
+                    {filteredTrips.length === 0 && (
+                        <div className="trips-empty-search">
+                            <div className="trips-empty-search-icon">
+                                🔎
+                            </div>
+
+                            <strong>
+                                No matching ferry found
+                            </strong>
+
+                            <span>
+                                Try searching for a vessel name or departure time.
+                            </span>
+
+                            <button
+                                type="button"
+                                onClick={() =>
+                                    setTripSearch("")
+                                }
+                            >
+                                Clear Search
+                            </button>
+                        </div>
+                    )}
 
                     {/* =================================================
                         INFORMATION
