@@ -10,3 +10,6 @@ dist/
 
 # Logs
 *.log
+
+# Android APK releases
+client/public/downloads/*.apk
