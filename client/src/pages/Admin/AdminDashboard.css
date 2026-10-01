@@ -1053,3 +1053,808 @@ body {
         font-size: 17px;
     }
 }
+
+
+/* =========================================================
+   GUIMARASGO ADMIN DASHBOARD - FULL RESPONSIVE OVERRIDES
+   Layout/presentation only. Existing functionality is unchanged.
+========================================================= */
+
+.admin-dashboard {
+    width: 100% !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    position: relative !important;
+    overflow-x: hidden !important;
+}
+
+.admin-dashboard > .sidebar {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    width: 240px !important;
+    min-width: 240px !important;
+    max-width: 240px !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    flex: 0 0 240px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    z-index: 1000 !important;
+}
+
+.admin-dashboard > .dashboard-content {
+    width: calc(100% - 240px) !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin-left: 240px !important;
+    min-height: 100vh !important;
+    box-sizing: border-box !important;
+}
+
+.dashboard-main {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.cards,
+.admin-operations-grid,
+.admin-capacity-grid,
+.staff-summary-card {
+    width: 100%;
+    min-width: 0;
+}
+
+.admin-booking-search-form,
+.admin-booking-info-grid,
+.payment-details,
+.staff-form-grid {
+    min-width: 0;
+}
+
+.admin-booking-search-form input,
+.admin-booking-search-form button,
+.staff-form-group input,
+.staff-form-group select,
+.staff-form-group textarea {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.staff-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.staff-table-wrap table {
+    min-width: 680px;
+}
+
+.payment-card,
+.rejected-card,
+.empty-payment-card,
+.empty-staff-card,
+.admin-capacity-card,
+.admin-ferry-capacity-card,
+.admin-departure-panel,
+.admin-booking-search-card,
+.staff-table-card,
+.system-card,
+.welcome-card {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* =========================
+   LARGE TABLET / LAPTOP
+========================= */
+@media (max-width: 1100px) {
+    .admin-dashboard > .sidebar {
+        width: 210px !important;
+        min-width: 210px !important;
+        max-width: 210px !important;
+        flex-basis: 210px !important;
+    }
+
+    .admin-dashboard > .dashboard-content {
+        width: calc(100% - 210px) !important;
+        margin-left: 210px !important;
+    }
+
+    .dashboard-header {
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+    }
+
+    .dashboard-main {
+        padding-left: 24px !important;
+        padding-right: 24px !important;
+    }
+
+    .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .admin-operations-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .admin-booking-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* =========================
+   TABLET
+========================= */
+@media (max-width: 850px) {
+    .admin-dashboard > .sidebar {
+        width: 190px !important;
+        min-width: 190px !important;
+        max-width: 190px !important;
+        flex-basis: 190px !important;
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+
+    .admin-dashboard > .dashboard-content {
+        width: calc(100% - 190px) !important;
+        margin-left: 190px !important;
+    }
+
+    .sidebar-title {
+        font-size: 19px !important;
+    }
+
+    .side-item {
+        font-size: 11px !important;
+    }
+
+    .dashboard-header {
+        min-height: 68px !important;
+        padding: 0 18px !important;
+    }
+
+    .dashboard-main {
+        padding: 22px 18px 20px !important;
+    }
+
+    .page-heading h2 {
+        font-size: 22px !important;
+    }
+
+    .cards {
+        gap: 10px !important;
+    }
+
+    .stat-card {
+        min-width: 0 !important;
+    }
+
+    .payment-details {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* =========================
+   MOBILE - TOP NAVIGATION
+========================= */
+@media (max-width: 700px) {
+    .admin-dashboard {
+        display: block !important;
+        min-height: 100vh !important;
+    }
+
+    .admin-dashboard > .sidebar {
+        position: fixed !important;
+        inset: 0 0 auto 0 !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        height: 64px !important;
+        min-height: 64px !important;
+        flex: none !important;
+        padding: 8px 10px !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 8px !important;
+        overflow: hidden !important;
+        border-right: none !important;
+        border-bottom: 1px solid #e5e7eb !important;
+        box-shadow: 0 3px 16px rgba(15, 23, 42, 0.08) !important;
+    }
+
+    .brand-section {
+        display: none !important;
+    }
+
+    .sidebar-navigation {
+        flex: 1 1 auto !important;
+        width: auto !important;
+        min-width: 0 !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        scrollbar-width: none !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    .sidebar-navigation::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .side-item {
+        width: auto !important;
+        min-width: max-content !important;
+        max-width: none !important;
+        min-height: 40px !important;
+        height: 40px !important;
+        padding: 0 12px !important;
+        flex: 0 0 auto !important;
+        white-space: nowrap !important;
+        font-size: 10px !important;
+    }
+
+    .side-item span {
+        width: auto !important;
+        white-space: nowrap !important;
+    }
+
+    .pending-badge {
+        flex: 0 0 auto !important;
+    }
+
+    .sidebar-spacer {
+        display: none !important;
+    }
+
+    .logout-button {
+        width: auto !important;
+        min-width: 68px !important;
+        height: 40px !important;
+        min-height: 40px !important;
+        margin: 0 !important;
+        padding: 0 12px !important;
+        flex: 0 0 auto !important;
+    }
+
+    .admin-dashboard > .dashboard-content {
+        width: 100% !important;
+        min-width: 0 !important;
+        margin-left: 0 !important;
+        padding-top: 64px !important;
+    }
+
+    .dashboard-header {
+        min-height: 68px !important;
+        padding: 10px 15px !important;
+    }
+
+    .dashboard-header h1 {
+        font-size: 17px !important;
+    }
+
+    .dashboard-header p {
+        font-size: 9px !important;
+    }
+
+    .admin-badge {
+        min-width: 50px !important;
+        height: 26px !important;
+        padding: 0 9px !important;
+        font-size: 8px !important;
+    }
+
+    .dashboard-main {
+        padding: 18px 12px 24px !important;
+    }
+
+    .page-heading h2 {
+        font-size: 20px !important;
+    }
+
+    .page-heading p {
+        font-size: 9px !important;
+    }
+
+    .cards,
+    .admin-operations-grid,
+    .payment-details,
+    .admin-booking-info-grid,
+    .staff-summary-card {
+        grid-template-columns: 1fr !important;
+    }
+
+    .cards {
+        gap: 10px !important;
+    }
+
+    .stat-card,
+    .admin-operation-card {
+        min-height: 92px !important;
+    }
+
+    .admin-departure-header,
+    .admin-booking-search-header,
+    .staff-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+
+    .admin-departure-header .refresh-button,
+    .staff-header-actions,
+    .admin-booking-search-form {
+        width: 100% !important;
+    }
+
+    .admin-booking-search-form {
+        grid-template-columns: 1fr !important;
+    }
+
+    .admin-booking-search-form button {
+        width: 100% !important;
+        min-height: 40px !important;
+    }
+
+    .admin-departure-row {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+        align-items: flex-start !important;
+    }
+
+    .admin-departure-status {
+        justify-self: flex-start !important;
+    }
+
+    .staff-header-actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+    }
+
+    .staff-header-actions .refresh-button,
+    .staff-header-actions .staff-add-button {
+        flex: 1 1 140px !important;
+    }
+
+    .payment-card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+    }
+
+    .payment-card {
+        overflow: hidden !important;
+    }
+
+    .modal-overlay,
+    .logout-modal-overlay {
+        padding: 12px !important;
+    }
+
+    .confirm-modal,
+    .logout-modal,
+    .staff-modal,
+    .ferry-confirm-modal {
+        width: min(100%, 520px) !important;
+        max-width: 100% !important;
+        max-height: calc(100vh - 24px) !important;
+        overflow-y: auto !important;
+    }
+}
+
+/* =========================
+   SMALL PHONES
+========================= */
+@media (max-width: 480px) {
+    .admin-dashboard > .sidebar {
+        height: 58px !important;
+        min-height: 58px !important;
+        padding: 6px 7px !important;
+    }
+
+    .admin-dashboard > .dashboard-content {
+        padding-top: 58px !important;
+    }
+
+    .side-item {
+        min-height: 36px !important;
+        height: 36px !important;
+        padding: 0 10px !important;
+        font-size: 9px !important;
+        border-radius: 9px !important;
+    }
+
+    .logout-button {
+        min-width: 60px !important;
+        height: 36px !important;
+        min-height: 36px !important;
+        padding: 0 9px !important;
+        font-size: 9px !important;
+    }
+
+    .dashboard-header {
+        min-height: 62px !important;
+        padding: 8px 12px !important;
+    }
+
+    .dashboard-header h1 {
+        font-size: 15px !important;
+    }
+
+    .dashboard-header p {
+        font-size: 8px !important;
+    }
+
+    .admin-badge {
+        min-width: 45px !important;
+        height: 23px !important;
+        padding: 0 7px !important;
+        font-size: 7px !important;
+    }
+
+    .dashboard-main {
+        padding: 15px 10px 22px !important;
+    }
+
+    .page-heading h2 {
+        font-size: 18px !important;
+    }
+
+    .stat-card {
+        padding: 13px !important;
+    }
+
+    .stat-card strong {
+        font-size: 21px !important;
+    }
+
+    .admin-operation-card {
+        padding: 13px !important;
+    }
+
+    .admin-departure-panel,
+    .admin-booking-search-card {
+        padding: 13px !important;
+    }
+
+    .admin-booking-info-grid > div {
+        min-width: 0 !important;
+    }
+}
+
+/* =========================
+   VERY SMALL PHONES
+========================= */
+@media (max-width: 360px) {
+    .sidebar-navigation {
+        gap: 4px !important;
+    }
+
+    .side-item {
+        padding: 0 8px !important;
+        font-size: 8px !important;
+    }
+
+    .logout-button {
+        min-width: 54px !important;
+        padding: 0 7px !important;
+        font-size: 8px !important;
+    }
+
+    .dashboard-header h1 {
+        font-size: 14px !important;
+    }
+
+    .admin-badge {
+        display: none !important;
+    }
+}
+
+
+/* =========================================================
+   GUIMARASGO - MOBILE HAMBURGER NAVIGATION
+   Mobile-only presentation. Desktop/tablet layout is unchanged.
+========================================================= */
+.mobile-admin-topbar,
+.mobile-sidebar-overlay {
+    display: none;
+}
+
+@media (max-width: 700px) {
+    .mobile-admin-topbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.98);
+        border-bottom: 1px solid #e5e7eb;
+        box-shadow: 0 3px 16px rgba(15, 23, 42, 0.08);
+        z-index: 1200;
+    }
+
+    .mobile-menu-button {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        padding: 0;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #ffffff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        cursor: pointer;
+    }
+
+    .mobile-menu-button span {
+        display: block;
+        width: 19px;
+        height: 2px;
+        border-radius: 999px;
+        background: #273142;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .mobile-menu-button.open span:nth-child(1) {
+        transform: translateY(6px) rotate(45deg);
+    }
+
+    .mobile-menu-button.open span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .mobile-menu-button.open span:nth-child(3) {
+        transform: translateY(-6px) rotate(-45deg);
+    }
+
+    .mobile-admin-brand {
+        min-width: 0;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        line-height: 1.05;
+    }
+
+    .mobile-admin-brand strong {
+        color: #f28c28;
+        font-size: 16px;
+        font-weight: 900;
+        white-space: nowrap;
+    }
+
+    .mobile-admin-brand span {
+        margin-top: 3px;
+        color: #8a8f98;
+        font-size: 7px;
+        font-weight: 800;
+        letter-spacing: 1.2px;
+        white-space: nowrap;
+    }
+
+    .mobile-admin-role {
+        min-width: 46px;
+        height: 25px;
+        padding: 0 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #fff0df;
+        color: #f28c28;
+        font-size: 7px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+
+    .admin-dashboard > .sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        right: auto !important;
+        width: 280px !important;
+        min-width: 280px !important;
+        max-width: 280px !important;
+        height: 100vh !important;
+        min-height: 100vh !important;
+        padding: 76px 14px 18px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        background: #ffffff !important;
+        border-right: 1px solid #e5e7eb !important;
+        border-bottom: none !important;
+        box-shadow: 12px 0 35px rgba(15, 23, 42, 0.13) !important;
+        transform: translateX(-105%) !important;
+        transition: transform 0.24s ease !important;
+        z-index: 1250 !important;
+    }
+
+    .admin-dashboard > .sidebar.mobile-open {
+        transform: translateX(0) !important;
+    }
+
+    .admin-dashboard > .sidebar .brand-section {
+        display: block !important;
+        flex: 0 0 auto !important;
+        padding: 0 10px !important;
+        margin-bottom: 26px !important;
+    }
+
+    .admin-dashboard > .sidebar .sidebar-navigation {
+        width: 100% !important;
+        min-width: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+    }
+
+    .admin-dashboard > .sidebar .side-item {
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        min-height: 46px !important;
+        height: 46px !important;
+        padding: 0 13px !important;
+        flex: 0 0 auto !important;
+        justify-content: flex-start !important;
+        white-space: normal !important;
+        font-size: 12px !important;
+    }
+
+    .admin-dashboard > .sidebar .side-item span {
+        width: 100% !important;
+        white-space: normal !important;
+    }
+
+    .admin-dashboard > .sidebar .sidebar-spacer {
+        display: block !important;
+        flex: 1 1 auto !important;
+    }
+
+    .admin-dashboard > .sidebar .logout-button {
+        width: 100% !important;
+        min-width: 0 !important;
+        height: 42px !important;
+        min-height: 42px !important;
+        margin: 0 !important;
+        padding: 0 12px !important;
+        flex: 0 0 auto !important;
+    }
+
+    .mobile-sidebar-overlay {
+        position: fixed;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        background: rgba(15, 23, 42, 0.38);
+        cursor: pointer;
+        z-index: 1240;
+    }
+
+    .admin-dashboard > .dashboard-content {
+        width: 100% !important;
+        margin-left: 0 !important;
+        padding-top: 60px !important;
+    }
+
+    .dashboard-header {
+        min-height: 66px !important;
+    }
+}
+
+@media (max-width: 400px) {
+    .mobile-admin-topbar {
+        height: 56px;
+        padding: 7px 9px;
+    }
+
+    .mobile-menu-button {
+        width: 39px;
+        height: 39px;
+        min-width: 39px;
+    }
+
+    .mobile-admin-brand strong {
+        font-size: 14px;
+    }
+
+    .mobile-admin-brand span {
+        font-size: 6px;
+    }
+
+    .mobile-admin-role {
+        min-width: 42px;
+        height: 23px;
+        font-size: 6px;
+    }
+
+    .admin-dashboard > .dashboard-content {
+        padding-top: 56px !important;
+    }
+}
+
+
+/* =========================================================
+   MOBILE DRAWER TEXT FIX
+   Keeps hamburger drawer clean and readable.
+========================================================= */
+@media (max-width: 700px) {
+    .admin-dashboard > .sidebar .sidebar-title {
+        display: block !important;
+        font-size: 22px !important;
+        line-height: 1.1 !important;
+        color: #ff861c !important;
+        white-space: nowrap !important;
+    }
+
+    .admin-dashboard > .sidebar .sidebar-title::after {
+        content: none !important;
+        display: none !important;
+    }
+
+    .admin-dashboard > .sidebar .admin-label {
+        display: block !important;
+        margin-top: 5px !important;
+        color: #999999 !important;
+        font-size: 8px !important;
+        font-weight: 800 !important;
+        letter-spacing: 1.5px !important;
+    }
+
+    .admin-dashboard > .sidebar .side-item {
+        font-size: 12px !important;
+        justify-content: flex-start !important;
+        text-align: left !important;
+    }
+
+    .admin-dashboard > .sidebar .side-item::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    .admin-dashboard > .sidebar .side-item span {
+        display: block !important;
+        width: auto !important;
+        flex: 1 1 auto !important;
+        text-align: left !important;
+        white-space: normal !important;
+    }
+
+    .admin-dashboard > .sidebar .pending-badge {
+        display: flex !important;
+        flex: 0 0 auto !important;
+    }
+}

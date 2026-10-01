@@ -162,6 +162,12 @@ function StaffScanner() {
     const [showRejectModal, setShowRejectModal] =
         useState(false);
 
+    // =====================================================
+    // LOGOUT CONFIRMATION
+    // =====================================================
+    const [showLogoutModal, setShowLogoutModal] =
+        useState(false);
+
     const [rejectReason, setRejectReason] =
         useState(
             "Payment has not been verified by admin."
@@ -186,6 +192,34 @@ function StaffScanner() {
         setMessage("");
 
         try {
+
+            // ---------------------------------------------
+            // Request camera permission first
+            // ---------------------------------------------
+            // This is intentionally triggered by the user's
+            // "Start Camera" click so supported browsers can show
+            // their native camera permission prompt.
+            if (!navigator.mediaDevices?.getUserMedia) {
+                throw new Error(
+                    "Camera access is not supported by this browser."
+                );
+            }
+
+            const permissionStream =
+                await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: {
+                            ideal: "environment"
+                        }
+                    },
+                    audio: false
+                });
+
+            // Release the temporary permission stream immediately.
+            // html5-qrcode will open the camera it needs afterward.
+            permissionStream.getTracks().forEach((track) => {
+                track.stop();
+            });
 
             // ---------------------------------------------
             // Create scanner
@@ -309,9 +343,28 @@ function StaffScanner() {
 
             setScanning(false);
 
-            setError(
-                "Unable to access the camera. Please allow camera permission and try again."
-            );
+            const cameraErrorName =
+                err?.name || "";
+
+            if (
+                cameraErrorName === "NotAllowedError" ||
+                cameraErrorName === "PermissionDeniedError"
+            ) {
+                setError(
+                    "Camera permission was denied. Please allow camera access in your browser/device settings, then tap Start Camera again."
+                );
+            } else if (
+                cameraErrorName === "NotFoundError" ||
+                cameraErrorName === "DevicesNotFoundError"
+            ) {
+                setError(
+                    "No camera was found on this device. Please connect or enable a camera and try again."
+                );
+            } else {
+                setError(
+                    "Unable to access the camera. Please allow camera permission and try again."
+                );
+            }
 
             processingQRRef.current =
                 false;
@@ -890,10 +943,18 @@ function StaffScanner() {
     // LOGOUT
     // =========================================================
 
-    const handleLogout = async () => {
+    const handleLogoutClick = () => {
+        setShowLogoutModal(true);
+    };
+
+    const cancelLogout = () => {
+        setShowLogoutModal(false);
+    };
+
+    const confirmLogout = async () => {
+        setShowLogoutModal(false);
 
         await stopScanner();
-
 
         localStorage.removeItem(
             "staffToken"
@@ -902,7 +963,6 @@ function StaffScanner() {
         localStorage.removeItem(
             "staff"
         );
-
 
         // Your App.jsx uses:
         //
@@ -919,6 +979,7 @@ function StaffScanner() {
     return (
 
         <div
+            className="staff-scanner-page"
             style={{
                 minHeight: "100vh",
                 background: "#f5f7fb",
@@ -932,6 +993,7 @@ function StaffScanner() {
             ================================================= */}
 
             <div
+                className="staff-scanner-header"
                 style={{
                     maxWidth: "1100px",
                     margin: "0 auto 25px",
@@ -972,7 +1034,7 @@ function StaffScanner() {
                 {/* LOGOUT */}
 
                 <button
-                    onClick={handleLogout}
+                    onClick={handleLogoutClick}
                     style={{
                         padding: "10px 18px",
                         border: "none",
@@ -1011,6 +1073,7 @@ function StaffScanner() {
                 ================================================= */}
 
                 <div
+                    className="staff-scanner-card"
                     style={{
                         background: "#ffffff",
                         borderRadius: "16px",
@@ -1119,6 +1182,7 @@ function StaffScanner() {
                 ================================================= */}
 
                 <div
+                    className="staff-scanner-card"
                     style={{
                         background: "#ffffff",
                         borderRadius: "16px",
@@ -1858,6 +1922,126 @@ function StaffScanner() {
 
 
             {/* =========================================================
+                LOGOUT CONFIRMATION MODAL
+            ========================================================= */}
+
+            {showLogoutModal && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="logout-confirmation-title"
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(15, 23, 42, 0.50)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "20px",
+                        zIndex: 10000,
+                        backdropFilter: "blur(2px)"
+                    }}
+                    onClick={cancelLogout}
+                >
+                    <div
+                        onClick={(event) => event.stopPropagation()}
+                        style={{
+                            width: "100%",
+                            maxWidth: "420px",
+                            background: "#ffffff",
+                            borderRadius: "16px",
+                            padding: "26px",
+                            boxShadow: "0 20px 50px rgba(0,0,0,0.22)"
+                        }}
+                    >
+                        <div
+                            style={{
+                                width: "46px",
+                                height: "46px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginBottom: "14px",
+                                borderRadius: "50%",
+                                background: "#fee2e2",
+                                color: "#dc2626",
+                                fontSize: "22px",
+                                fontWeight: "700"
+                            }}
+                        >
+                            !
+                        </div>
+
+                        <h2
+                            id="logout-confirmation-title"
+                            style={{
+                                margin: "0 0 8px",
+                                color: "#111827",
+                                fontSize: "21px"
+                            }}
+                        >
+                            Confirm Logout
+                        </h2>
+
+                        <p
+                            style={{
+                                margin: "0 0 22px",
+                                color: "#6b7280",
+                                fontSize: "14px",
+                                lineHeight: "1.6"
+                            }}
+                        >
+                            Are you sure you want to log out of your staff
+                            account?
+                        </p>
+
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: "10px",
+                                justifyContent: "flex-end"
+                            }}
+                        >
+                            <button
+                                type="button"
+                                onClick={cancelLogout}
+                                style={{
+                                    flex: 1,
+                                    padding: "12px 16px",
+                                    border: "1px solid #d1d5db",
+                                    borderRadius: "8px",
+                                    background: "#ffffff",
+                                    color: "#374151",
+                                    fontWeight: "600",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={confirmLogout}
+                                style={{
+                                    flex: 1,
+                                    padding: "12px 16px",
+                                    border: "none",
+                                    borderRadius: "8px",
+                                    background: "#dc2626",
+                                    color: "#ffffff",
+                                    fontWeight: "600",
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Yes, Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+            {/* =========================================================
                 REJECTION REASON MODAL
             ========================================================= */}
 
@@ -2040,22 +2224,147 @@ function StaffScanner() {
             <style>
                 {`
 
-                    @media (max-width: 768px) {
+                    /* =================================================
+                       RESPONSIVE STAFF SCANNER
+                    ================================================= */
+
+                    * {
+                        box-sizing: border-box;
+                    }
+
+                    .staff-scanner-grid {
+                        width: 100%;
+                    }
+
+                    #staff-qr-reader {
+                        width: 100% !important;
+                        min-height: 300px;
+                    }
+
+                    #staff-qr-reader video {
+                        width: 100% !important;
+                        height: auto !important;
+                        max-height: 55vh !important;
+                        object-fit: cover !important;
+                        border-radius: 12px !important;
+                    }
+
+                    @media (max-width: 900px) {
 
                         .staff-scanner-grid {
                             grid-template-columns: 1fr !important;
-                        }
-
-                        #staff-qr-reader {
-                            min-height: 250px !important;
+                            max-width: 760px !important;
                         }
 
                     }
 
-                    @media (max-width: 480px) {
+                    @media (max-width: 768px) {
 
-                        body {
-                            overflow-x: hidden;
+                        .staff-scanner-page {
+                            padding: 16px !important;
+                        }
+
+                        .staff-scanner-header {
+                            align-items: flex-start !important;
+                        }
+
+                        .staff-scanner-header h1 {
+                            font-size: 24px !important;
+                        }
+
+                        .staff-scanner-card {
+                            padding: 18px !important;
+                        }
+
+                        .staff-scanner-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 16px !important;
+                        }
+
+                        #staff-qr-reader {
+                            min-height: 260px !important;
+                        }
+
+                        #staff-qr-reader video {
+                            max-height: 48vh !important;
+                        }
+
+                    }
+
+                    @media (max-width: 520px) {
+
+                        .staff-scanner-page {
+                            padding: 12px !important;
+                        }
+
+                        .staff-scanner-header {
+                            flex-direction: column !important;
+                            align-items: stretch !important;
+                            gap: 12px !important;
+                            margin-bottom: 16px !important;
+                        }
+
+                        .staff-scanner-header h1 {
+                            font-size: 22px !important;
+                        }
+
+                        .staff-scanner-header p {
+                            font-size: 13px !important;
+                        }
+
+                        .staff-scanner-header button {
+                            width: 100% !important;
+                        }
+
+                        .staff-scanner-card {
+                            padding: 16px !important;
+                            border-radius: 14px !important;
+                        }
+
+                        .staff-scanner-card h2 {
+                            font-size: 20px !important;
+                        }
+
+                        #staff-qr-reader {
+                            min-height: 220px !important;
+                            margin-top: 14px !important;
+                        }
+
+                        #staff-qr-reader video {
+                            max-height: 42vh !important;
+                        }
+
+                        .staff-scanner-card button {
+                            min-height: 46px !important;
+                            font-size: 15px !important;
+                        }
+
+                    }
+
+                    @media (max-width: 380px) {
+
+                        .staff-scanner-page {
+                            padding: 8px !important;
+                        }
+
+                        .staff-scanner-card {
+                            padding: 13px !important;
+                        }
+
+                        .staff-scanner-card h2 {
+                            font-size: 18px !important;
+                        }
+
+                        #staff-qr-reader {
+                            min-height: 190px !important;
+                        }
+
+                    }
+
+                    @media (orientation: landscape) and (max-width: 900px) {
+
+                        #staff-qr-reader video {
+                            max-height: 65vh !important;
                         }
 
                     }
