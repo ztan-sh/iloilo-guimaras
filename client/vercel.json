@@ -1,7 +1,8 @@
+﻿
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!downloads/GuimarasGo\\.apk$).*)",
       "destination": "/index.html"
     }
   ]
