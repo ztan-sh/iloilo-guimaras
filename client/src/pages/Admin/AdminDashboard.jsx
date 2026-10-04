@@ -21,8 +21,6 @@ const AdminDashboard = () => {
     // =========================================================
 
     const [activeView, setActiveView] = useState("dashboard");
-
-    // Mobile navigation drawer
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     // =========================================================
@@ -164,6 +162,51 @@ const AdminDashboard = () => {
 
     const [staffSearch, setStaffSearch] = useState("");
     const [staffStatusFilter, setStaffStatusFilter] = useState("all");
+
+    // =========================================================
+    // FERRY SCHEDULE MANAGEMENT
+    // =========================================================
+    // The existing backend currently exposes the fixed ferry
+    // schedule through the capacity endpoint. These Admin-side
+    // controls add the Schedule Management UI without changing
+    // the existing booking/payment flow.
+    // =========================================================
+
+    const [scheduleDate, setScheduleDate] = useState(() => {
+        const now = new Date();
+        return [
+            now.getFullYear(),
+            String(now.getMonth() + 1).padStart(2, "0"),
+            String(now.getDate()).padStart(2, "0")
+        ].join("-");
+    });
+
+    const [scheduleRouteFilter, setScheduleRouteFilter] =
+        useState("all");
+
+    const [selectedScheduleId, setSelectedScheduleId] =
+        useState(null);
+
+    const [showScheduleModal, setShowScheduleModal] =
+        useState(false);
+
+    const [scheduleModalMode, setScheduleModalMode] =
+        useState("add");
+
+    const [scheduleForm, setScheduleForm] = useState({
+        vesselName: "",
+        route: "Iloilo → Guimaras",
+        date: "",
+        departureTime: "",
+        arrivalTime: "",
+        passengerCapacity: 100,
+        motorcycleCapacity: 10
+    });
+
+    const [scheduleActionLoading, setScheduleActionLoading] =
+        useState(false);
+
+    const [scheduleNotice, setScheduleNotice] = useState("");
 
     // =========================================================
     // SHOW NOTIFICATION
@@ -1267,7 +1310,6 @@ const AdminDashboard = () => {
 
     const handlePaymentTab = (tab) => {
         setActiveView("payments");
-        setMobileMenuOpen(false);
         setActivePaymentTab(tab);
         loadAllPaymentLists();
     };
@@ -1296,7 +1338,6 @@ const AdminDashboard = () => {
     const handleBackToDashboard = () => {
 
         setActiveView("dashboard");
-        setMobileMenuOpen(false);
 
         setActivePaymentTab("pending");
 
@@ -1942,6 +1983,626 @@ const AdminDashboard = () => {
     });
 
     // =========================================================
+    // LOAD SCHEDULES FOR A SELECTED DATE
+    // =========================================================
+
+    const loadScheduleCapacity = async (dateValue) => {
+        const requestedDate =
+            String(dateValue || "").trim() || getToday();
+
+        const token =
+            localStorage.getItem("adminToken");
+
+        if (!token) {
+            setCapacityError("Administrator authentication is required.");
+            return;
+        }
+
+        try {
+            setCapacityLoading(true);
+            setCapacityError("");
+
+            const response = await fetch(
+                `${API_URL}/bookings/schedules?date=${encodeURIComponent(requestedDate)}`,
+                {
+                    method: "GET",
+                    headers: {
+                        Accept: "application/json",
+                        Authorization: `Bearer ${token}`
+                    },
+                    cache: "no-store"
+                }
+            );
+
+            const contentType =
+                response.headers.get("content-type") || "";
+
+            const data =
+                contentType.includes("application/json")
+                    ? await response.json()
+                    : null;
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message ||
+                    "Unable to load ferry schedules."
+                );
+            }
+
+            const schedules =
+                Array.isArray(data?.schedules)
+                    ? data.schedules
+                    : Array.isArray(data?.capacities)
+                        ? data.capacities
+                        : [];
+
+            setFerryCapacities(schedules);
+        } catch (error) {
+            console.error(
+                "Schedule loading error:",
+                error
+            );
+
+            setFerryCapacities([]);
+            setCapacityError(
+                error.message ||
+                "Unable to load ferry schedules."
+            );
+        } finally {
+            setCapacityLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeView === "schedules") {
+            loadScheduleCapacity(scheduleDate);
+        }
+    }, [activeView, scheduleDate]);
+
+    // =========================================================
+    // SCHEDULE HELPERS
+    // =========================================================
+
+    const formatScheduleDate = (value) => {
+        if (!value) return "—";
+
+        const parsed = new Date(`${value}T00:00:00`);
+
+        if (Number.isNaN(parsed.getTime())) {
+            return value;
+        }
+
+        return parsed.toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "2-digit"
+        });
+    };
+
+    const getScheduleRoute = (item, index = 0) => {
+        return (
+            item?.route ||
+            item?.routeName ||
+            item?.originDestination ||
+            (index % 2 === 0
+                ? "Iloilo → Guimaras"
+                : "Guimaras → Iloilo")
+        );
+    };
+
+    const getScheduleArrival = (item) => {
+        if (item?.arrivalTime || item?.arrival) {
+            return item.arrivalTime || item.arrival;
+        }
+
+        const departure = String(
+            item?.departureTime ||
+            item?.time ||
+            ""
+        ).trim().toUpperCase();
+
+        const match = departure.match(
+            /^(\d{1,2}):(\d{2})\s*(AM|PM)$/
+        );
+
+        if (!match) return "—";
+
+        let hour = Number(match[1]);
+        const minute = Number(match[2]);
+        const period = match[3];
+
+        if (period === "AM" && hour === 12) {
+            hour = 0;
+        }
+
+        if (period === "PM" && hour !== 12) {
+            hour += 12;
+        }
+
+        const arrivalTotal =
+            (hour * 60 + minute + 30) % (24 * 60);
+
+        let arrivalHour = Math.floor(
+            arrivalTotal / 60
+        );
+
+        const arrivalMinute = arrivalTotal % 60;
+
+        const arrivalPeriod =
+            arrivalHour >= 12 ? "PM" : "AM";
+
+        if (arrivalHour === 0) {
+            arrivalHour = 12;
+        } else if (arrivalHour > 12) {
+            arrivalHour -= 12;
+        }
+
+        return (
+            `${arrivalHour}:${String(arrivalMinute).padStart(2, "0")} ` +
+            arrivalPeriod
+        );
+    };
+
+    const scheduleRows = ferryCapacities.map((ferry, index) => ({
+        ...ferry,
+        _scheduleSource:
+            ferry?.isDefault ? "system" : "admin",
+        _scheduleId:
+            ferry?.id ||
+            ferry?._id ||
+            `schedule-${index}`,
+        date:
+            ferry?.date ||
+            scheduleDate,
+        route:
+            getScheduleRoute(ferry, index),
+        arrivalTime:
+            ferry?.arrivalTime ||
+            getScheduleArrival(ferry),
+        passengerCapacity:
+            Number(ferry?.passengerCapacity) || 100,
+        motorcycleCapacity:
+            Number(ferry?.motorcycleCapacity) ||
+            Number(ferry?.vehicleCapacity) ||
+            10,
+        passengers:
+            Number(ferry?.passengers) || 0,
+        motorcycles:
+            Number(ferry?.motorcycles) ||
+            Number(ferry?.vehicles) ||
+            0,
+        manualClosed:
+            Boolean(ferry?.manualClosed)
+    }));
+
+    const filteredScheduleRows =
+        scheduleRows
+            .filter(item => {
+                if (scheduleRouteFilter === "all") {
+                    return true;
+                }
+
+                return (
+                    String(item?.route || "")
+                        .trim()
+                        .toLowerCase() ===
+                    scheduleRouteFilter
+                        .trim()
+                        .toLowerCase()
+                );
+            })
+            .sort((a, b) => {
+                const timeA = String(
+                    a?.time ||
+                    a?.departureTime ||
+                    ""
+                );
+
+                const timeB = String(
+                    b?.time ||
+                    b?.departureTime ||
+                    ""
+                );
+
+                return timeA.localeCompare(timeB);
+            });
+
+    const selectedSchedule =
+        filteredScheduleRows.find(
+            item =>
+                item._scheduleId === selectedScheduleId
+        ) ||
+        filteredScheduleRows[0] ||
+        null;
+
+    const openAddScheduleModal = () => {
+        setScheduleModalMode("add");
+        setScheduleForm({
+            vesselName: "",
+            route: "Iloilo → Guimaras",
+            date: scheduleDate,
+            departureTime: "",
+            arrivalTime: "",
+            passengerCapacity: 100,
+            motorcycleCapacity: 10
+        });
+        setScheduleNotice("");
+        setShowScheduleModal(true);
+    };
+
+    const openEditScheduleModal = () => {
+        if (!selectedSchedule) {
+            showNotification(
+                "Please select a trip to edit.",
+                "error"
+            );
+            return;
+        }
+
+        setScheduleModalMode("edit");
+
+        setScheduleForm({
+            vesselName:
+                selectedSchedule?.vesselName || "",
+            route:
+                selectedSchedule?.route ||
+                "Iloilo → Guimaras",
+            date:
+                selectedSchedule?.date ||
+                scheduleDate,
+            departureTime:
+                normalizeScheduleTime(
+                    selectedSchedule?.time ||
+                    selectedSchedule?.departureTime ||
+                    ""
+                ),
+            arrivalTime:
+                normalizeScheduleTime(
+                    selectedSchedule?.arrivalTime ||
+                    selectedSchedule?.arrival ||
+                    ""
+                ),
+            passengerCapacity:
+                Number(
+                    selectedSchedule?.passengerCapacity
+                ) || 100,
+            motorcycleCapacity:
+                Number(
+                    selectedSchedule?.motorcycleCapacity
+                ) ||
+                Number(
+                    selectedSchedule?.vehicleCapacity
+                ) ||
+                10
+        });
+
+        setScheduleNotice("");
+        setShowScheduleModal(true);
+    };
+
+    const normalizeScheduleTime = (value) => {
+        const text = String(value || "").trim();
+
+        if (/^\d{2}:\d{2}$/.test(text)) {
+            return text;
+        }
+
+        const match = text.match(
+            /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i
+        );
+
+        if (!match) {
+            return "";
+        }
+
+        let hour = Number(match[1]);
+        const minute = Number(match[2]);
+        const period = match[3].toUpperCase();
+
+        if (period === "AM" && hour === 12) {
+            hour = 0;
+        }
+
+        if (period === "PM" && hour !== 12) {
+            hour += 12;
+        }
+
+        return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    };
+
+    const getScheduleTimeOptions = () => {
+        const options = [];
+
+        for (
+            let minutes = 3 * 60 + 30;
+            minutes <= 19 * 60 + 30;
+            minutes += 30
+        ) {
+            const hour24 = Math.floor(minutes / 60);
+            const minute = minutes % 60;
+            const hour12 = hour24 % 12 || 12;
+            const period = hour24 >= 12 ? "PM" : "AM";
+
+            options.push({
+                value:
+                    `${String(hour24).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+                label:
+                    `${hour12}:${String(minute).padStart(2, "0")} ${period}`
+            });
+        }
+
+        return options;
+    };
+
+    const scheduleTimeOptions = getScheduleTimeOptions();
+
+    const scheduleArrivalTimeOptions = [
+        ...scheduleTimeOptions,
+        {
+            value: "20:00",
+            label: "8:00 PM"
+        }
+    ];
+
+    const getArrivalFromDeparture = (value) => {
+        const normalized = normalizeScheduleTime(value);
+
+        if (!normalized) {
+            return "";
+        }
+
+        const [hoursText, minutesText] = normalized.split(":");
+        const total =
+            Number(hoursText) * 60 +
+            Number(minutesText) +
+            30;
+
+        if (total > 24 * 60 - 1) {
+            return "";
+        }
+
+        const hour = Math.floor(total / 60);
+        const minute = total % 60;
+
+        return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+    };
+
+    const closeScheduleModal = () => {
+        if (scheduleActionLoading) return;
+
+        setShowScheduleModal(false);
+        setScheduleNotice("");
+    };
+
+    const handleScheduleFormChange = (event) => {
+        const { name, value } = event.target;
+
+        setScheduleForm(previous => {
+            const next = {
+                ...previous,
+                [name]:
+                    name === "passengerCapacity" ||
+                    name === "motorcycleCapacity"
+                        ? Number(value)
+                        : value
+            };
+
+            if (
+                name === "departureTime" &&
+                !previous.arrivalTime
+            ) {
+                next.arrivalTime =
+                    getArrivalFromDeparture(value);
+            }
+
+            return next;
+        });
+    };
+
+    const saveSchedule = async (event) => {
+        event.preventDefault();
+
+        const vesselName =
+            scheduleForm.vesselName.trim();
+
+        const token =
+            localStorage.getItem("adminToken");
+
+        if (!token) {
+            setScheduleNotice(
+                "Administrator authentication is required."
+            );
+            return;
+        }
+
+        if (!vesselName) {
+            setScheduleNotice(
+                "Ferry/vessel name is required."
+            );
+            return;
+        }
+
+        if (!scheduleForm.date) {
+            setScheduleNotice(
+                "Travel date is required."
+            );
+            return;
+        }
+
+        if (!scheduleForm.departureTime) {
+            setScheduleNotice(
+                "Departure time is required."
+            );
+            return;
+        }
+
+        setScheduleActionLoading(true);
+
+        try {
+            const payload = {
+                vesselName,
+                route: scheduleForm.route,
+                date: scheduleForm.date,
+                departureTime:
+                    normalizeScheduleTime(
+                        scheduleForm.departureTime
+                    ),
+                arrivalTime:
+                    normalizeScheduleTime(
+                        scheduleForm.arrivalTime
+                    ),
+                passengerCapacity:
+                    Number.isFinite(Number(scheduleForm.passengerCapacity))
+                        ? Number(scheduleForm.passengerCapacity)
+                        : 100,
+                motorcycleCapacity:
+                    Number.isFinite(Number(scheduleForm.motorcycleCapacity))
+                        ? Number(scheduleForm.motorcycleCapacity)
+                        : 10
+            };
+
+            const isEdit =
+                scheduleModalMode === "edit" &&
+                Boolean(selectedSchedule?._scheduleId);
+
+            const url = isEdit
+                ? `${API_URL}/bookings/schedules/${encodeURIComponent(selectedSchedule._scheduleId)}`
+                : `${API_URL}/bookings/schedules`;
+
+            const response = await fetch(url, {
+                method: isEdit ? "PUT" : "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const contentType =
+                response.headers.get("content-type") || "";
+
+            const data =
+                contentType.includes("application/json")
+                    ? await response.json()
+                    : null;
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message ||
+                    "Unable to save the ferry schedule."
+                );
+            }
+
+            setScheduleDate(payload.date);
+            setScheduleRouteFilter("all");
+            setShowScheduleModal(false);
+            setScheduleNotice("");
+
+            await loadScheduleCapacity(payload.date);
+
+            showNotification(
+                isEdit
+                    ? "Schedule updated successfully."
+                    : "Trip added successfully.",
+                "success"
+            );
+        } catch (error) {
+            console.error(
+                "Schedule save error:",
+                error
+            );
+
+            setScheduleNotice(
+                error.message ||
+                "Unable to save the schedule."
+            );
+        } finally {
+            setScheduleActionLoading(false);
+        }
+    };
+
+    const deleteSelectedSchedule = async () => {
+        if (!selectedSchedule) {
+            showNotification(
+                "Please select a trip to remove.",
+                "error"
+            );
+            return;
+        }
+
+        if (selectedSchedule._scheduleSource !== "admin") {
+            showNotification(
+                "Default ferry schedules cannot be removed. You can edit them instead.",
+                "error"
+            );
+            return;
+        }
+
+        const token =
+            localStorage.getItem("adminToken");
+
+        if (!token) {
+            showNotification(
+                "Administrator authentication is required.",
+                "error"
+            );
+            return;
+        }
+
+        try {
+            setScheduleActionLoading(true);
+
+            const response = await fetch(
+                `${API_URL}/bookings/schedules/${encodeURIComponent(selectedSchedule._scheduleId)}`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Accept: "application/json",
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
+            const contentType =
+                response.headers.get("content-type") || "";
+
+            const data =
+                contentType.includes("application/json")
+                    ? await response.json()
+                    : null;
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message ||
+                    "Unable to remove the ferry schedule."
+                );
+            }
+
+            setSelectedScheduleId(null);
+            await loadScheduleCapacity(scheduleDate);
+
+            showNotification(
+                "Schedule removed successfully.",
+                "success"
+            );
+        } catch (error) {
+            console.error(
+                "Schedule delete error:",
+                error
+            );
+
+            showNotification(
+                error.message ||
+                "Unable to remove the ferry schedule.",
+                "error"
+            );
+        } finally {
+            setScheduleActionLoading(false);
+        }
+    };
+
+    // =========================================================
     // DASHBOARD OPERATIONAL METRICS
     // =========================================================
 
@@ -1983,6 +2644,25 @@ const AdminDashboard = () => {
     const nextDepartures = [...ferryCapacities]
         .sort((a, b) => String(a?.departureTime || a?.time || "").localeCompare(String(b?.departureTime || b?.time || "")))
         .slice(0, 4);
+
+    const selectedTrip = nextDepartures[0] || ferryCapacities[0] || null;
+    const selectedTripPassengers = Number(selectedTrip?.passengers) || 0;
+    const selectedTripPassengerCapacity = Number(selectedTrip?.passengerCapacity) || 0;
+    const selectedTripMotorcycles = Number(selectedTrip?.motorcycles) || Number(selectedTrip?.motorcycleCount) || 0;
+    const selectedTripMotorcycleCapacity = Number(selectedTrip?.motorcycleCapacity) || Number(selectedTrip?.motorcycleLimit) || 0;
+    const selectedTripPassengerRemaining = Math.max(0, selectedTripPassengerCapacity - selectedTripPassengers);
+    const selectedTripMotorcycleRemaining = Math.max(0, selectedTripMotorcycleCapacity - selectedTripMotorcycles);
+    const selectedTripClosed = Boolean(selectedTrip?.manualClosed) ||
+        (selectedTripPassengerCapacity > 0 && selectedTripPassengerRemaining <= 0);
+    const selectedTripRoute = selectedTrip?.route || selectedTrip?.routeName || selectedTrip?.direction || "Iloilo → Guimaras";
+    const selectedTripArrival = selectedTrip?.arrivalTime || selectedTrip?.arrival || selectedTrip?.estimatedArrival || "—";
+
+    const formatLongDate = (date = new Date()) =>
+        date.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "long",
+            year: "numeric"
+        });
 
     // =========================================================
     // FORMAT DATE
@@ -2055,67 +2735,35 @@ const AdminDashboard = () => {
         }
 
         /*
-         * Some older booking records may store the
-         * payment proof directly as a string.
+         * Some versions of the booking data
+         * may return the proof directly as a string.
          */
         if (typeof proof === "string") {
 
-            const proofValue =
-                proof.trim();
-
-            if (!proofValue) {
-                return null;
-            }
-
             if (
-                proofValue.startsWith("http://") ||
-                proofValue.startsWith("https://") ||
-                proofValue.startsWith("data:") ||
-                proofValue.startsWith("blob:")
+                proof.startsWith("http://") ||
+                proof.startsWith("https://")
             ) {
-                return proofValue;
+                return proof;
             }
 
-            return `${API_ORIGIN}/${proofValue.replace(/^\/+/, "")}`;
+            return `${API_ORIGIN}${proof}`;
         }
 
         /*
          * Current Booking schema stores paymentProof
-         * as an object. Prefer the saved URL, but also
-         * support older records that only have fileName.
+         * as an object containing url.
          */
-        const storedUrl =
-            proof.url ||
-            proof.image ||
-            proof.path ||
-            "";
-
-        if (storedUrl) {
-
-            const proofValue =
-                String(storedUrl).trim();
+        if (proof.url) {
 
             if (
-                proofValue.startsWith("http://") ||
-                proofValue.startsWith("https://") ||
-                proofValue.startsWith("data:") ||
-                proofValue.startsWith("blob:")
+                proof.url.startsWith("http://") ||
+                proof.url.startsWith("https://")
             ) {
-                return proofValue;
+                return proof.url;
             }
 
-            return `${API_ORIGIN}/${proofValue.replace(/^\/+/, "")}`;
-        }
-
-        /*
-         * Fallback for records that contain only the
-         * uploaded filename.
-         */
-        if (proof.fileName) {
-
-            return `${API_ORIGIN}/uploads/payment-proofs/${encodeURIComponent(
-                proof.fileName
-            )}`;
+            return `${API_ORIGIN}${proof.url}`;
         }
 
         return null;
@@ -2237,843 +2885,820 @@ const AdminDashboard = () => {
 
 )}
             {/* =====================================================
-                MOBILE NAVIGATION
+                OPERATIONS SIDEBAR
             ===================================================== */}
 
-            <div className="mobile-admin-topbar">
-                <button
-                    type="button"
-                    className={`mobile-menu-button ${mobileMenuOpen ? "open" : ""}`}
-                    onClick={() => setMobileMenuOpen((open) => !open)}
-                    aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
-                    aria-expanded={mobileMenuOpen}
-                >
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </button>
-
-                <div className="mobile-admin-brand">
-                    <strong>GuimarasGo</strong>
-                    <span>ADMINISTRATOR</span>
-                </div>
-
-                <div className="mobile-admin-role">ADMIN</div>
-            </div>
+            <button
+                type="button"
+                className="mobile-menu-toggle"
+                aria-label={mobileMenuOpen ? "Close admin menu" : "Open admin menu"}
+                aria-expanded={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen((open) => !open)}
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
 
             {mobileMenuOpen && (
                 <button
                     type="button"
                     className="mobile-sidebar-overlay"
-                    aria-label="Close navigation menu"
+                    aria-label="Close admin menu"
                     onClick={() => setMobileMenuOpen(false)}
                 />
             )}
 
-            {/* =====================================================
-                SIDEBAR
-            ===================================================== */}
-
-            <aside className={`sidebar ${mobileMenuOpen ? "mobile-open" : ""}`}>
-
-                <div className="brand-section">
-
-                    <div className="sidebar-title">
-                        GuimarasGo
+            <aside className={`sidebar ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
+                <div className="operations-brand">
+                    <div className="operations-brand-mark" aria-hidden="true">
+                        <span>G</span><span>G</span>
                     </div>
-
-                    <div className="admin-label">
-                        ADMINISTRATOR
-                    </div>
-
+                    <strong>GuimarasGo</strong>
                 </div>
 
+                <div className="operations-workspace">
+                    <span>ADMIN WORKSPACE</span>
+                    <strong>Iloilo–Guimaras</strong>
+                </div>
 
-                <nav className="sidebar-navigation">
-
+                <nav className="sidebar-navigation operations-navigation" aria-label="Admin operations">
                     <button
-                        className={
-                            `side-item ${
-                                activeView ===
-                                "dashboard"
-                                    ? "active"
-                                    : ""
-                            }`
-                        }
-                        onClick={() =>
-                            handleViewChange(
-                                "dashboard"
-                            )
-                        }
+                        type="button"
+                        className={`side-item ${activeView === "dashboard" ? "active" : ""}`}
+                        onClick={() => handleViewChange("dashboard")}
                     >
-                        <span>
-                            Dashboard
-                        </span>
+                        <span className="operations-nav-icon" aria-hidden="true">⌂</span>
+                        <span>Overview</span>
                     </button>
 
+                    <button
+                        type="button"
+                        className={`side-item ${activeView === "schedules" ? "active" : ""}`}
+                        onClick={() => handleViewChange("schedules")}
+                    >
+                        <span className="operations-nav-icon" aria-hidden="true">↝</span>
+                        <span>Schedules</span>
+                    </button>
+
+                    <button type="button" className="side-item" onClick={() => showNotification("Ticket records will be available here.", "success")}>
+                        <span className="operations-nav-icon" aria-hidden="true">▤</span>
+                        <span>Ticket records</span>
+                    </button>
+
+                    <button type="button" className="side-item" onClick={() => showNotification("Passenger records will be available here.", "success")}>
+                        <span className="operations-nav-icon" aria-hidden="true">♙</span>
+                        <span>Passengers</span>
+                    </button>
 
                     <button
-                        className={
-                            `side-item ${
-                                activeView ===
-                                "payments"
-                                    ? "active"
-                                    : ""
-                            }`
-                        }
-                        onClick={() =>
-                            handleViewChange(
-                                "payments"
-                            )
-                        }
+                        type="button"
+                        className={`side-item ${activeView === "payments" ? "active" : ""}`}
+                        onClick={() => handleViewChange("payments")}
                     >
-
-                        <span>
-                            Payment Verification
-                        </span>
-
-                        {statistics.pendingPayments >
-                            0 && (
-
-                            <span className="pending-badge">
-
-                                {
-                                    statistics.pendingPayments
-                                }
-
-                            </span>
-
+                        <span className="operations-nav-icon" aria-hidden="true">▤</span>
+                        <span>Payments</span>
+                        {statistics.pendingPayments > 0 && (
+                            <span className="pending-badge">{statistics.pendingPayments}</span>
                         )}
-
                     </button>
 
+                    <button type="button" className="side-item" onClick={() => showNotification("Boarding records will be available here.", "success")}>
+                        <span className="operations-nav-icon" aria-hidden="true">✓</span>
+                        <span>Boarding records</span>
+                    </button>
 
                     <button
-                        className={
-                            `side-item ${
-                                activeView === "staff"
-                                    ? "active"
-                                    : ""
-                            }`
-                        }
+                        type="button"
+                        className={`side-item ${activeView === "staff" ? "active" : ""}`}
                         onClick={() => handleViewChange("staff")}
                     >
-                        <span>Staff Management</span>
+                        <span className="operations-nav-icon" aria-hidden="true">♙</span>
+                        <span>System records</span>
                     </button>
                 </nav>
 
-
                 <div className="sidebar-spacer"></div>
 
+                <div className="operations-terminal-card">
+                    <strong>Iloilo terminal</strong>
+                    <span>{formatLongDate()}</span>
+                    <small><i></i> Connected</small>
+                </div>
 
-                <button
-                    className="logout-button"
-                    onClick={() => {
-                        setMobileMenuOpen(false);
-                        handleLogout();
-                    }}
-                >
-                    Logout
+                <button type="button" className="operations-admin-account" onClick={() => handleViewChange("staff")}>
+                    <span className="operations-admin-avatar" aria-hidden="true">♙</span>
+                    <span>
+                        <strong>Administrator</strong>
+                        <small>Management access</small>
+                    </span>
                 </button>
 
-            </aside>
-
+                    <div className="operations-sidebar-footer">
+                        <button
+                            type="button"
+                            className="operations-logout-button"
+                            onClick={handleLogout}
+                        >
+                            <span className="operations-logout-icon" aria-hidden="true">↪</span>
+                            <span>
+                                <strong>Logout</strong>
+                                <small>Sign out of administrator</small>
+                            </span>
+                        </button>
+                    </div>
+</aside>
 
             {/* =====================================================
-                CONTENT
+                OPERATIONS CONTENT
             ===================================================== */}
 
-            <section className="dashboard-content">
-
-                {/* =================================================
-                    HEADER
-                ================================================= */}
-
-                <header className="dashboard-header">
-
-                    <div>
-
-                        <h1>
-                            Administrator Dashboard
-                        </h1>
-
-                        <p>
-                            Welcome back,{" "}
-
-                            <strong>
-                                {admin?.fullName ||
-                                    "Admin"}
-                            </strong>
-                        </p>
-
-                    </div>
-
-
-                    <div className="admin-badge">
-                        ADMIN
-                    </div>
-
-                </header>
-
-
-                {/* =================================================
-                    MAIN CONTENT
-                ================================================= */}
+            <section className="dashboard-content operations-content">
 
                 <div className="dashboard-main">
 
 
                     {/* =================================================
-                        DASHBOARD VIEW
+                        OPERATIONS OVERVIEW
                     ================================================= */}
 
-                    {activeView ===
-                        "dashboard" && (
-
-                        <div className="dashboard-page">
-
-                            <div className="page-heading">
-
+                    {activeView === "dashboard" && (
+                        <div className="operations-overview-page">
+                            <div className="operations-page-heading">
                                 <div>
-
-                                    <h2>
-                                        Dashboard Overview
-                                    </h2>
-
-                                    <p>
-                                        Here's what's
-                                        happening with
-                                        your GuimarasGo
-                                        system.
-                                    </p>
-
+                                    <span className="operations-eyebrow">MANAGEMENT</span>
+                                    <h2>Operations overview</h2>
+                                    <p>Monitor paid tickets, capacity and boarding for the selected trip.</p>
                                 </div>
-
+                                <div className="operations-date">
+                                    <strong>{formatScheduleDate(scheduleDate)}</strong>
+                                    <span>Iloilo ⇄ Guimaras</span>
+                                </div>
                             </div>
 
-
-                            {/* =================================================
-                                STATISTICS
-                            ================================================= */}
-
-                            <div className="cards">
-
-                                <div className="stat-card">
-
-                                    <div className="stat-icon orange">
-                                        #
-                                    </div>
-
-                                    <div className="stat-content">
-
-                                        <span>
-                                            Total Bookings
-                                        </span>
-
-                                        <strong>
-                                            {
-                                                statistics.totalBookings
-                                            }
-                                        </strong>
-
-                                        <small>
-                                            Current records
-                                        </small>
-
-                                    </div>
-
+                            <section className="selected-trip-card">
+                                <div className="selected-trip-route">
+                                    <strong>{selectedTripRoute}</strong>
+                                    <span>
+                                        {selectedTrip?.vesselName || "Ferry schedule"}
+                                        {selectedTrip?.id ? ` · Trip ${selectedTrip.id}` : ""}
+                                        {selectedTrip?.date ? ` · ${formatDate(selectedTrip.date)}` : ""}
+                                    </span>
                                 </div>
-
-
-                                <button
-                                    type="button"
-                                    className="stat-card stat-card-button"
-                                    onClick={() =>
-                                        handlePaymentTab("pending")
+                                <div className="selected-trip-time">
+                                    <span>Departure</span>
+                                    <strong>{selectedTrip?.departureTime || selectedTrip?.time || "—"}</strong>
+                                </div>
+                                <div className="selected-trip-time">
+                                    <span>Arrival</span>
+                                    <strong>{selectedTripArrival}</strong>
+                                </div>
+                                <button type="button" onClick={() => {
+                                    if (selectedTrip) {
+                                        document.getElementById("today-departures")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                    } else {
+                                        showNotification("No ferry trip is available to view yet.", "error");
                                     }
-                                >
-                                    <div className="stat-icon yellow">
-                                        ₱
-                                    </div>
+                                }}>View trip</button>
+                            </section>
 
-                                    <div className="stat-content">
-
-                                        <span>
-                                            Pending Payments
-                                        </span>
-
-                                        <strong>
-                                            {
-                                                statistics.pendingPayments
-                                            }
-                                        </strong>
-
-                                        <small>
-                                            Awaiting verification
-                                        </small>
-
-                                    </div>
-
-                                </button>
-
-
-                                <button
-                                    type="button"
-                                    className="stat-card stat-card-button"
-                                    onClick={() =>
-                                        handlePaymentTab("verified")
-                                    }
-                                >
-                                    <div className="stat-icon green">
-                                        ✓
-                                    </div>
-
-                                    <div className="stat-content">
-
-                                        <span>
-                                            Verified Payments
-                                        </span>
-
-                                        <strong>
-                                            {
-                                                statistics.verifiedPayments
-                                            }
-                                        </strong>
-
-                                        <small>
-                                            Verified transactions
-                                        </small>
-
-                                    </div>
-
-                                </button>
-
-
-                                <button
-                                    type="button"
-                                    className="stat-card stat-card-button"
-                                    onClick={() =>
-                                        handlePaymentTab("rejected")
-                                    }
-                                >
-                                    <div className="stat-icon red">
-                                        !
-                                    </div>
-
-                                    <div className="stat-content">
-
-                                        <span>
-                                            Rejected Payments
-                                        </span>
-
-                                        <strong>
-                                            {
-                                                statistics.rejectedPayments ||
-                                                rejectedPayments.length
-                                            }
-                                        </strong>
-
-                                        <small>
-                                            Rejected submissions
-                                        </small>
-
-                                    </div>
-
-                                </button>
-
-                            </div>
-
-
-                            {/* =================================================
-                                OPERATIONS SNAPSHOT
-                            ================================================= */}
-
-                            <div className="admin-operations-grid">
-                                <div className="admin-operation-card">
-                                    <div className="admin-operation-icon teal">●</div>
-                                    <div>
-                                        <span>Today's Bookings</span>
-                                        <strong>{todayBookings}</strong>
-                                        <small>Active bookings on today's departures</small>
-                                    </div>
+                            <div className="operations-kpi-grid">
+                                <div className="operations-kpi-card">
+                                    <span>Paid passengers</span>
+                                    <strong>{selectedTripPassengerCapacity ? `${selectedTripPassengers} / ${selectedTripPassengerCapacity}` : `${todayPassengers}`}</strong>
+                                    <small>{Math.max(0, selectedTripPassengerCapacity - selectedTripPassengers)} passenger seats remaining</small>
                                 </div>
 
-                                <div className="admin-operation-card">
-                                    <div className="admin-operation-icon orange">👤</div>
-                                    <div>
-                                        <span>Passengers Today</span>
-                                        <strong>{todayPassengers}</strong>
-                                        <small>Passenger seats currently reserved</small>
-                                    </div>
+                                <div className="operations-kpi-card">
+                                    <span>Motorcycle capacity</span>
+                                    <strong>{selectedTripMotorcycleCapacity ? `${selectedTripMotorcycles} / ${selectedTripMotorcycleCapacity}` : "—"}</strong>
+                                    <small>{selectedTripMotorcycleCapacity ? `${selectedTripMotorcycleRemaining} motorcycle slots remaining` : "Capacity data unavailable"}</small>
                                 </div>
 
-                                <div className="admin-operation-card">
-                                    <div className="admin-operation-icon green">₱</div>
-                                    <div>
-                                        <span>Verified Revenue</span>
-                                        <strong>{formatAmount(verifiedRevenueToday)}</strong>
-                                        <small>Based on verified today's bookings</small>
-                                    </div>
+                                <div className="operations-kpi-card">
+                                    <span>Passengers boarded</span>
+                                    <strong>{selectedTrip?.passengersBoarded ?? selectedTrip?.boardedPassengers ?? "—"}</strong>
+                                    <small>{selectedTripPassengers ? `${selectedTripPassengers} paid passengers on this trip` : "Boarding data unavailable"}</small>
                                 </div>
 
-                                <div className="admin-operation-card">
-                                    <div className="admin-operation-icon purple">↗</div>
-                                    <div>
-                                        <span>Passenger Occupancy</span>
-                                        <strong>{occupancyPercent}%</strong>
-                                        <small>{occupiedPassengerCapacity} of {totalPassengerCapacity || 0} seats occupied</small>
-                                    </div>
+                                <div className="operations-kpi-card">
+                                    <span>Selected trip revenue</span>
+                                    <strong>{formatAmount(verifiedRevenueToday)}</strong>
+                                    <small>Successful payments only</small>
                                 </div>
                             </div>
 
-
-                            <div className="admin-departure-panel">
-                                <div className="admin-departure-header">
-                                    <div>
-                                        <span className="eyebrow">TODAY'S OPERATIONS</span>
-                                        <h3>Departure Board</h3>
-                                        <p>Quick view of ferry schedules and remaining passenger capacity.</p>
+                            <div className="operations-main-grid">
+                                <section className="operations-panel departures-panel" id="today-departures">
+                                    <div className="operations-panel-heading">
+                                        <div>
+                                            <h3>Today's departures</h3>
+                                            <p>Paid occupancy by trip</p>
+                                        </div>
+                                        <button type="button" onClick={() => { loadFerryCapacities(); loadFerryBookings(); }}>Manage schedules</button>
                                     </div>
-                                    <button type="button" className="refresh-button" onClick={() => { loadFerryCapacities(); loadFerryBookings(); }}>↻ Refresh</button>
-                                </div>
 
-                                <div className="admin-departure-list">
-                                    {nextDepartures.length === 0 ? (
-                                        <div className="admin-departure-empty">No ferry schedule is available right now.</div>
-                                    ) : (
-                                        nextDepartures.map((ferry) => {
-                                            const used = Number(ferry?.passengers) || 0;
-                                            const limit = Number(ferry?.passengerCapacity) || 100;
-                                            const remaining = Math.max(0, limit - used);
-                                            const closed = Boolean(ferry?.manualClosed) || remaining <= 0;
-                                            return (
-                                                <div className="admin-departure-row" key={`departure-${ferry?.id || ferry?.vesselName}`}>
-                                                    <div className="admin-departure-time">{ferry?.departureTime || ferry?.time || "—"}</div>
-                                                    <div className="admin-departure-vessel">
-                                                        <strong>{ferry?.vesselName || "Unknown Ferry"}</strong>
-                                                        <span>{used}/{limit} passengers occupied</span>
-                                                    </div>
-                                                    <div className={`admin-departure-status ${closed ? "closed" : "open"}`}>
-                                                        {closed ? "Closed" : `${remaining} seats left`}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-                            </div>
-
-
-                            {/* =================================================
-                                BOOKING REFERENCE SEARCH
-                            ================================================= */}
-
-                            <div className="admin-booking-search-card">
-                                <div className="admin-booking-search-header">
-                                    <div>
-                                        <span className="eyebrow">BOOKING LOOKUP</span>
-                                        <h3>Search Booking Reference</h3>
-                                        <p>Find the complete booking information for any passenger.</p>
-                                    </div>
-                                </div>
-
-                                <form className="admin-booking-search-form" onSubmit={handleBookingSearch}>
-                                    <input
-                                        type="text"
-                                        value={bookingSearchReference}
-                                        onChange={(event) => {
-                                            setBookingSearchReference(event.target.value);
-                                            if (bookingSearchError) setBookingSearchError("");
-                                        }}
-                                        placeholder="Enter booking reference number..."
-                                        aria-label="Booking reference number"
-                                    />
-                                    <button type="submit" disabled={bookingSearchLoading}>
-                                        {bookingSearchLoading ? "Searching..." : "Search"}
-                                    </button>
-                                </form>
-
-                                {bookingSearchError && (
-                                    <div className="admin-booking-search-error">
-                                        {bookingSearchError}
-                                    </div>
-                                )}
-
-                                {bookingSearchResult && (
-                                    <div className="admin-booking-result">
-                                        <div className="admin-booking-result-heading">
-                                            <div>
-                                                <span className="eyebrow">BOOKING INFORMATION</span>
-                                                <h4>{bookingSearchResult.bookingReference || "—"}</h4>
-                                            </div>
-                                            <div className={`admin-booking-status-pill ${String(bookingSearchResult.status || "").toLowerCase().includes("confirm") ? "confirmed" : ""}`}>
-                                                {bookingSearchResult.status || "—"}
-                                            </div>
+                                    <div className="departures-table">
+                                        <div className="departures-table-head">
+                                            <span>Trip &amp; route</span>
+                                            <span>Time</span>
+                                            <span>Passengers</span>
+                                            <span>Status</span>
                                         </div>
 
-                                        <div className="admin-booking-info-grid">
-                                            <div><span>Passenger Name</span><strong>{bookingSearchResult.passengerName || "—"}</strong></div>
-                                            <div><span>Passenger Age</span><strong>{bookingSearchResult.passengerAge ?? "—"}</strong></div>
-                                            <div><span>Passenger Gender</span><strong>{bookingSearchResult.passengerGender || "—"}</strong></div>
-                                            <div><span>Passengers</span><strong>{bookingSearchResult.passengers ?? "—"}</strong></div>
-                                            <div><span>Origin</span><strong>{bookingSearchResult.origin || "—"}</strong></div>
-                                            <div><span>Destination</span><strong>{bookingSearchResult.destination || "—"}</strong></div>
-                                            <div><span>Ferry / Vessel</span><strong>{getBookingVesselName(bookingSearchResult)}</strong></div>
-                                            <div><span>Departure Time</span><strong>{bookingSearchResult.departureTime || bookingSearchResult.time || "—"}</strong></div>
-                                            <div><span>Date</span><strong>{bookingSearchResult.date || "—"}</strong></div>
-                                            <div><span>Vehicle</span><strong>{bookingSearchResult.vehicleType || "—"}</strong></div>
-                                            <div><span>Plate Number</span><strong>{bookingSearchResult.plateNumber || "—"}</strong></div>
-                                            <div><span>Payment Method</span><strong>{bookingSearchResult.paymentMethod || "—"}</strong></div>
-                                            <div><span>Payment Status</span><strong>{bookingSearchResult.paymentStatus || "—"}</strong></div>
-                                            <div><span>Required Amount</span><strong>₱{Number(bookingSearchResult.requiredAmount || 0).toLocaleString()}</strong></div>
-                                            <div><span>Total Paid</span><strong>{bookingSearchResult.totalPaid == null ? "—" : `₱${Number(bookingSearchResult.totalPaid).toLocaleString()}`}</strong></div>
-                                            <div><span>Boarding Status</span><strong>{bookingSearchResult.boardingStatus || "—"}</strong></div>
-                                        </div>
-
-                                        {bookingSearchResult.paymentProof?.url && (
-                                            <a className="admin-booking-proof-link" href={bookingSearchResult.paymentProof.url} target="_blank" rel="noreferrer">
-                                                View Payment Proof
-                                            </a>
+                                        {nextDepartures.length === 0 ? (
+                                            <div className="operations-empty">No ferry schedule is available right now.</div>
+                                        ) : (
+                                            nextDepartures.map((ferry, index) => {
+                                                const used = Number(ferry?.passengers) || 0;
+                                                const limit = Number(ferry?.passengerCapacity) || 0;
+                                                const remaining = Math.max(0, limit - used);
+                                                const closed = Boolean(ferry?.manualClosed) || (limit > 0 && remaining <= 0);
+                                                const route = ferry?.route || ferry?.routeName || (index % 2 === 0 ? "Iloilo → Guimaras" : "Guimaras → Iloilo");
+                                                return (
+                                                    <div className="departure-row" key={`overview-departure-${ferry?.id || ferry?.vesselName || index}`}>
+                                                        <div>
+                                                            <strong>{ferry?.id || ferry?.vesselName || "Scheduled trip"} · {ferry?.vesselName || "Ferry"}</strong>
+                                                            <span>{route}</span>
+                                                        </div>
+                                                        <div>
+                                                            <strong>{ferry?.departureTime || ferry?.time || "—"}</strong>
+                                                            <span>{ferry?.arrivalTime || ferry?.arrival || "—"} arrival</span>
+                                                        </div>
+                                                        <div>
+                                                            <strong>{limit ? `${used} / ${limit}` : used}</strong>
+                                                        </div>
+                                                        <div>
+                                                            <span className={`operations-status ${closed ? "sold" : "ready"}`}>{closed ? "Sold out" : "Ready"}</span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
                                         )}
                                     </div>
-                                )}
+                                    <p className="operations-table-note">Select a trip to review its boarding records.</p>
+                                </section>
+
+                                <section className="operations-panel capacity-panel">
+                                    <div className="operations-panel-heading simple">
+                                        <div>
+                                            <h3>Capacity allocation</h3>
+                                            <p>Paid tickets · {selectedTrip?.id || selectedTrip?.vesselName || "Selected trip"}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="capacity-line">
+                                        <div><span>Passengers</span><strong>{selectedTripPassengerCapacity ? `${selectedTripPassengers} / ${selectedTripPassengerCapacity}` : "—"}</strong></div>
+                                        <div className="capacity-track"><i style={{ width: `${selectedTripPassengerCapacity ? Math.min(100, (selectedTripPassengers / selectedTripPassengerCapacity) * 100) : 0}%` }}></i></div>
+                                    </div>
+
+                                    <div className="capacity-line">
+                                        <div><span>Motorcycles · online</span><strong>{selectedTripMotorcycleCapacity ? `${Math.min(selectedTripMotorcycles, selectedTripMotorcycleCapacity)} / ${selectedTripMotorcycleCapacity}` : "—"}</strong></div>
+                                        <div className="capacity-track"><i style={{ width: `${selectedTripMotorcycleCapacity ? Math.min(100, (selectedTripMotorcycles / selectedTripMotorcycleCapacity) * 100) : 0}%` }}></i></div>
+                                    </div>
+
+                                    <div className="capacity-line">
+                                        <div><span>Motorcycles · walk-in</span><strong>—</strong></div>
+                                        <div className="capacity-track"><i style={{ width: "0%" }}></i></div>
+                                    </div>
+
+                                    <p className="capacity-note">
+                                        {selectedTripClosed
+                                            ? "Passenger booking is closed for this selected trip."
+                                            : `${selectedTripPassengerRemaining} passenger slots remain.`}
+                                        {selectedTripMotorcycleCapacity ? ` ${selectedTripMotorcycleRemaining} motorcycle slots remain.` : ""}
+                                    </p>
+                                </section>
+                            </div>
+                        </div>
+                    )}
+
+
+
+                    {/* =================================================
+                        FERRY SCHEDULES VIEW
+                    ================================================= */}
+
+                    {activeView === "schedules" && (
+                        <div className="schedules-page">
+                            <div className="schedules-page-heading">
+                                <div>
+                                    <span className="operations-eyebrow">
+                                        MANAGEMENT
+                                    </span>
+                                    <h2>Ferry schedules</h2>
+                                    <p>
+                                        Manage departure times and review paid capacity before each crossing.
+                                    </p>
+                                </div>
+
+                                <div className="schedules-date-summary">
+                                    <strong>{formatLongDate()}</strong>
+                                    <span>Iloilo ⇄ Guimaras</span>
+                                </div>
                             </div>
 
+                            <div className="schedules-toolbar">
+                                <label className="schedule-filter-field">
+                                    <span>Travel date</span>
+                                    <div className="schedule-input-shell">
+                                        <span aria-hidden="true">✈</span>
+                                        <input
+                                            type="date"
+                                            value={scheduleDate}
+                                            onChange={(event) => {
+                                                setScheduleDate(
+                                                    event.target.value
+                                                );
+                                                setSelectedScheduleId(null);
+                                            }}
+                                        />
+                                    </div>
+                                </label>
 
+                                <label className="schedule-filter-field">
+                                    <span>Route</span>
+                                    <div className="schedule-input-shell">
+                                        <span aria-hidden="true">⇄</span>
+                                        <select
+                                            value={scheduleRouteFilter}
+                                            onChange={(event) => {
+                                                setScheduleRouteFilter(
+                                                    event.target.value
+                                                );
+                                                setSelectedScheduleId(null);
+                                            }}
+                                        >
+                                            <option value="all">
+                                                All routes
+                                            </option>
+                                            <option value="Iloilo → Guimaras">
+                                                Iloilo → Guimaras
+                                            </option>
+                                            <option value="Guimaras → Iloilo">
+                                                Guimaras → Iloilo
+                                            </option>
+                                        </select>
+                                    </div>
+                                </label>
 
-                            {/* =================================================
-                                LIVE FERRY CAPACITY
-                            ================================================= */}
+                                <button
+                                    type="button"
+                                    className="schedule-add-button"
+                                    onClick={openAddScheduleModal}
+                                >
+                                    <span aria-hidden="true">+</span>
+                                    Add trip
+                                </button>
+                            </div>
 
-                            <div className="admin-capacity-card">
-                                <div className="admin-capacity-header">
+                            <section className="schedule-list-card">
+                                <div className="schedule-list-heading">
                                     <div>
-                                        <span className="eyebrow">
-                                            LIVE MONITORING
-                                        </span>
-                                        <h3>Ferry Capacity</h3>
+                                        <h3>
+                                            {formatScheduleDate(scheduleDate)}
+                                        </h3>
                                         <p>
-                                            Monitor passenger and motorcycle capacity for each ferry.
+                                            {filteredScheduleRows.length} trip
+                                            {filteredScheduleRows.length === 1 ? "" : "s"} · {
+                                                scheduleRouteFilter === "all"
+                                                    ? "both directions"
+                                                    : scheduleRouteFilter
+                                            }
                                         </p>
                                     </div>
 
                                     <button
                                         type="button"
-                                        className="refresh-button"
-                                        onClick={loadFerryCapacities}
-                                        disabled={capacityLoading}
+                                        className="schedule-refresh-button"
+                                        onClick={() =>
+                                            loadScheduleCapacity(scheduleDate)
+                                        }
                                     >
-                                        {capacityLoading ? "Refreshing..." : "↻ Refresh"}
+                                        ↻ Refresh
                                     </button>
                                 </div>
 
                                 {capacityError && (
-                                    <div className="admin-capacity-error">
+                                    <div className="schedule-inline-error">
                                         {capacityError}
                                     </div>
                                 )}
 
-                                {!capacityError && ferryCapacities.length === 0 && capacityLoading && (
-                                    <div className="admin-capacity-empty">
-                                        Loading ferry capacity...
+                                {capacityLoading ? (
+                                    <div className="schedule-empty-state">
+                                        <strong>Loading schedules...</strong>
+                                        <span>
+                                            Checking ferry capacity for the selected travel date.
+                                        </span>
                                     </div>
-                                )}
+                                ) : filteredScheduleRows.length === 0 ? (
+                                    <div className="schedule-empty-state">
+                                        <strong>No trips found</strong>
+                                        <span>
+                                            Try another date or route, or add a new trip.
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="schedule-table-wrap">
+                                            <div className="schedule-table">
+                                                <div className="schedule-table-head">
+                                                    <span>Trip / vessel</span>
+                                                    <span>Route</span>
+                                                    <span>Departure</span>
+                                                    <span>Passengers</span>
+                                                    <span>Motorcycles</span>
+                                                    <span>Status</span>
+                                                </div>
 
-                                {!capacityError && ferryCapacities.length > 0 && (
-                                    <div className="admin-capacity-grid">
-                                        {ferryCapacities.map((ferry) => {
-                                            const passengers = Number(ferry.passengers) || 0;
-                                            const passengerLimit = Number(ferry.passengerCapacity) || 100;
-                                            const passengerRemaining = Math.max(0, passengerLimit - passengers);
-                                            const motorcycles = Number(ferry.vehicles) || 0;
-                                            const motorcycleLimit = Number(ferry.vehicleCapacity) || 10;
-                                            const motorcycleRemaining = Math.max(0, motorcycleLimit - motorcycles);
-                                            const passengerFull = passengerRemaining <= 0;
-                                            const motorcycleFull = motorcycleRemaining <= 0;
-                                            const manualClosed = Boolean(ferry.manualClosed);
-                                            const bookingClosed = manualClosed || passengerFull;
-                                            const ferryActionKey = `${ferry.id || ferry.vesselName}-${getToday()}`;
-                                            const ferryActionBusy = ferryActionLoading === ferryActionKey;
-                                            const bookingsForFerry = getFerryBookings(ferry);
+                                                {filteredScheduleRows.map(
+                                                    (trip, index) => {
+                                                        const passengerLimit =
+                                                            Number(
+                                                                trip?.passengerCapacity
+                                                            ) || 100;
 
-                                            return (
-                                                <div
-                                                    className={`admin-ferry-capacity-card ${bookingClosed ? "capacity-closed" : ""}`}
-                                                    key={ferry.id || ferry.vesselName}
+                                                        const motorcycleLimit =
+                                                            Number(
+                                                                trip?.motorcycleCapacity
+                                                            ) || 10;
+
+                                                        const passengers =
+                                                            Number(
+                                                                trip?.passengers
+                                                            ) || 0;
+
+                                                        const motorcycles =
+                                                            Number(
+                                                                trip?.motorcycles
+                                                            ) || 0;
+
+                                                        const passengerFull =
+                                                            passengers >=
+                                                            passengerLimit;
+
+                                                        const closed =
+                                                            Boolean(
+                                                                trip?.manualClosed
+                                                            ) ||
+                                                            passengerFull;
+
+                                                        const isSelected =
+                                                            selectedSchedule?._scheduleId ===
+                                                            trip._scheduleId;
+
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                className={`schedule-table-row ${
+                                                                    isSelected
+                                                                        ? "selected"
+                                                                        : ""
+                                                                }`}
+                                                                key={
+                                                                    trip._scheduleId ||
+                                                                    `${trip?.vesselName}-${index}`
+                                                                }
+                                                                onClick={() =>
+                                                                    setSelectedScheduleId(
+                                                                        trip._scheduleId
+                                                                    )
+                                                                }
+                                                            >
+                                                                <span className="schedule-trip-cell">
+                                                                    <strong>
+                                                                        {trip?.id ||
+                                                                            trip?.vesselName ||
+                                                                            "Scheduled trip"}
+                                                                    </strong>
+                                                                    <small>
+                                                                        {trip?.vesselName ||
+                                                                            "Ferry"}
+                                                                    </small>
+                                                                </span>
+
+                                                                <span className="schedule-route-cell">
+                                                                    <strong>
+                                                                        {getScheduleRoute(
+                                                                            trip,
+                                                                            index
+                                                                        )}
+                                                                    </strong>
+                                                                    <small>
+                                                                        Arrival{" "}
+                                                                        {getScheduleArrival(
+                                                                            trip
+                                                                        )}
+                                                                    </small>
+                                                                </span>
+
+                                                                <span className="schedule-time-cell">
+                                                                    {trip?.departureTime ||
+                                                                        trip?.time ||
+                                                                        "—"}
+                                                                </span>
+
+                                                                <span className="schedule-capacity-cell">
+                                                                    <strong>
+                                                                        {passengers} /{" "}
+                                                                        {passengerLimit}
+                                                                    </strong>
+                                                                    <small>
+                                                                        {Math.max(
+                                                                            0,
+                                                                            passengerLimit -
+                                                                                passengers
+                                                                        )}{" "}
+                                                                        remaining
+                                                                    </small>
+                                                                </span>
+
+                                                                <span className="schedule-capacity-cell">
+                                                                    <strong>
+                                                                        {motorcycles} /{" "}
+                                                                        {motorcycleLimit}
+                                                                    </strong>
+                                                                    <small>
+                                                                        {Math.max(
+                                                                            0,
+                                                                            motorcycleLimit -
+                                                                                motorcycles
+                                                                        )}{" "}
+                                                                        remaining
+                                                                    </small>
+                                                                </span>
+
+                                                                <span>
+                                                                    <em
+                                                                        className={`schedule-status ${
+                                                                            closed
+                                                                                ? "sold"
+                                                                                : "ready"
+                                                                        }`}
+                                                                    >
+                                                                        {closed
+                                                                            ? "Sold out"
+                                                                            : "Ready"}
+                                                                    </em>
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    }
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="schedule-list-footer">
+                                            <span>
+                                                Showing {filteredScheduleRows.length} trip
+                                                {filteredScheduleRows.length === 1 ? "" : "s"}
+                                            </span>
+
+                                            <div className="schedule-footer-actions">
+                                                <button
+                                                    type="button"
+                                                    className="schedule-edit-button"
+                                                    onClick={openEditScheduleModal}
+                                                    disabled={!selectedSchedule}
                                                 >
-                                                    <div className="admin-ferry-capacity-top">
-                                                        <div>
-                                                            <strong>{ferry.vesselName || "Unknown Ferry"}</strong>
-                                                            <span>{ferry.departureTime || ferry.time || ""}</span>
-                                                        </div>
+                                                    Edit selected trip
+                                                </button>
 
-                                                        <span className={`admin-capacity-status ${bookingClosed ? "closed" : "open"}`}>
-                                                            {bookingClosed ? "BOOKING CLOSED" : "BOOKING OPEN"}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="admin-capacity-metrics">
-                                                        <div className="admin-capacity-metric">
-                                                            <span>👤 Passengers</span>
-                                                            <strong>{passengers}/{passengerLimit}</strong>
-                                                            <small>
-                                                                {passengerRemaining} passenger {passengerRemaining === 1 ? "slot" : "slots"} left
-                                                            </small>
-                                                        </div>
-
-                                                        <div className="admin-capacity-metric">
-                                                            <span>🏍️ Motorcycles</span>
-                                                            <strong>{motorcycles}/{motorcycleLimit}</strong>
-                                                            <small>
-                                                                {motorcycleRemaining} motorcycle {motorcycleRemaining === 1 ? "slot" : "slots"} left
-                                                            </small>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* =================================================
-                                                        PASSENGER BOOKINGS
-                                                    ================================================= */}
-                                                    <div className="admin-ferry-bookings-section">
-                                                        <div className="admin-ferry-bookings-heading">
-                                                            <span>Bookings Today</span>
-                                                            <strong>{bookingsForFerry.length}</strong>
-                                                        </div>
-
-                                                        {bookingsForFerry.length === 0 ? (
-                                                            <div className="admin-ferry-bookings-empty">
-                                                                No bookings for this ferry yet.
-                                                            </div>
-                                                        ) : (
-                                                            <div className="admin-ferry-bookings-list">
-                                                                {bookingsForFerry.map((booking) => {
-                                                                    const passengerCount =
-                                                                        Number(
-                                                                            booking?.passengers ||
-                                                                            booking?.numberOfPassengers ||
-                                                                            booking?.passengerCount ||
-                                                                            1
-                                                                        ) || 1;
-
-                                                                    const vehicle =
-                                                                        booking?.vehicleType ||
-                                                                        booking?.vehicle ||
-                                                                        "Passenger only";
-
-                                                                    const bookingStatus =
-                                                                        String(
-                                                                            booking?.paymentStatus ||
-                                                                            booking?.status ||
-                                                                            "PENDING"
-                                                                        ).toUpperCase();
-
-                                                                    return (
-                                                                        <div
-                                                                            className="admin-ferry-booking-row"
-                                                                            key={booking?._id || booking?.bookingReference}
-                                                                        >
-                                                                            <div className="admin-ferry-booking-main">
-                                                                                <strong>
-                                                                                    {booking?.bookingReference ||
-                                                                                        booking?.referenceNumber ||
-                                                                                        booking?._id ||
-                                                                                        "—"}
-                                                                                </strong>
-                                                                                <span>
-                                                                                    {booking?.passengerName ||
-                                                                                        booking?.fullName ||
-                                                                                        "Passenger"}
-                                                                                </span>
-                                                                            </div>
-
-                                                                            <div className="admin-ferry-booking-meta">
-                                                                                <span>
-                                                                                    {passengerCount}{" "}
-                                                                                    {passengerCount === 1
-                                                                                        ? "passenger"
-                                                                                        : "passengers"}
-                                                                                </span>
-                                                                                <span>
-                                                                                    {vehicle}
-                                                                                </span>
-                                                                                <span
-                                                                                    className={`admin-ferry-booking-status ${
-                                                                                        bookingStatus === "VERIFIED" ||
-                                                                                        bookingStatus === "CONFIRMED"
-                                                                                            ? "verified"
-                                                                                            : bookingStatus === "PENDING VERIFICATION"
-                                                                                                ? "pending"
-                                                                                                : "other"
-                                                                                    }`}
-                                                                                >
-                                                                                    {bookingStatus}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {bookingClosed && (
-                                                         <div className="admin-capacity-closed-message">
-                                                             {manualClosed
-                                                                 ? "Online booking manually closed by Admin."
-                                                                 : "Passenger capacity reached."}
-                                                         </div>
-                                                     )}
-
-                                                     {!bookingClosed && motorcycleFull && (
-                                                         <div className="admin-capacity-closed-message">
-                                                             Motorcycle capacity reached. Passenger-only booking remains available.
-                                                         </div>
-                                                     )}
-
+                                                {selectedSchedule?._scheduleSource ===
+                                                    "admin" && (
                                                     <button
                                                         type="button"
-                                                        className={`admin-ferry-toggle-button ${manualClosed ? "reopen" : "close"}`}
-                                                        onClick={() => handleFerryBookingToggle(ferry)}
-                                                        disabled={ferryActionBusy}
+                                                        className="schedule-delete-button"
+                                                        onClick={
+                                                            deleteSelectedSchedule
+                                                        }
                                                     >
-                                                        {ferryActionBusy
-                                                            ? "Updating..."
-                                                            : manualClosed
-                                                                ? "↻ Reopen Online Booking"
-                                                                : "✕ Close Online Booking"}
+                                                        Remove
                                                     </button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
                                 )}
+                            </section>
+
+                            <div className="schedule-capacity-note">
+                                Each trip accommodates 100 passengers and 10 motorcycles.
+                                Motorcycle capacity is tracked separately from passenger capacity.
                             </div>
 
+                            {showScheduleModal && (
+                                <div className="schedule-modal-overlay">
+                                    <div
+                                        className="schedule-modal"
+                                        role="dialog"
+                                        aria-modal="true"
+                                        aria-labelledby="schedule-modal-title"
+                                    >
+                                        <div className="schedule-modal-header">
+                                            <div>
+                                                <span className="operations-eyebrow">
+                                                    SCHEDULE MANAGEMENT
+                                                </span>
+                                                <h3 id="schedule-modal-title">
+                                                    {scheduleModalMode === "edit"
+                                                        ? "Edit selected trip"
+                                                        : "Add trip"}
+                                                </h3>
+                                            </div>
 
-                            {/* =================================================
-                                PAYMENT SHORTCUT
-                            ================================================= */}
+                                            <button
+                                                type="button"
+                                                className="schedule-modal-close"
+                                                onClick={
+                                                    closeScheduleModal
+                                                }
+                                                disabled={
+                                                    scheduleActionLoading
+                                                }
+                                                aria-label="Close"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
 
-                            <div className="welcome-card">
+                                        <form
+                                            className="schedule-form"
+                                            onSubmit={saveSchedule}
+                                        >
+                                            <label>
+                                                <span>Trip / vessel</span>
+                                                <input
+                                                    name="vesselName"
+                                                    value={
+                                                        scheduleForm.vesselName
+                                                    }
+                                                    onChange={
+                                                        handleScheduleFormChange
+                                                    }
+                                                    placeholder="e.g. MV Halili"
+                                                    required
+                                                />
+                                            </label>
 
-                                <div className="welcome-left">
+                                            <label>
+                                                <span>Route</span>
+                                                <select
+                                                    name="route"
+                                                    value={
+                                                        scheduleForm.route
+                                                    }
+                                                    onChange={
+                                                        handleScheduleFormChange
+                                                    }
+                                                >
+                                                    <option>
+                                                        Iloilo → Guimaras
+                                                    </option>
+                                                    <option>
+                                                        Guimaras → Iloilo
+                                                    </option>
+                                                </select>
+                                            </label>
 
-                                    <div className="section-icon">
-                                        ₱
+                                            <div className="schedule-form-grid">
+                                                <label>
+                                                    <span>Travel date</span>
+                                                    <input
+                                                        type="date"
+                                                        name="date"
+                                                        value={
+                                                            scheduleForm.date
+                                                        }
+                                                        onChange={
+                                                            handleScheduleFormChange
+                                                        }
+                                                        required
+                                                    />
+                                                </label>
+
+                                                <label>
+                                                    <span>Departure</span>
+                                                    <select
+                                                        className="schedule-time-select"
+                                                        name="departureTime"
+                                                        value={
+                                                            scheduleForm.departureTime
+                                                        }
+                                                        onChange={
+                                                            handleScheduleFormChange
+                                                        }
+                                                        required
+                                                    >
+                                                        <option value="">Select departure time</option>
+                                                        {scheduleTimeOptions.map((option) => (
+                                                            <option
+                                                                key={`departure-${option.value}`}
+                                                                value={option.value}
+                                                            >
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+
+                                                <label>
+                                                    <span>Arrival</span>
+                                                    <select
+                                                        className="schedule-time-select"
+                                                        name="arrivalTime"
+                                                        value={
+                                                            scheduleForm.arrivalTime
+                                                        }
+                                                        onChange={
+                                                            handleScheduleFormChange
+                                                        }
+                                                    >
+                                                        <option value="">Select arrival time</option>
+                                                        {scheduleArrivalTimeOptions.map((option) => (
+                                                            <option
+                                                                key={`arrival-${option.value}`}
+                                                                value={option.value}
+                                                            >
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+
+                                                <label>
+                                                    <span>Passenger capacity</span>
+                                                    <input
+                                                        type="number"
+                                                        name="passengerCapacity"
+                                                        min="1"
+                                                        value={
+                                                            scheduleForm.passengerCapacity
+                                                        }
+                                                        onChange={
+                                                            handleScheduleFormChange
+                                                        }
+                                                    />
+                                                </label>
+
+                                                <label>
+                                                    <span>Motorcycle capacity</span>
+                                                    <input
+                                                        type="number"
+                                                        name="motorcycleCapacity"
+                                                        min="0"
+                                                        value={
+                                                            scheduleForm.motorcycleCapacity
+                                                        }
+                                                        onChange={
+                                                            handleScheduleFormChange
+                                                        }
+                                                    />
+                                                </label>
+                                            </div>
+
+                                            {scheduleNotice && (
+                                                <div className="schedule-form-error">
+                                                    {scheduleNotice}
+                                                </div>
+                                            )}
+
+                                            <div className="schedule-modal-actions">
+                                                <button
+                                                    type="button"
+                                                    className="schedule-cancel-button"
+                                                    onClick={
+                                                        closeScheduleModal
+                                                    }
+                                                    disabled={
+                                                        scheduleActionLoading
+                                                    }
+                                                >
+                                                    Cancel
+                                                </button>
+
+                                                <button
+                                                    type="submit"
+                                                    className="schedule-save-button"
+                                                    disabled={
+                                                        scheduleActionLoading
+                                                    }
+                                                >
+                                                    {scheduleActionLoading
+                                                        ? "Saving..."
+                                                        : scheduleModalMode ===
+                                                            "edit"
+                                                        ? "Save changes"
+                                                        : "Add trip"}
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
-
-                                    <div>
-
-                                        <h3>
-                                            Payment Verification
-                                        </h3>
-
-                                        <p>
-                                            Review customer
-                                            payment receipts
-                                            and verify or
-                                            reject pending
-                                            bookings.
-                                        </p>
-
-                                    </div>
-
                                 </div>
-
-
-                                <button
-                                    className="primary-button"
-                                    onClick={() =>
-                                        handleViewChange(
-                                            "payments"
-                                        )
-                                    }
-                                >
-                                    View Payments
-                                </button>
-
-                            </div>
-
-
-                            {/* =================================================
-                                ADMIN ACCOUNT
-                            ================================================= */}
-
-                            <div className="system-card">
-
-                                <div className="system-card-heading">
-
-                                    <div>
-
-                                        <span className="eyebrow">
-                                            ACCOUNT
-                                        </span>
-
-                                        <h3>
-                                            Administrator Account
-                                        </h3>
-
-                                    </div>
-
-                                    <div className="account-status">
-                                        ACTIVE
-                                    </div>
-
-                                </div>
-
-
-                                <div className="account-row">
-
-                                    <span>
-                                        Name
-                                    </span>
-
-                                    <strong>
-                                        {
-                                            admin?.fullName ||
-                                            "Admin"
-                                        }
-                                    </strong>
-
-                                </div>
-
-
-                                <div className="account-row">
-
-                                    <span>
-                                        Email
-                                    </span>
-
-                                    <strong>
-                                        {
-                                            admin?.email ||
-                                            "—"
-                                        }
-                                    </strong>
-
-                                </div>
-
-
-                                <div className="account-row">
-
-                                    <span>
-                                        Role
-                                    </span>
-
-                                    <strong>
-                                        {
-                                            admin?.role ||
-                                            "ADMIN"
-                                        }
-                                    </strong>
-
-                                </div>
-
-                            </div>
-
+                            )}
                         </div>
-
                     )}
-
 
                     {/* =================================================
                         PAYMENT VERIFICATION VIEW
@@ -3648,26 +4273,6 @@ const AdminDashboard = () => {
                                                                         proofUrl
                                                                     }
                                                                     alt="Payment Proof"
-                                                                    loading="lazy"
-                                                                    onError={(event) => {
-                                                                        const fileName =
-                                                                            payment?.paymentProof &&
-                                                                            typeof payment.paymentProof !== "string"
-                                                                                ? payment.paymentProof.fileName
-                                                                                : "";
-
-                                                                        if (
-                                                                            fileName &&
-                                                                            !event.currentTarget.dataset.fallback
-                                                                        ) {
-                                                                            event.currentTarget.dataset.fallback = "true";
-                                                                            event.currentTarget.src =
-                                                                                `${API_ORIGIN}/uploads/payment-proofs/${encodeURIComponent(fileName)}`;
-                                                                            return;
-                                                                        }
-
-                                                                        event.currentTarget.style.display = "none";
-                                                                    }}
                                                                 />
 
                                                                 <div className="proof-overlay">
@@ -9070,815 +9675,1543 @@ const AdminDashboard = () => {
     .staff-header-actions { width:100%; }
     .staff-header-actions > * { flex:1; }
 }
-
-
 /* =========================================================
-   GUIMARASGO ADMIN DASHBOARD - FULL RESPONSIVE OVERRIDES
-   Layout/presentation only. Existing functionality is unchanged.
+   OPERATIONS OVERVIEW — REFERENCE UI
+   Presentation layer for the first Admin view.
 ========================================================= */
 
 .admin-dashboard {
-    width: 100% !important;
-    min-height: 100vh !important;
-    display: flex !important;
-    position: relative !important;
-    overflow-x: hidden !important;
+    min-height: 100vh;
+    background: #f5f2ec;
+    color: #222222;
 }
 
-.admin-dashboard > .sidebar {
-    position: fixed !important;
-    inset: 0 auto 0 0 !important;
-    width: 240px !important;
-    min-width: 240px !important;
-    max-width: 240px !important;
-    height: 100vh !important;
-    min-height: 100vh !important;
-    flex: 0 0 240px !important;
-    display: flex !important;
-    flex-direction: column !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    z-index: 1000 !important;
+.operations-content {
+    background: #f8f5ef;
 }
 
-.admin-dashboard > .dashboard-content {
-    width: calc(100% - 240px) !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    margin-left: 240px !important;
-    min-height: 100vh !important;
-    box-sizing: border-box !important;
+.operations-content .dashboard-main {
+    padding: 0;
 }
 
-.dashboard-main {
-    width: 100% !important;
-    max-width: none !important;
-    min-width: 0 !important;
-    box-sizing: border-box !important;
+.sidebar {
+    width: 210px;
+    min-width: 210px;
+    padding: 22px 12px 18px;
+    background: #ffffff;
+    border-right: 0;
+    border-radius: 0 22px 22px 0;
+    box-shadow: 0 8px 28px rgba(30, 36, 44, .04);
 }
 
-.cards,
-.admin-operations-grid,
-.admin-capacity-grid,
-.staff-summary-card {
+.operations-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 12px 28px;
+}
+
+.operations-brand strong {
+    font-size: 15px;
+    letter-spacing: -.2px;
+}
+
+.operations-brand-mark {
+    width: 25px;
+    height: 25px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    border-radius: 8px;
+    background: #f5efe6;
+    color: #ff8b1e;
+    font-weight: 900;
+    font-size: 8px;
+    box-shadow: inset 0 0 0 1px rgba(255, 139, 30, .12);
+}
+
+.operations-brand-mark span:first-child { transform: translate(-2px, -2px); }
+.operations-brand-mark span:last-child { transform: translate(2px, 2px); color: #0c8d80; }
+
+.operations-workspace {
+    margin: 0 10px 20px;
+    padding: 0 0 22px;
+    border-bottom: 1px solid #e7e2da;
+}
+
+.operations-workspace span {
+    display: block;
+    margin-bottom: 7px;
+    color: #77726a;
+    font-size: 8px;
+    letter-spacing: .9px;
+}
+
+.operations-workspace strong {
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.operations-navigation { gap: 4px; }
+
+.operations-navigation .side-item {
+    min-height: 37px;
+    padding: 0 10px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: #222;
+    font-size: 10px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.operations-navigation .side-item:hover {
+    background: #f7f5f0;
+    color: #222;
+}
+
+.operations-navigation .side-item.active {
+    background: #0b9e94;
+    color: #ffffff;
+    box-shadow: none;
+}
+
+.operations-nav-icon {
+    width: 15px;
+    display: inline-flex;
+    justify-content: center;
+    font-size: 13px;
+    opacity: .9;
+}
+
+.operations-navigation .pending-badge {
+    margin-left: auto;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 99px;
+    display: grid;
+    place-items: center;
+    background: #e96d48;
+    color: #fff;
+    font-size: 8px;
+}
+
+.operations-terminal-card {
+    margin: 0 10px 17px;
+    padding: 12px 10px;
+    border-radius: 12px;
+    background: #f7f3ed;
+}
+
+.operations-terminal-card strong,
+.operations-terminal-card span,
+.operations-terminal-card small { display: block; }
+.operations-terminal-card strong { font-size: 9px; margin-bottom: 7px; }
+.operations-terminal-card span { color: #77726a; font-size: 8px; margin-bottom: 6px; }
+.operations-terminal-card small { color: #087d75; font-size: 8px; }
+.operations-terminal-card small i {
+    display: inline-block; width: 5px; height: 5px; margin-right: 5px; border-radius: 50%; background: #168f83;
+}
+
+.operations-admin-account {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: calc(100% - 20px);
+    margin: 0 10px;
+    padding: 7px 4px;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.operations-admin-account strong, .operations-admin-account small { display: block; }
+.operations-admin-account strong { font-size: 9px; }
+.operations-admin-account small { margin-top: 3px; color: #888; font-size: 7px; }
+.operations-admin-avatar { font-size: 17px; color: #333; }
+.operations-logout { display: none !important; }
+
+.operations-overview-page {
     width: 100%;
-    min-width: 0;
+    min-height: 100vh;
+    padding: 28px 28px 38px;
 }
 
-.admin-booking-search-form,
-.admin-booking-info-grid,
-.payment-details,
-.staff-form-grid {
-    min-width: 0;
+.operations-page-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 22px;
 }
 
-.admin-booking-search-form input,
-.admin-booking-search-form button,
-.staff-form-group input,
-.staff-form-group select,
-.staff-form-group textarea {
-    min-width: 0;
-    max-width: 100%;
+.operations-eyebrow {
+    display: block;
+    margin-bottom: 7px;
+    color: #77726a;
+    font-size: 8px;
+    letter-spacing: 1px;
 }
 
-.staff-table-wrap {
-    width: 100%;
-    max-width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+.operations-page-heading h2 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1.1;
+    letter-spacing: -.8px;
 }
 
-.staff-table-wrap table {
-    min-width: 680px;
+.operations-page-heading p {
+    margin: 7px 0 0;
+    color: #7c7972;
+    font-size: 9px;
 }
 
-.payment-card,
-.rejected-card,
-.empty-payment-card,
-.empty-staff-card,
-.admin-capacity-card,
-.admin-ferry-capacity-card,
-.admin-departure-panel,
-.admin-booking-search-card,
-.staff-table-card,
-.system-card,
-.welcome-card {
-    min-width: 0;
-    max-width: 100%;
+.operations-date {
+    padding-top: 7px;
+    text-align: right;
 }
 
-/* =========================
-   LARGE TABLET / LAPTOP
-========================= */
-@media (max-width: 1100px) {
-    .admin-dashboard > .sidebar {
-        width: 210px !important;
-        min-width: 210px !important;
-        max-width: 210px !important;
-        flex-basis: 210px !important;
-    }
+.operations-date strong, .operations-date span { display: block; }
+.operations-date strong { font-size: 9px; }
+.operations-date span { margin-top: 6px; color: #88837b; font-size: 7px; }
 
-    .admin-dashboard > .dashboard-content {
-        width: calc(100% - 210px) !important;
-        margin-left: 210px !important;
-    }
-
-    .dashboard-header {
-        padding-left: 24px !important;
-        padding-right: 24px !important;
-    }
-
-    .dashboard-main {
-        padding-left: 24px !important;
-        padding-right: 24px !important;
-    }
-
-    .cards {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
-
-    .admin-operations-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
-
-    .admin-booking-info-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
+.selected-trip-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) 100px 100px 135px;
+    align-items: center;
+    gap: 20px;
+    padding: 15px 18px;
+    margin-bottom: 17px;
+    border: 1px solid rgba(231, 224, 213, .9);
+    border-radius: 19px;
+    background: #dff1ef;
+    box-shadow: 0 4px 0 rgba(255,255,255,.55);
 }
 
-/* =========================
-   TABLET
-========================= */
-@media (max-width: 850px) {
-    .admin-dashboard > .sidebar {
-        width: 190px !important;
-        min-width: 190px !important;
-        max-width: 190px !important;
-        flex-basis: 190px !important;
-        padding-left: 10px !important;
-        padding-right: 10px !important;
-    }
-
-    .admin-dashboard > .dashboard-content {
-        width: calc(100% - 190px) !important;
-        margin-left: 190px !important;
-    }
-
-    .sidebar-title {
-        font-size: 19px !important;
-    }
-
-    .side-item {
-        font-size: 11px !important;
-    }
-
-    .dashboard-header {
-        min-height: 68px !important;
-        padding: 0 18px !important;
-    }
-
-    .dashboard-main {
-        padding: 22px 18px 20px !important;
-    }
-
-    .page-heading h2 {
-        font-size: 22px !important;
-    }
-
-    .cards {
-        gap: 10px !important;
-    }
-
-    .stat-card {
-        min-width: 0 !important;
-    }
-
-    .payment-details {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    }
+.selected-trip-route strong { display: block; font-size: 15px; }
+.selected-trip-route span { display: block; margin-top: 5px; color: #747d79; font-size: 8px; }
+.selected-trip-time span { display: block; color: #777; font-size: 7px; }
+.selected-trip-time strong { display: block; margin-top: 5px; font-size: 10px; }
+.selected-trip-card > button,
+.operations-panel-heading button {
+    height: 34px;
+    border: 0;
+    border-radius: 99px;
+    background: #f7f0e8;
+    color: #222;
+    font-size: 9px;
+    cursor: pointer;
 }
 
-/* =========================
-   MOBILE - TOP NAVIGATION
-========================= */
-@media (max-width: 700px) {
-    .admin-dashboard {
-        display: block !important;
-        min-height: 100vh !important;
-    }
-
-    .admin-dashboard > .sidebar {
-        position: fixed !important;
-        inset: 0 0 auto 0 !important;
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
-        height: 64px !important;
-        min-height: 64px !important;
-        flex: none !important;
-        padding: 8px 10px !important;
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        gap: 8px !important;
-        overflow: hidden !important;
-        border-right: none !important;
-        border-bottom: 1px solid #e5e7eb !important;
-        box-shadow: 0 3px 16px rgba(15, 23, 42, 0.08) !important;
-    }
-
-    .brand-section {
-        display: none !important;
-    }
-
-    .sidebar-navigation {
-        flex: 1 1 auto !important;
-        width: auto !important;
-        min-width: 0 !important;
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        gap: 6px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        overflow-x: auto !important;
-        overflow-y: hidden !important;
-        scrollbar-width: none !important;
-        -webkit-overflow-scrolling: touch !important;
-    }
-
-    .sidebar-navigation::-webkit-scrollbar {
-        display: none !important;
-    }
-
-    .side-item {
-        width: auto !important;
-        min-width: max-content !important;
-        max-width: none !important;
-        min-height: 40px !important;
-        height: 40px !important;
-        padding: 0 12px !important;
-        flex: 0 0 auto !important;
-        white-space: nowrap !important;
-        font-size: 10px !important;
-    }
-
-    .side-item span {
-        width: auto !important;
-        white-space: nowrap !important;
-    }
-
-    .pending-badge {
-        flex: 0 0 auto !important;
-    }
-
-    .sidebar-spacer {
-        display: none !important;
-    }
-
-    .logout-button {
-        width: auto !important;
-        min-width: 68px !important;
-        height: 40px !important;
-        min-height: 40px !important;
-        margin: 0 !important;
-        padding: 0 12px !important;
-        flex: 0 0 auto !important;
-    }
-
-    .admin-dashboard > .dashboard-content {
-        width: 100% !important;
-        min-width: 0 !important;
-        margin-left: 0 !important;
-        padding-top: 64px !important;
-    }
-
-    .dashboard-header {
-        min-height: 68px !important;
-        padding: 10px 15px !important;
-    }
-
-    .dashboard-header h1 {
-        font-size: 17px !important;
-    }
-
-    .dashboard-header p {
-        font-size: 9px !important;
-    }
-
-    .admin-badge {
-        min-width: 50px !important;
-        height: 26px !important;
-        padding: 0 9px !important;
-        font-size: 8px !important;
-    }
-
-    .dashboard-main {
-        padding: 18px 12px 24px !important;
-    }
-
-    .page-heading h2 {
-        font-size: 20px !important;
-    }
-
-    .page-heading p {
-        font-size: 9px !important;
-    }
-
-    .cards,
-    .admin-operations-grid,
-    .payment-details,
-    .admin-booking-info-grid,
-    .staff-summary-card {
-        grid-template-columns: 1fr !important;
-    }
-
-    .cards {
-        gap: 10px !important;
-    }
-
-    .stat-card,
-    .admin-operation-card {
-        min-height: 92px !important;
-    }
-
-    .admin-departure-header,
-    .admin-booking-search-header,
-    .staff-header {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 12px !important;
-    }
-
-    .admin-departure-header .refresh-button,
-    .staff-header-actions,
-    .admin-booking-search-form {
-        width: 100% !important;
-    }
-
-    .admin-booking-search-form {
-        grid-template-columns: 1fr !important;
-    }
-
-    .admin-booking-search-form button {
-        width: 100% !important;
-        min-height: 40px !important;
-    }
-
-    .admin-departure-row {
-        grid-template-columns: 1fr !important;
-        gap: 8px !important;
-        align-items: flex-start !important;
-    }
-
-    .admin-departure-status {
-        justify-self: flex-start !important;
-    }
-
-    .staff-header-actions {
-        display: flex !important;
-        flex-wrap: wrap !important;
-    }
-
-    .staff-header-actions .refresh-button,
-    .staff-header-actions .staff-add-button {
-        flex: 1 1 140px !important;
-    }
-
-    .payment-card-header {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: 10px !important;
-    }
-
-    .payment-card {
-        overflow: hidden !important;
-    }
-
-    .modal-overlay,
-    .logout-modal-overlay {
-        padding: 12px !important;
-    }
-
-    .confirm-modal,
-    .logout-modal,
-    .staff-modal,
-    .ferry-confirm-modal {
-        width: min(100%, 520px) !important;
-        max-width: 100% !important;
-        max-height: calc(100vh - 24px) !important;
-        overflow-y: auto !important;
-    }
+.operations-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 13px;
+    margin-bottom: 18px;
 }
 
-/* =========================
-   SMALL PHONES
-========================= */
-@media (max-width: 480px) {
-    .admin-dashboard > .sidebar {
-        height: 58px !important;
-        min-height: 58px !important;
-        padding: 6px 7px !important;
-    }
-
-    .admin-dashboard > .dashboard-content {
-        padding-top: 58px !important;
-    }
-
-    .side-item {
-        min-height: 36px !important;
-        height: 36px !important;
-        padding: 0 10px !important;
-        font-size: 9px !important;
-        border-radius: 9px !important;
-    }
-
-    .logout-button {
-        min-width: 60px !important;
-        height: 36px !important;
-        min-height: 36px !important;
-        padding: 0 9px !important;
-        font-size: 9px !important;
-    }
-
-    .dashboard-header {
-        min-height: 62px !important;
-        padding: 8px 12px !important;
-    }
-
-    .dashboard-header h1 {
-        font-size: 15px !important;
-    }
-
-    .dashboard-header p {
-        font-size: 8px !important;
-    }
-
-    .admin-badge {
-        min-width: 45px !important;
-        height: 23px !important;
-        padding: 0 7px !important;
-        font-size: 7px !important;
-    }
-
-    .dashboard-main {
-        padding: 15px 10px 22px !important;
-    }
-
-    .page-heading h2 {
-        font-size: 18px !important;
-    }
-
-    .stat-card {
-        padding: 13px !important;
-    }
-
-    .stat-card strong {
-        font-size: 21px !important;
-    }
-
-    .admin-operation-card {
-        padding: 13px !important;
-    }
-
-    .admin-departure-panel,
-    .admin-booking-search-card {
-        padding: 13px !important;
-    }
-
-    .admin-booking-info-grid > div {
-        min-width: 0 !important;
-    }
+.operations-kpi-card {
+    min-height: 91px;
+    padding: 15px 17px;
+    border-radius: 16px;
+    background: #ffffff;
+    border: 1px solid #eee9e2;
 }
 
-/* =========================
-   VERY SMALL PHONES
-========================= */
-@media (max-width: 360px) {
-    .sidebar-navigation {
-        gap: 4px !important;
-    }
+.operations-kpi-card span, .operations-kpi-card small { display: block; }
+.operations-kpi-card span { color: #77736d; font-size: 8px; }
+.operations-kpi-card strong { display: block; margin: 6px 0 4px; font-size: 23px; line-height: 1; letter-spacing: -.7px; }
+.operations-kpi-card small { color: #85817a; font-size: 7px; line-height: 1.4; }
 
-    .side-item {
-        padding: 0 8px !important;
-        font-size: 8px !important;
-    }
-
-    .logout-button {
-        min-width: 54px !important;
-        padding: 0 7px !important;
-        font-size: 8px !important;
-    }
-
-    .dashboard-header h1 {
-        font-size: 14px !important;
-    }
-
-    .admin-badge {
-        display: none !important;
-    }
+.operations-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.8fr) minmax(250px, .95fr);
+    gap: 17px;
 }
 
+.operations-panel {
+    border: 1px solid #eee8df;
+    border-radius: 19px;
+    background: #ffffff;
+    box-shadow: 0 4px 0 rgba(233, 226, 216, .55);
+    overflow: hidden;
+}
+
+.operations-panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 18px 17px 12px;
+}
+
+.operations-panel-heading.simple { display: block; }
+.operations-panel-heading h3 { margin: 0; font-size: 14px; letter-spacing: -.25px; }
+.operations-panel-heading p { margin: 5px 0 0; color: #88827a; font-size: 8px; }
+.operations-panel-heading button { padding: 0 18px; white-space: nowrap; }
+
+.departures-table { padding: 0 17px; }
+.departures-table-head, .departure-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.7fr) 85px 85px 70px;
+    gap: 10px;
+    align-items: center;
+}
+
+.departures-table-head {
+    padding: 8px 0;
+    color: #77736d;
+    font-size: 7px;
+    border-bottom: 1px solid #e9e4dd;
+}
+
+.departure-row {
+    min-height: 55px;
+    padding: 8px 0;
+    border-bottom: 1px solid #ece7df;
+}
+
+.departure-row:first-of-type { background: #faf8f4; }
+.departure-row > div:first-child strong, .departure-row > div:first-child span, .departure-row > div:nth-child(2) strong, .departure-row > div:nth-child(2) span { display: block; }
+.departure-row strong { font-size: 9px; }
+.departure-row span { margin-top: 4px; color: #88837b; font-size: 7px; }
+.operations-status {
+    display: inline-flex !important;
+    justify-content: center;
+    min-width: 64px;
+    margin-top: 0 !important;
+    padding: 6px 10px;
+    border-radius: 99px;
+    font-size: 7px !important;
+}
+.operations-status.ready { background: #dff1ef; color: #087c74; }
+.operations-status.sold { background: #f2ede7; color: #7b7369; }
+.operations-table-note { margin: 12px 17px 16px; color: #8b857d; font-size: 7px; }
+.operations-empty { padding: 25px 0; color: #888; font-size: 8px; }
+
+.capacity-panel { padding-bottom: 17px; }
+.capacity-line { padding: 9px 17px 3px; }
+.capacity-line > div:first-child { display: flex; justify-content: space-between; gap: 10px; }
+.capacity-line span { color: #77736d; font-size: 8px; }
+.capacity-line strong { font-size: 8px; }
+.capacity-track { height: 6px; margin-top: 7px; overflow: hidden; border-radius: 99px; background: #eee9e3; }
+.capacity-track i { display: block; height: 100%; border-radius: inherit; background: #087b73; }
+.capacity-note { margin: 11px 17px 0; color: #88827a; font-size: 7px; line-height: 1.5; }
+
+@media (max-width: 1050px) {
+    .sidebar { width: 190px; min-width: 190px; }
+    .operations-overview-page { padding: 24px 20px 32px; }
+    .selected-trip-card { grid-template-columns: 1.4fr 90px 90px 110px; gap: 12px; }
+    .operations-kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+
+@media (max-width: 800px) {
+    .sidebar { width: 100%; min-width: 0; border-radius: 0; }
+    .operations-main-grid { grid-template-columns: 1fr; }
+    .selected-trip-card { grid-template-columns: 1fr 1fr; }
+    .selected-trip-card > button { grid-column: 1 / -1; }
+}
+
+@media (max-width: 600px) {
+    .operations-overview-page { padding: 18px 14px 28px; }
+    .operations-page-heading { display: block; }
+    .operations-date { margin-top: 12px; text-align: left; }
+    .selected-trip-card { grid-template-columns: 1fr; }
+    .operations-kpi-grid { grid-template-columns: 1fr; }
+    .departures-table { overflow-x: auto; }
+    .departures-table-head, .departure-row { min-width: 570px; }
+}
 
 
 /* =========================================================
-   GUIMARASGO - MOBILE HAMBURGER NAVIGATION
-   Mobile-only presentation. Desktop/tablet layout is unchanged.
+   RESPONSIVE ADMIN OPERATIONS UI + MOBILE HAMBURGER
 ========================================================= */
-.mobile-admin-topbar,
-.mobile-sidebar-overlay {
-    display: none;
+
+.admin-dashboard {
+    width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
 }
 
-@media (max-width: 700px) {
-    .mobile-admin-topbar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 8px 12px;
-        background: rgba(255, 255, 255, 0.98);
-        border-bottom: 1px solid #e5e7eb;
-        box-shadow: 0 3px 16px rgba(15, 23, 42, 0.08);
-        z-index: 1200;
+.operations-content {
+    min-width: 0;
+    width: 100%;
+}
+
+.operations-overview-page {
+    min-width: 0;
+}
+
+@media (min-width: 651px) {
+    .mobile-menu-toggle,
+    .mobile-sidebar-overlay {
+        display: none !important;
     }
 
-    .mobile-menu-button {
-        width: 42px;
-        height: 42px;
-        min-width: 42px;
-        padding: 0;
-        border: 1px solid #e5e7eb;
-        border-radius: 10px;
-        background: #ffffff;
+    .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        z-index: 20;
+    }
+}
+
+@media (max-width: 1050px) and (min-width: 651px) {
+    .sidebar {
+        width: 190px;
+        min-width: 190px;
+    }
+
+    .operations-overview-page {
+        padding: 24px 20px 32px;
+    }
+
+    .operations-page-heading h2 {
+        font-size: 22px;
+    }
+
+    .selected-trip-card {
+        grid-template-columns: minmax(0, 1.35fr) 88px 88px 110px;
+        gap: 12px;
+    }
+
+    .operations-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .operations-main-grid {
+        grid-template-columns: minmax(0, 1.55fr) minmax(220px, .9fr);
+    }
+
+    .departures-table-head,
+    .departure-row {
+        grid-template-columns: minmax(150px, 1.5fr) 75px 75px 65px;
+    }
+}
+
+@media (max-width: 650px) {
+    .admin-dashboard {
+        display: block;
+        min-height: 100dvh;
+        background: #f8f5ef;
+    }
+
+    .dashboard-content.operations-content {
+        width: 100%;
+        min-height: 100dvh;
+    }
+
+    .mobile-menu-toggle {
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 1002;
+        width: 46px;
+        height: 46px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 4px;
+        gap: 5px;
+        padding: 0;
+        border: 1px solid rgba(226, 232, 240, .95);
+        border-radius: 13px;
+        background: rgba(255, 255, 255, .97);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .12);
         cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
     }
 
-    .mobile-menu-button span {
+    .mobile-menu-toggle span {
         display: block;
-        width: 19px;
+        width: 21px;
         height: 2px;
-        border-radius: 999px;
-        background: #273142;
-        transition: transform 0.2s ease, opacity 0.2s ease;
+        border-radius: 99px;
+        background: #172033;
+        transition: transform .2s ease, opacity .2s ease;
     }
 
-    .mobile-menu-button.open span:nth-child(1) {
-        transform: translateY(6px) rotate(45deg);
+    .mobile-menu-toggle[aria-expanded="true"] span:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
     }
 
-    .mobile-menu-button.open span:nth-child(2) {
+    .mobile-menu-toggle[aria-expanded="true"] span:nth-child(2) {
         opacity: 0;
     }
 
-    .mobile-menu-button.open span:nth-child(3) {
-        transform: translateY(-6px) rotate(-45deg);
-    }
-
-    .mobile-admin-brand {
-        min-width: 0;
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        line-height: 1.05;
-    }
-
-    .mobile-admin-brand strong {
-        color: #f28c28;
-        font-size: 16px;
-        font-weight: 900;
-        white-space: nowrap;
-    }
-
-    .mobile-admin-brand span {
-        margin-top: 3px;
-        color: #8a8f98;
-        font-size: 7px;
-        font-weight: 800;
-        letter-spacing: 1.2px;
-        white-space: nowrap;
-    }
-
-    .mobile-admin-role {
-        min-width: 46px;
-        height: 25px;
-        padding: 0 8px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        background: #fff0df;
-        color: #f28c28;
-        font-size: 7px;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-    }
-
-    .admin-dashboard > .sidebar {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        bottom: 0 !important;
-        right: auto !important;
-        width: 280px !important;
-        min-width: 280px !important;
-        max-width: 280px !important;
-        height: 100vh !important;
-        min-height: 100vh !important;
-        padding: 76px 14px 18px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        overflow-y: auto !important;
-        overflow-x: hidden !important;
-        background: #ffffff !important;
-        border-right: 1px solid #e5e7eb !important;
-        border-bottom: none !important;
-        box-shadow: 12px 0 35px rgba(15, 23, 42, 0.13) !important;
-        transform: translateX(-105%) !important;
-        transition: transform 0.24s ease !important;
-        z-index: 1250 !important;
-    }
-
-    .admin-dashboard > .sidebar.mobile-open {
-        transform: translateX(0) !important;
-    }
-
-    .admin-dashboard > .sidebar .brand-section {
-        display: block !important;
-        flex: 0 0 auto !important;
-        padding: 0 10px !important;
-        margin-bottom: 26px !important;
-    }
-
-    .admin-dashboard > .sidebar .sidebar-navigation {
-        width: 100% !important;
-        min-width: 0 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: stretch !important;
-        justify-content: flex-start !important;
-        gap: 6px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        overflow: visible !important;
-    }
-
-    .admin-dashboard > .sidebar .side-item {
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
-        min-height: 46px !important;
-        height: 46px !important;
-        padding: 0 13px !important;
-        flex: 0 0 auto !important;
-        justify-content: flex-start !important;
-        white-space: normal !important;
-        font-size: 12px !important;
-    }
-
-    .admin-dashboard > .sidebar .side-item span {
-        width: 100% !important;
-        white-space: normal !important;
-    }
-
-    .admin-dashboard > .sidebar .sidebar-spacer {
-        display: block !important;
-        flex: 1 1 auto !important;
-    }
-
-    .admin-dashboard > .sidebar .logout-button {
-        width: 100% !important;
-        min-width: 0 !important;
-        height: 42px !important;
-        min-height: 42px !important;
-        margin: 0 !important;
-        padding: 0 12px !important;
-        flex: 0 0 auto !important;
+    .mobile-menu-toggle[aria-expanded="true"] span:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
     }
 
     .mobile-sidebar-overlay {
         position: fixed;
         inset: 0;
-        display: block;
+        z-index: 999;
         width: 100%;
         height: 100%;
-        padding: 0;
         border: 0;
-        background: rgba(15, 23, 42, 0.38);
+        padding: 0;
+        background: rgba(15, 23, 42, .42);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
         cursor: pointer;
-        z-index: 1240;
     }
 
-    .admin-dashboard > .dashboard-content {
-        width: 100% !important;
-        margin-left: 0 !important;
-        padding-top: 60px !important;
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 1001;
+        width: min(292px, 84vw);
+        min-width: 0;
+        height: 100dvh;
+        max-height: 100dvh;
+        margin: 0;
+        padding: 24px 14px 18px;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border: 0;
+        border-radius: 0 22px 22px 0;
+        background: #ffffff;
+        box-shadow: 14px 0 40px rgba(15, 23, 42, .16);
+        transform: translateX(-105%);
+        transition: transform .24s ease;
+        overscroll-behavior: contain;
     }
 
-    .dashboard-header {
-        min-height: 66px !important;
+    .sidebar.mobile-menu-open {
+        transform: translateX(0);
+    }
+
+    .operations-brand {
+        padding: 8px 12px 25px;
+    }
+
+    .operations-workspace {
+        margin-bottom: 18px;
+        padding-bottom: 18px;
+    }
+
+    .operations-navigation {
+        width: 100%;
+    }
+
+    .operations-navigation .side-item {
+        min-height: 46px;
+        padding: 0 12px;
+        font-size: 12px;
+    }
+
+    .operations-nav-icon {
+        width: 20px;
+        font-size: 15px;
+    }
+
+    .operations-terminal-card {
+        margin-top: auto;
+    }
+
+    .operations-overview-page {
+        width: 100%;
+        min-height: 100dvh;
+        padding: 82px 14px 28px;
+    }
+
+    .operations-page-heading {
+        display: block;
+        margin-bottom: 18px;
+    }
+
+    .operations-page-heading h2 {
+        font-size: clamp(23px, 7vw, 30px);
+        line-height: 1.08;
+    }
+
+    .operations-page-heading p {
+        max-width: 95%;
+        font-size: 10px;
+        line-height: 1.5;
+    }
+
+    .operations-date {
+        margin-top: 14px;
+        padding-top: 0;
+        text-align: left;
+    }
+
+    .operations-date strong {
+        font-size: 10px;
+    }
+
+    .operations-date span {
+        margin-top: 5px;
+        font-size: 8px;
+    }
+
+    .selected-trip-card {
+        grid-template-columns: 1fr;
+        gap: 13px;
+        padding: 20px;
+        margin-bottom: 14px;
+        border-radius: 20px;
+    }
+
+    .selected-trip-route strong {
+        font-size: 19px;
+    }
+
+    .selected-trip-route span {
+        font-size: 9px;
+    }
+
+    .selected-trip-time strong {
+        font-size: 12px;
+    }
+
+    .selected-trip-time span {
+        font-size: 8px;
+    }
+
+    .selected-trip-card > button {
+        grid-column: auto;
+        width: 100%;
+        height: 42px;
+    }
+
+    .operations-kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .operations-kpi-card {
+        min-height: 104px;
+        padding: 17px;
+        border-radius: 18px;
+    }
+
+    .operations-kpi-card span {
+        font-size: 9px;
+    }
+
+    .operations-kpi-card strong {
+        font-size: 27px;
+    }
+
+    .operations-kpi-card small {
+        font-size: 8px;
+    }
+
+    .operations-main-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .operations-panel {
+        border-radius: 18px;
+    }
+
+    .operations-panel-heading {
+        padding: 17px 15px 11px;
+    }
+
+    .operations-panel-heading h3 {
+        font-size: 15px;
+    }
+
+    .operations-panel-heading p {
+        font-size: 8px;
+        line-height: 1.45;
+    }
+
+    .operations-panel-heading button {
+        padding: 0 13px;
+        height: 34px;
+    }
+
+    .departures-table {
+        width: 100%;
+        padding: 0 15px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .departures-table-head,
+    .departure-row {
+        min-width: 555px;
+        grid-template-columns: minmax(175px, 1.6fr) 82px 82px 72px;
+    }
+
+    .departure-row {
+        min-height: 60px;
+    }
+
+    .operations-table-note {
+        margin: 11px 15px 15px;
+        font-size: 8px;
+    }
+
+    .capacity-line {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .capacity-note {
+        margin-left: 15px;
+        margin-right: 15px;
+        font-size: 8px;
     }
 }
 
-@media (max-width: 400px) {
-    .mobile-admin-topbar {
-        height: 56px;
-        padding: 7px 9px;
+@media (max-width: 380px) {
+    .mobile-menu-toggle {
+        top: 11px;
+        left: 11px;
+        width: 43px;
+        height: 43px;
     }
 
-    .mobile-menu-button {
-        width: 39px;
-        height: 39px;
-        min-width: 39px;
+    .operations-overview-page {
+        padding-left: 11px;
+        padding-right: 11px;
     }
 
-    .mobile-admin-brand strong {
-        font-size: 14px;
+    .selected-trip-card {
+        padding: 17px;
     }
 
-    .mobile-admin-brand span {
-        font-size: 6px;
+    .operations-kpi-card {
+        padding: 15px;
     }
 
-    .mobile-admin-role {
-        min-width: 42px;
-        height: 23px;
-        font-size: 6px;
-    }
 
-    .admin-dashboard > .dashboard-content {
-        padding-top: 56px !important;
-    }
 }
-
-
 
 /* =========================================================
-   MOBILE DRAWER TEXT FIX
-   Keeps hamburger drawer clean and readable.
+   MOBILE ADMIN DRAWER — FULL NAVIGATION + LOGOUT
 ========================================================= */
-@media (max-width: 700px) {
-    .admin-dashboard > .sidebar .sidebar-title {
-        display: block !important;
-        font-size: 22px !important;
-        line-height: 1.1 !important;
-        color: #ff861c !important;
-        white-space: nowrap !important;
-    }
 
-    .admin-dashboard > .sidebar .sidebar-title::after {
-        content: none !important;
-        display: none !important;
-    }
+.operations-navigation {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+}
 
-    .admin-dashboard > .sidebar .admin-label {
-        display: block !important;
-        margin-top: 5px !important;
-        color: #999999 !important;
-        font-size: 8px !important;
-        font-weight: 800 !important;
-        letter-spacing: 1.5px !important;
-    }
+.operations-navigation .side-item {
+    width: 100%;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 11px;
+    background: transparent;
+    color: #20242b;
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+}
 
-    .admin-dashboard > .sidebar .side-item {
-        font-size: 12px !important;
-        justify-content: flex-start !important;
-        text-align: left !important;
-    }
+.operations-navigation .side-item > span:last-child {
+    display: inline-block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
 
-    .admin-dashboard > .sidebar .side-item::before {
-        content: none !important;
-        display: none !important;
-    }
+.operations-navigation .operations-nav-icon {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 20px;
+    width: 20px;
+    min-width: 20px;
+    font-size: 15px;
+}
 
-    .admin-dashboard > .sidebar .side-item span {
-        display: block !important;
-        width: auto !important;
-        flex: 1 1 auto !important;
-        text-align: left !important;
-        white-space: normal !important;
-    }
+.operations-sidebar-footer {
+    margin-top: auto;
+    padding: 18px 8px 4px;
+}
 
-    .admin-dashboard > .sidebar .pending-badge {
-        display: flex !important;
-        flex: 0 0 auto !important;
+.operations-logout-button {
+    width: 100%;
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 11px;
+    border: 1px solid #ece7df;
+    border-radius: 13px;
+    background: #faf8f4;
+    color: #20242b;
+    text-align: left;
+    cursor: pointer;
+    transition: background .2s ease, border-color .2s ease, transform .2s ease;
+}
+
+.operations-logout-button:hover {
+    background: #fff2ef;
+    border-color: #f1cfc8;
+    transform: translateY(-1px);
+}
+
+.operations-logout-icon {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+    border-radius: 10px;
+    background: #fff;
+    font-size: 17px;
+}
+
+.operations-logout-button span:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.operations-logout-button strong {
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.operations-logout-button small {
+    color: #8b8d91;
+    font-size: 8px;
+    line-height: 1.2;
+}
+
+/* Desktop: keep the sidebar compact like the reference. */
+@media (min-width: 651px) {
+    .operations-navigation .side-item > span:last-child {
+        display: inline-block !important;
     }
 }
 
-`}</style>
+/* Mobile drawer: never inherit desktop collapsed/sidebar rules. */
+@media (max-width: 650px) {
+    .sidebar.mobile-menu-open {
+        width: min(292px, 84vw) !important;
+        min-width: 0 !important;
+        padding: 20px 14px 16px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        justify-content: flex-start !important;
+        overflow-y: auto !important;
+    }
+
+    .sidebar.mobile-menu-open .operations-brand {
+        width: 100%;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 10px !important;
+        margin-bottom: 20px;
+        padding: 8px 10px 12px !important;
+    }
+
+    .sidebar.mobile-menu-open .operations-brand strong {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        font-size: 18px;
+    }
+
+    .sidebar.mobile-menu-open .operations-workspace {
+        width: 100%;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        margin: 0 0 20px !important;
+        padding: 0 10px 18px !important;
+        border-bottom: 1px solid #ebe6de;
+    }
+
+    .sidebar.mobile-menu-open .operations-workspace span,
+    .sidebar.mobile-menu-open .operations-workspace strong {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .sidebar.mobile-menu-open .operations-navigation {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 5px !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    .sidebar.mobile-menu-open .operations-navigation .side-item {
+        display: flex !important;
+        width: 100% !important;
+        min-height: 48px !important;
+        flex: 0 0 auto !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 12px !important;
+        padding: 0 12px !important;
+        border-radius: 11px !important;
+        transform: none !important;
+    }
+
+    .sidebar.mobile-menu-open .operations-navigation .side-item > span {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: static !important;
+        width: auto !important;
+        height: auto !important;
+        margin: 0 !important;
+        clip: auto !important;
+        overflow: visible !important;
+        transform: none !important;
+    }
+
+    .sidebar.mobile-menu-open .operations-navigation .side-item > span:last-child {
+        font-size: 12px !important;
+        line-height: 1.2 !important;
+    }
+
+    .sidebar.mobile-menu-open .operations-sidebar-footer {
+        width: 100%;
+        margin-top: auto !important;
+        padding: 20px 8px 4px !important;
+    }
+
+    .sidebar.mobile-menu-open .operations-logout-button {
+        display: flex !important;
+    }
+
+} /* close mobile drawer media query before global schedule styles */
+
+/* =========================================================
+   FERRY SCHEDULES — REFERENCE UI
+========================================================= */
+
+.schedules-page {
+    width: 100%;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 4px 0 42px;
+}
+
+.schedules-page-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 22px;
+}
+
+.schedules-page-heading h2 {
+    margin: 5px 0 6px;
+    color: #202020;
+    font-size: 29px;
+    line-height: 1.05;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+}
+
+.schedules-page-heading p {
+    margin: 0;
+    color: #737373;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.schedules-date-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    padding-bottom: 3px;
+}
+
+.schedules-date-summary strong {
+    color: #242424;
+    font-size: 10px;
+}
+
+.schedules-date-summary span {
+    color: #888;
+    font-size: 8px;
+}
+
+.schedules-toolbar {
+    display: grid;
+    grid-template-columns: minmax(180px, 220px) minmax(180px, 220px) 1fr auto;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 17px;
+}
+
+.schedule-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.schedule-filter-field > span {
+    color: #353535;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.schedule-input-shell {
+    height: 38px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 13px;
+    border: 1px solid #e4ded5;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(30, 30, 30, .02);
+}
+
+.schedule-input-shell > span {
+    color: #555;
+    font-size: 13px;
+}
+
+.schedule-input-shell input,
+.schedule-input-shell select {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #343434;
+    font-size: 10px;
+    font-family: inherit;
+}
+
+.schedule-input-shell input::-webkit-calendar-picker-indicator {
+    opacity: .65;
+}
+
+.schedule-add-button {
+    min-width: 121px;
+    height: 34px;
+    border: 0;
+    border-radius: 19px;
+    background: #ff7418;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 7px 16px rgba(255, 116, 24, .16);
+}
+
+.schedule-add-button:hover {
+    background: #ed6810;
+    transform: translateY(-1px);
+}
+
+.schedule-add-button span {
+    margin-right: 7px;
+    font-size: 15px;
+    vertical-align: -1px;
+}
+
+.schedule-list-card {
+    overflow: hidden;
+    border: 1px solid #ece7df;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0 5px 18px rgba(32, 32, 32, .045);
+}
+
+.schedule-list-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 19px 19px 13px;
+}
+
+.schedule-list-heading h3 {
+    margin: 0 0 5px;
+    color: #272727;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.schedule-list-heading p {
+    margin: 0;
+    color: #8a8a8a;
+    font-size: 9px;
+}
+
+.schedule-refresh-button {
+    height: 32px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 17px;
+    background: #f4f0ea;
+    color: #303030;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.schedule-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.schedule-table {
+    min-width: 760px;
+    padding: 0 19px;
+}
+
+.schedule-table-head,
+.schedule-table-row {
+    display: grid;
+    grid-template-columns: 1.25fr 1.2fr .7fr .75fr .78fr .65fr;
+    align-items: center;
+    column-gap: 14px;
+}
+
+.schedule-table-head {
+    min-height: 31px;
+    border-bottom: 1px solid #e8e2da;
+    color: #777;
+    font-size: 8px;
+    font-weight: 600;
+}
+
+.schedule-table-row {
+    width: 100%;
+    min-height: 60px;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid #eee8e0;
+    background: #fff;
+    color: #333;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.schedule-table-row:hover,
+.schedule-table-row.selected {
+    background: #fbf8f3;
+}
+
+.schedule-table-row:last-child {
+    border-bottom: 0;
+}
+
+.schedule-trip-cell,
+.schedule-route-cell,
+.schedule-capacity-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.schedule-trip-cell strong,
+.schedule-route-cell strong,
+.schedule-capacity-cell strong {
+    overflow: hidden;
+    color: #303030;
+    font-size: 9px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.schedule-trip-cell small,
+.schedule-route-cell small,
+.schedule-capacity-cell small {
+    color: #8b8b8b;
+    font-size: 7px;
+}
+
+.schedule-time-cell {
+    color: #303030;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.schedule-status {
+    width: fit-content;
+    min-width: 63px;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 7px;
+    font-style: normal;
+    font-weight: 700;
+    text-align: center;
+}
+
+.schedule-status.ready {
+    background: #dff4f1;
+    color: #08766d;
+}
+
+.schedule-status.sold {
+    background: #f1eee9;
+    color: #746f67;
+}
+
+.schedule-list-footer {
+    min-height: 53px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 10px 19px;
+    color: #777;
+    font-size: 8px;
+}
+
+.schedule-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.schedule-edit-button,
+.schedule-delete-button {
+    height: 32px;
+    padding: 0 15px;
+    border: 0;
+    border-radius: 17px;
+    font-size: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.schedule-edit-button {
+    background: #f4f0ea;
+    color: #303030;
+}
+
+.schedule-edit-button:hover:not(:disabled) {
+    background: #ece6dd;
+}
+
+.schedule-edit-button:disabled {
+    cursor: not-allowed;
+    opacity: .45;
+}
+
+.schedule-delete-button {
+    background: #fff1ef;
+    color: #c24136;
+}
+
+.schedule-delete-button:hover {
+    background: #ffe5e1;
+}
+
+.schedule-capacity-note {
+    margin-top: 17px;
+    padding: 14px 17px;
+    border: 1px solid rgba(18, 185, 191, .10);
+    border-radius: 18px;
+    background: #e7f6f4;
+    color: #536b6b;
+    font-size: 8px;
+    line-height: 1.5;
+}
+
+.schedule-inline-error,
+.schedule-form-error {
+    margin: 0 19px 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #fff1ef;
+    color: #b33c32;
+    font-size: 8px;
+}
+
+.schedule-empty-state {
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 24px;
+    color: #8b8b8b;
+    text-align: center;
+}
+
+.schedule-empty-state strong {
+    color: #383838;
+    font-size: 12px;
+}
+
+.schedule-empty-state span {
+    font-size: 9px;
+}
+
+.schedule-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(18, 25, 32, .42);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+.schedule-modal {
+    width: min(560px, 100%);
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    border: 1px solid #e9e3da;
+    border-radius: 22px;
+    background: #fff;
+    box-shadow: 0 28px 70px rgba(15, 23, 42, .18);
+}
+
+.schedule-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 22px 17px;
+    border-bottom: 1px solid #eee9e2;
+}
+
+.schedule-modal-header h3 {
+    margin: 5px 0 0;
+    color: #242424;
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.schedule-modal-close {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e7e2da;
+    border-radius: 10px;
+    background: #fff;
+    color: #555;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.schedule-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px 22px 22px;
+}
+
+.schedule-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.schedule-form label > span {
+    color: #4b4b4b;
+    font-size: 9px;
+    font-weight: 700;
+}
+
+.schedule-form input,
+.schedule-form select {
+    width: 100%;
+    height: 41px;
+    padding: 0 12px;
+    border: 1px solid #ded9d1;
+    border-radius: 11px;
+    outline: 0;
+    background: #fff;
+    color: #333;
+    font-family: inherit;
+    font-size: 10px;
+}
+
+.schedule-form input:focus,
+.schedule-form select:focus {
+    border-color: #12a9a7;
+    box-shadow: 0 0 0 3px rgba(18, 169, 167, .10);
+}
+.schedule-time-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, #777 50%), linear-gradient(135deg, #777 50%, transparent 50%);
+    background-position: calc(100% - 17px) 17px, calc(100% - 12px) 17px;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    padding-right: 38px !important;
+    cursor: pointer;
+}
+
+.schedule-time-select option {
+    font-size: 12px;
+}
+
+
+.schedule-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 13px;
+}
+
+.schedule-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding-top: 4px;
+}
+
+.schedule-cancel-button,
+.schedule-save-button {
+    min-width: 105px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: 11px;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.schedule-cancel-button {
+    border: 1px solid #e2ddd5;
+    background: #fff;
+    color: #444;
+}
+
+.schedule-save-button {
+    border: 0;
+    background: #ff7418;
+    color: #fff;
+}
+
+.schedule-save-button:hover:not(:disabled) {
+    background: #ed6810;
+}
+
+.schedule-cancel-button:disabled,
+.schedule-save-button:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+@media (max-width: 850px) {
+    .schedules-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .schedule-add-button {
+        width: 100%;
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 650px) {
+    .schedules-page {
+        padding: 0 0 30px;
+    }
+
+    .schedules-page-heading {
+        display: block;
+        margin-bottom: 17px;
+    }
+
+    .schedules-page-heading h2 {
+        font-size: 25px;
+    }
+
+    .schedules-date-summary {
+        align-items: flex-start;
+        margin-top: 12px;
+    }
+
+    .schedules-toolbar {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .schedule-add-button {
+        grid-column: auto;
+        height: 40px;
+    }
+
+    .schedule-list-card {
+        border-radius: 17px;
+    }
+
+    .schedule-list-heading {
+        padding: 16px 14px 12px;
+    }
+
+    .schedule-table {
+        min-width: 760px;
+        padding: 0 14px;
+    }
+
+    .schedule-list-footer {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 14px;
+    }
+
+    .schedule-footer-actions {
+        width: 100%;
+    }
+
+    .schedule-edit-button,
+    .schedule-delete-button {
+        flex: 1;
+    }
+
+    .schedule-capacity-note {
+        margin-top: 12px;
+    }
+
+    .schedule-modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .schedule-modal {
+        width: 100%;
+        max-height: 92dvh;
+        border-radius: 22px 22px 0 0;
+    }
+
+    .schedule-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+`}
+</style>
 
         </main>
     );

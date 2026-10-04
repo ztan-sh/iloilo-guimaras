@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     useLocation,
     useNavigate
@@ -129,10 +129,14 @@ const BookTrip = () => {
         null;
 
 
-    const selectedFerry =
+    const initialSelectedFerry =
         selectedFerryFromState ||
         selectedFerryFromStorage ||
         {};
+
+
+    const [selectedFerry, setSelectedFerry] =
+        useState(initialSelectedFerry);
 
 
     // =====================================================
@@ -290,6 +294,20 @@ const BookTrip = () => {
             previousTrip.date ||
             ""
         );
+
+
+    // =====================================================
+    // AVAILABLE FERRIES
+    // =====================================================
+
+    const [availableFerries, setAvailableFerries] =
+        useState([]);
+
+    const [ferryLoading, setFerryLoading] =
+        useState(true);
+
+    const [ferryError, setFerryError] =
+        useState("");
 
 
     const [time, setTime] =
@@ -745,6 +763,10 @@ const BookTrip = () => {
         // =================================================
         // SOLO
         // =================================================
+        // The account owner is automatically included as
+        // Passenger 1 internally, but the owner does not
+        // need to fill in name, age, or gender again.
+        // =================================================
 
         if (
             mode === "solo"
@@ -763,8 +785,8 @@ const BookTrip = () => {
                     return [
                         {
                             ...owner,
-                            // Always use the registered account name
-                            // when Solo is selected.
+
+                            // Always use the registered account name.
                             name:
                                 accountOwnerName ||
                                 owner.name ||
@@ -780,6 +802,9 @@ const BookTrip = () => {
 
         // =================================================
         // WITH PASSENGER
+        // =================================================
+        // Keep Passenger 1 as the account owner internally.
+        // Only additional passengers are displayed below.
         // =================================================
 
         setPassengerDetails(
@@ -861,11 +886,32 @@ const BookTrip = () => {
             "noMotorcycle"
         ) {
 
-            // No motorcycle allows up to 10.
+            // =================================================
+            // NO MOTORCYCLE
+            // =================================================
+            // For passenger-only bookings, the survey/interview
+            // requirement is to collect ONLY the number of
+            // people travelling. We do not collect the names,
+            // ages, or genders of friends/family.
+            //
+            // The account owner is still automatically counted
+            // as Passenger 1.
+            // =================================================
 
-            // We do not automatically add
-            // 10 passengers. The user adds
-            // friends using the + button.
+            setPassengerDetails(
+                (previous) => [
+                    {
+                        ...(previous[0] ||
+                            createPassenger()),
+                        name:
+                            accountOwnerName ||
+                            previous[0]?.name ||
+                            ""
+                    }
+                ]
+            );
+
+            setPassengerMode("solo");
 
             return;
         }
@@ -945,6 +991,227 @@ const BookTrip = () => {
     const tomorrow = getManilaDate(
         tomorrowDate
     );
+
+
+    // =====================================================
+    // AVAILABLE FERRY CAPACITY
+    // =====================================================
+
+    const getFerryCapacityDate = () =>
+        date || tomorrow;
+
+
+    useEffect(() => {
+
+        let cancelled = false;
+
+        const loadAvailableFerries = async () => {
+
+            try {
+
+                setFerryLoading(true);
+                setFerryError("");
+
+                const API_URL =
+                    (
+                        import.meta.env.VITE_API_BASE_URL ||
+                        "http://localhost:5000/api"
+                    ).replace(/\/$/, "");
+
+                const response = await fetch(
+                    `${API_URL}/bookings/schedules/available?date=${encodeURIComponent(
+                        getFerryCapacityDate()
+                    )}`,
+                    {
+                        method: "GET",
+                        headers: { Accept: "application/json" },
+                        cache: "no-store"
+                    }
+                );
+
+                const contentType =
+                    response.headers.get("content-type") || "";
+
+                const data =
+                    contentType.includes("application/json")
+                        ? await response.json()
+                        : null;
+
+                if (!response.ok) {
+                    throw new Error(
+                        data?.message ||
+                        "Unable to load ferry availability."
+                    );
+                }
+
+                if (!Array.isArray(data?.capacities)) {
+                    throw new Error(
+                        "Invalid ferry availability response."
+                    );
+                }
+
+                if (cancelled) return;
+
+                const ferries = data.capacities.map((ferry) => {
+
+                    const passengers = Math.max(
+                        0,
+                        Number(ferry.passengers) || 0
+                    );
+
+                    const passengerCapacity = Math.max(
+                        0,
+                        Number(ferry.passengerCapacity) || 100
+                    );
+
+                    const vehicles = Math.max(
+                        0,
+                        Number(ferry.vehicles) || 0
+                    );
+
+                    const vehicleCapacity = Math.max(
+                        0,
+                        Number(ferry.vehicleCapacity) || 10
+                    );
+
+                    return {
+                        ...ferry,
+                        id:
+                            ferry.id ||
+                            ferry.ferryId ||
+                            ferry.vesselName,
+                        vesselName:
+                            ferry.vesselName ||
+                            ferry.ferryName ||
+                            ferry.name ||
+                            "Ferry Vessel",
+                        departureTime:
+                            ferry.departureTime ||
+                            ferry.time ||
+                            "",
+                        time:
+                            ferry.time ||
+                            normalizeTime(ferry.departureTime),
+                        passengers,
+                        passengerCapacity,
+                        passengerRemaining:
+                            Math.max(
+                                0,
+                                passengerCapacity - passengers
+                            ),
+                        vehicles,
+                        vehicleCapacity,
+                        vehicleRemaining:
+                            Math.max(
+                                0,
+                                vehicleCapacity - vehicles
+                            ),
+                        manualClosed:
+                            Boolean(ferry.manualClosed),
+                        bookingClosed:
+                            Boolean(ferry.bookingClosed)
+                    };
+                });
+
+                setAvailableFerries(ferries);
+
+                setSelectedFerry((current) => {
+
+                    const currentId =
+                        current?.id ||
+                        current?.ferryId ||
+                        current?.vesselId;
+
+                    const refreshedCurrent =
+                        ferries.find(
+                            (ferry) =>
+                                String(ferry.id) ===
+                                String(currentId)
+                        );
+
+                    if (refreshedCurrent) {
+                        return {
+                            ...current,
+                            ...refreshedCurrent
+                        };
+                    }
+
+                    // Do not automatically choose a ferry.
+                    // The traveler must select the ferry they want
+                    // from the Available Ferries cards.
+                    return {};
+
+                });
+
+            } catch (error) {
+
+                if (cancelled) return;
+
+                console.error(
+                    "Ferry availability error:",
+                    error
+                );
+
+                setAvailableFerries([]);
+                setFerryError(
+                    error?.message ||
+                    "Unable to load ferry availability."
+                );
+
+            } finally {
+
+                if (!cancelled) {
+                    setFerryLoading(false);
+                }
+            }
+        };
+
+        // Load ferry availability when the Book Trip page opens
+        // and whenever the traveler changes the travel date.
+        // There is intentionally no polling/interval refresh.
+        loadAvailableFerries();
+
+        return () => {
+            cancelled = true;
+        };
+
+    }, [date]);
+
+
+    const handleAvailableFerrySelect = (ferry) => {
+
+        if (
+            ferry.manualClosed ||
+            ferry.bookingClosed ||
+            Number(ferry.passengerRemaining) <= 0
+        ) {
+            return;
+        }
+
+        setSelectedFerry(ferry);
+
+        setOrigin(ferry.origin || "Iloilo");
+        setDestination(ferry.destination || "Guimaras");
+        setTime(
+            ferry.time ||
+            normalizeTime(ferry.departureTime)
+        );
+
+        sessionStorage.setItem(
+            "selectedTrip",
+            JSON.stringify(ferry)
+        );
+
+        sessionStorage.setItem(
+            "selectedFerry",
+            JSON.stringify({
+                ...ferry,
+                ferryName: ferry.vesselName,
+                vesselName: ferry.vesselName,
+                departureTime: ferry.departureTime
+            })
+        );
+    };
 
 
     // FORMAT FERRY TIME FOR DISPLAY
@@ -1280,6 +1547,30 @@ const BookTrip = () => {
         }
 
         // =================================================
+        // FERRY SELECTION
+        // =================================================
+        //
+        // The traveler must explicitly select one of the
+        // available ferries before continuing.
+        // =================================================
+
+        if (
+            !selectedFerry ||
+            !(
+                selectedFerry.id ||
+                selectedFerry.ferryId ||
+                selectedFerry.vesselId
+            )
+        ) {
+
+            alert(
+                "Please select an available ferry before continuing."
+            );
+
+            return;
+        }
+
+        // =================================================
         // VEHICLE SELECTION
         // =================================================
 
@@ -1401,131 +1692,192 @@ const BookTrip = () => {
         // =================================================
         // PASSENGER INFORMATION
         // =================================================
+        // MOTORCYCLE:
+        // Collect details for additional passengers.
+        //
+        // NO MOTORCYCLE:
+        // The survey/interview requirement is passenger count
+        // only. Do NOT collect or validate friend/family names,
+        // ages, or genders.
+        // =================================================
 
-        for (
-            let index = 0;
-            index <
-            passengerDetails.length;
-            index++
+        if (
+            vehicleChoice ===
+            "motorcycle"
         ) {
 
-            const passenger =
-                passengerDetails[index];
-
-
-            // ---------------------------------------------
-            // NAME
-            // ---------------------------------------------
-
-            if (
-                !passenger.name ||
-                !passenger.name.trim()
+            for (
+                let index = 1;
+                index <
+                passengerDetails.length;
+                index++
             ) {
 
-                alert(
-                    `Please enter the full name of Passenger ${
-                        index + 1
-                    }.`
-                );
+                const passenger =
+                    passengerDetails[index];
 
-                return;
-            }
+                const passengerNumber =
+                    index + 1;
 
 
-            // ---------------------------------------------
-            // AGE
-            // ---------------------------------------------
+                // ---------------------------------------------
+                // NAME
+                // ---------------------------------------------
 
-            if (
-                passenger.age ===
-                undefined ||
-                passenger.age ===
-                ""
-            ) {
+                if (
+                    !passenger.name ||
+                    !passenger.name.trim()
+                ) {
 
-                alert(
-                    `Please enter the age of Passenger ${
-                        index + 1
-                    }.`
-                );
+                    alert(
+                        `Please enter the full name of Passenger ${
+                            passengerNumber
+                        }.`
+                    );
 
-                return;
-            }
+                    return;
+                }
 
 
-            const ageNumber =
-                Number(
-                    passenger.age
-                );
+                // ---------------------------------------------
+                // AGE
+                // ---------------------------------------------
+
+                if (
+                    passenger.age ===
+                    undefined ||
+                    passenger.age ===
+                    ""
+                ) {
+
+                    alert(
+                        `Please enter the age of Passenger ${
+                            passengerNumber
+                        }.`
+                    );
+
+                    return;
+                }
 
 
-            if (
-                Number.isNaN(
-                    ageNumber
-                ) ||
-                ageNumber < 1 ||
-                ageNumber > 120
-            ) {
-
-                alert(
-                    `Please enter a valid age for Passenger ${
-                        index + 1
-                    }.`
-                );
-
-                return;
-            }
+                const ageNumber =
+                    Number(
+                        passenger.age
+                    );
 
 
-            // ---------------------------------------------
-            // GENDER
-            // ---------------------------------------------
+                if (
+                    Number.isNaN(
+                        ageNumber
+                    ) ||
+                    ageNumber < 1 ||
+                    ageNumber > 120
+                ) {
 
-            if (
-                !passenger.gender
-            ) {
+                    alert(
+                        `Please enter a valid age for Passenger ${
+                            passengerNumber
+                        }.`
+                    );
 
-                alert(
-                    `Please select the gender of Passenger ${
-                        index + 1
-                    }.`
-                );
+                    return;
+                }
 
-                return;
+
+                // ---------------------------------------------
+                // GENDER
+                // ---------------------------------------------
+
+                if (
+                    !passenger.gender
+                ) {
+
+                    alert(
+                        `Please select the gender of Passenger ${
+                            passengerNumber
+                        }.`
+                    );
+
+                    return;
+                }
             }
         }
 
 
         // =================================================
-        // CLEAN PASSENGER DATA
+        // CLEAN ADDITIONAL PASSENGER DATA
+        // =================================================
+        // No-motorcycle bookings intentionally contain NO
+        // passenger-detail records. Only the total count is
+        // stored.
         // =================================================
 
         const cleanedPassengerDetails =
-            passengerDetails.map(
-                (passenger) => ({
+            vehicleChoice ===
+            "noMotorcycle"
+                ? []
+                : passengerDetails
+                    .slice(1)
+                    .map(
+                        (passenger) => ({
 
-                    name:
-                        passenger.name
-                            .trim(),
+                            name:
+                                passenger.name
+                                    .trim(),
 
-                    age:
-                        Number(
-                            passenger.age
-                        ),
+                            age:
+                                Number(
+                                    passenger.age
+                                ),
 
-                    gender:
-                        passenger.gender,
+                            gender:
+                                passenger.gender,
 
-                })
-            );
+                        })
+                    );
 
 
         // =================================================
-        // FIRST PASSENGER
+        // ACCOUNT OWNER
+        // =================================================
+        // Keep compatibility with the existing booking/payment
+        // fields. The owner's registered name is used directly
+        // from the authenticated account.
+        //
+        // Age/gender are no longer requested in the UI. The
+        // existing backend still expects primary passenger age
+        // and gender, so use previously saved values when
+        // available and otherwise use neutral placeholders.
         // =================================================
 
-        const firstPassenger =
-            cleanedPassengerDetails[0];
+        const ownerPassenger =
+            passengerDetails[0] ||
+            createPassenger({
+                name:
+                    accountOwnerName
+            });
+
+
+        const firstPassenger = {
+
+            name:
+                accountOwnerName ||
+                ownerPassenger.name ||
+                "",
+
+            age:
+                ownerPassenger.age !== undefined &&
+                ownerPassenger.age !== ""
+                    ? Number(
+                        ownerPassenger.age
+                    )
+                    : 0,
+
+            gender:
+                ownerPassenger.gender ||
+                "Not provided",
+
+        };
 
 
         // =================================================
@@ -1597,6 +1949,9 @@ const BookTrip = () => {
             // COMPLETE PASSENGER LIST
             // ---------------------------------------------
 
+            // For No Motorcycle bookings this is intentionally
+            // an empty array because only the passenger count
+            // is collected from the customer.
             passengerDetails:
                 cleanedPassengerDetails,
 
@@ -2077,6 +2432,231 @@ const BookTrip = () => {
                         13px;
                 }
 
+
+                /* =================================================
+                   AVAILABLE FERRIES
+                ================================================= */
+
+                .available-ferries-section {
+                    margin: 0 42px 20px;
+                }
+
+                .available-ferries-heading {
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: space-between;
+                    gap: 18px;
+                    margin-bottom: 12px;
+                }
+
+                .available-ferries-heading h2 {
+                    margin: 0;
+                    color: #222222;
+                    font-size: 19px;
+                    font-weight: 750;
+                }
+
+                .available-ferries-heading p {
+                    margin: 5px 0 0;
+                    color: #999999;
+                    font-size: 11px;
+                }
+
+                .available-ferries-date {
+                    flex-shrink: 0;
+                    padding: 8px 11px;
+                    border: 1px solid #f2dfd2;
+                    border-radius: 9px;
+                    background: #fff8f3;
+                    color: #ef751c;
+                    font-size: 10px;
+                    font-weight: 700;
+                }
+
+                .available-ferries-list {
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    gap: 12px;
+                }
+
+                .available-ferry-card {
+                    width: 100%;
+                    min-width: 0;
+                    padding: 14px;
+                    border: 1px solid #e8e8e8;
+                    border-radius: 14px;
+                    background: #ffffff;
+                    color: #222222;
+                    text-align: left;
+                    cursor: pointer;
+                    transition: 0.2s ease;
+                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.035);
+                }
+
+                .available-ferry-card:hover:not(:disabled) {
+                    border-color: #ffc99f;
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 20px rgba(255, 120, 24, 0.08);
+                }
+
+                .available-ferry-card.selected {
+                    border-color: #ff7818;
+                    background: linear-gradient(135deg, #fffaf6, #fff5ed);
+                    box-shadow: 0 7px 20px rgba(255, 120, 24, 0.10);
+                }
+
+                .available-ferry-card.unavailable {
+                    opacity: 0.58;
+                    cursor: not-allowed;
+                }
+
+                .available-ferry-top {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                }
+
+                .available-ferry-name-wrap {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    min-width: 0;
+                }
+
+                .available-ferry-icon {
+                    width: 42px;
+                    height: 42px;
+                    flex: 0 0 42px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 12px;
+                    background: #fff1e7;
+                    font-size: 19px;
+                }
+
+                .available-ferry-name-wrap strong {
+                    display: block;
+                    overflow: hidden;
+                    color: #222222;
+                    font-size: 13px;
+                    font-weight: 750;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .available-ferry-name-wrap span {
+                    display: block;
+                    margin-top: 4px;
+                    color: #999999;
+                    font-size: 9px;
+                }
+
+                .available-ferry-time {
+                    flex-shrink: 0;
+                    padding: 7px 8px;
+                    border-radius: 9px;
+                    background: #fff4eb;
+                    color: #ef751c;
+                    font-size: 10px;
+                    font-weight: 800;
+                }
+
+                .available-ferry-capacity {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 9px;
+                    margin-top: 13px;
+                    padding-top: 12px;
+                    border-top: 1px solid #eeeeee;
+                }
+
+                .available-capacity-item {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 7px;
+                    min-width: 0;
+                }
+
+                .available-capacity-icon {
+                    width: 27px;
+                    height: 27px;
+                    flex: 0 0 27px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 8px;
+                    background: #f7f7f7;
+                    font-size: 13px;
+                }
+
+                .available-capacity-item span,
+                .available-capacity-item strong,
+                .available-capacity-item small {
+                    display: block;
+                }
+
+                .available-capacity-item span {
+                    color: #999999;
+                    font-size: 8px;
+                }
+
+                .available-capacity-item strong {
+                    margin-top: 2px;
+                    color: #222222;
+                    font-size: 11px;
+                    font-weight: 750;
+                }
+
+                .available-capacity-item small {
+                    margin-top: 2px;
+                    color: #aaaaaa;
+                    font-size: 7px;
+                    line-height: 1.25;
+                }
+
+                .available-ferry-status {
+                    margin-top: 10px;
+                    padding: 7px 8px;
+                    border-radius: 8px;
+                    font-size: 8px;
+                    font-weight: 700;
+                    text-align: center;
+                }
+
+                .available-ferry-status.open {
+                    background: #f0fdf4;
+                    color: #15803d;
+                }
+
+                .available-ferry-status.motorcycle-full {
+                    background: #fff7ed;
+                    color: #c2410c;
+                }
+
+                .available-ferry-status.closed {
+                    background: #fef2f2;
+                    color: #b91c1c;
+                }
+
+                .ferry-loading-card,
+                .ferry-error-card,
+                .ferry-empty-card {
+                    padding: 18px;
+                    border: 1px solid #eeeeee;
+                    border-radius: 13px;
+                    background: #ffffff;
+                    color: #999999;
+                    font-size: 11px;
+                    text-align: center;
+                }
+
+                .ferry-error-card {
+                    border-color: #f4cccc;
+                    background: #fff7f7;
+                    color: #b91c1c;
+                }
 
                 /* =================================================
                    SELECTED FERRY
@@ -4519,6 +5099,15 @@ const BookTrip = () => {
                     position: relative;
                 }
 
+                @media (max-width: 900px) {
+
+                    .available-ferries-list {
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                    }
+
+                }
+
+
                 /* =================================================
                    TABLET
                 ================================================= */
@@ -4932,6 +5521,489 @@ const BookTrip = () => {
 
                 }
 
+
+
+                @media (max-width: 600px) {
+
+                    .available-ferries-section {
+                        margin: 0 18px 18px;
+                    }
+
+                    .available-ferries-heading {
+                        align-items: flex-start;
+                        flex-direction: column;
+                        gap: 8px;
+                    }
+
+                    .available-ferries-list {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .available-ferry-card {
+                        padding: 13px;
+                    }
+
+                }
+
+
+                /* =========================================================
+                   GUIMARASGO BOOK TRIP — UI POLISH
+                   Keeps all existing booking logic and responsive behavior.
+                ========================================================= */
+
+                .book-trip-page {
+                    padding: 32px 20px 72px;
+                    background:
+                        radial-gradient(circle at 15% 0%, rgba(242, 140, 40, 0.08), transparent 28%),
+                        radial-gradient(circle at 85% 8%, rgba(30, 58, 138, 0.07), transparent 30%),
+                        #f5f7fb;
+                }
+
+                .book-trip-container {
+                    max-width: 1040px;
+                    border: 1px solid #e7eaf0;
+                    border-radius: 24px;
+                    box-shadow:
+                        0 22px 60px rgba(15, 23, 42, 0.08),
+                        0 4px 14px rgba(15, 23, 42, 0.04);
+                }
+
+                .book-trip-header {
+                    height: 86px;
+                    padding: 0 30px;
+                    border-bottom: 1px solid #edf0f4;
+                    background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+                }
+
+                .back-button {
+                    width: auto;
+                    min-width: 42px;
+                    height: 42px;
+                    padding: 0 13px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    border: 1px solid #dfe4eb;
+                    border-radius: 12px;
+                    color: #1f2937;
+                    background: #ffffff;
+                    font-size: 13px;
+                    font-weight: 750;
+                    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+                }
+
+                .back-button-arrow {
+                    font-size: 19px;
+                    line-height: 1;
+                }
+
+                .back-button-label {
+                    line-height: 1;
+                }
+
+                .back-button:hover {
+                    transform: translateY(-1px);
+                    border-color: #f28c28;
+                    color: #e87918;
+                    background: #fffaf6;
+                    box-shadow: 0 7px 18px rgba(242, 140, 40, 0.12);
+                }
+
+                .book-trip-logo img {
+                    width: 132px;
+                    height: 66px;
+                }
+
+                .book-trip-heading {
+                    padding: 34px 42px 24px;
+                    background:
+                        linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.92) 100%);
+                }
+
+                .book-trip-heading h1 {
+                    color: #172033;
+                    font-size: clamp(28px, 4vw, 34px);
+                    line-height: 1.12;
+                    letter-spacing: -0.7px;
+                }
+
+                .book-trip-heading p {
+                    max-width: 640px;
+                    margin-top: 9px;
+                    color: #667085;
+                    font-size: 13px;
+                    line-height: 1.6;
+                }
+
+                .book-trip-heading-meta {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 7px;
+                    margin-top: 13px;
+                    padding: 7px 11px;
+                    border: 1px solid #e9edf3;
+                    border-radius: 999px;
+                    background: #f8fafc;
+                    color: #667085;
+                    font-size: 10px;
+                    font-weight: 700;
+                }
+
+                .heading-meta-dot {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 50%;
+                    background: #16a34a;
+                    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.10);
+                }
+
+                .heading-meta-separator {
+                    color: #c1c7d0;
+                }
+
+                .available-ferries-section {
+                    margin: 0 42px 24px;
+                    padding: 20px;
+                    border: 1px solid #e8edf3;
+                    border-radius: 18px;
+                    background: #fbfcfe;
+                }
+
+                .available-ferries-heading {
+                    margin-bottom: 16px;
+                }
+
+                .available-ferries-title-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 11px;
+                }
+
+                .section-accent-bar {
+                    width: 4px;
+                    height: 38px;
+                    flex: 0 0 4px;
+                    border-radius: 999px;
+                    background: linear-gradient(180deg, #f28c28, #ffb35f);
+                }
+
+                .available-ferries-heading h2 {
+                    color: #172033;
+                    font-size: 18px;
+                    letter-spacing: -0.15px;
+                }
+
+                .available-ferries-heading p {
+                    color: #7b8494;
+                    font-size: 11px;
+                    line-height: 1.5;
+                }
+
+                .available-ferries-date {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 8px 11px;
+                    border: 1px solid #f3dcc8;
+                    border-radius: 10px;
+                    background: #fff8f2;
+                    color: #e87518;
+                    font-size: 10px;
+                    font-weight: 800;
+                }
+
+                .available-ferries-list {
+                    gap: 14px;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                }
+
+                .available-ferry-card {
+                    min-height: 150px;
+                    padding: 16px;
+                    border: 1px solid #e2e7ee;
+                    border-radius: 15px;
+                    background: #ffffff;
+                    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.035);
+                }
+
+                .available-ferry-card:hover:not(:disabled) {
+                    border-color: #f6b77e;
+                    transform: translateY(-3px);
+                    box-shadow: 0 12px 26px rgba(242, 140, 40, 0.10);
+                }
+
+                .available-ferry-card.selected {
+                    border: 1.5px solid #f28c28;
+                    background: linear-gradient(135deg, #fffdfb 0%, #fff7ef 100%);
+                    box-shadow: 0 12px 28px rgba(242, 140, 40, 0.12);
+                }
+
+                .available-ferry-icon {
+                    background: #fff3e8;
+                    color: #e87518;
+                }
+
+                .available-ferry-time {
+                    background: #fff4e9;
+                    color: #e87518;
+                }
+
+                .available-ferry-capacity {
+                    border-top-color: #edf0f3;
+                }
+
+                .ferry-loading-card,
+                .ferry-error-card {
+                    border-radius: 14px;
+                    border: 1px solid #e7ebf0;
+                    background: #ffffff;
+                    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.035);
+                }
+
+                .ferry-loading-card {
+                    color: #667085;
+                }
+
+                .ferry-error-card {
+                    color: #b42318;
+                    background: #fff7f7;
+                    border-color: #f2c8c5;
+                }
+
+                .book-trip-form {
+                    padding: 0 42px 42px;
+                }
+
+                .form-section {
+                    padding: 30px 0;
+                    border-top: 1px solid #edf0f4;
+                }
+
+                .section-title {
+                    gap: 14px;
+                    margin-bottom: 24px;
+                }
+
+                .section-number {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 11px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #172033;
+                    color: #ffffff;
+                    font-size: 11px;
+                    font-weight: 850;
+                    box-shadow: 0 5px 14px rgba(23, 32, 51, 0.14);
+                }
+
+                .section-title h2 {
+                    color: #172033;
+                    letter-spacing: -0.2px;
+                }
+
+                .section-title p {
+                    color: #7b8494;
+                }
+
+                .form-group label {
+                    color: #344054;
+                    font-weight: 750;
+                }
+
+                .vehicle-choice-card,
+                .passenger-choice-card {
+                    border-color: #e1e6ed;
+                    background: #ffffff;
+                    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.025);
+                }
+
+                .vehicle-choice-card:hover,
+                .passenger-choice-card:hover {
+                    border-color: #f5bb8a;
+                    box-shadow: 0 8px 20px rgba(242, 140, 40, 0.07);
+                }
+
+                .vehicle-choice-card.active,
+                .passenger-choice-card.active {
+                    border-color: #f28c28;
+                    background: #fff9f4;
+                    box-shadow: 0 8px 22px rgba(242, 140, 40, 0.09);
+                }
+
+                .schedule-field,
+                .passenger-list,
+                .passenger-counter,
+                .booking-note {
+                    border-color: #e5e9ef;
+                }
+
+                .schedule-picker-trigger,
+                .passenger-input,
+                .route-picker-trigger {
+                    border-color: #dfe4eb;
+                    background: #ffffff;
+                    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+                }
+
+                .schedule-picker-trigger:hover,
+                .route-picker-trigger:hover,
+                .passenger-input:hover {
+                    border-color: #f2b27a;
+                }
+
+                .schedule-picker-trigger:focus,
+                .route-picker-trigger:focus,
+                .passenger-input:focus {
+                    outline: none;
+                    border-color: #f28c28;
+                    box-shadow: 0 0 0 3px rgba(242, 140, 40, 0.10);
+                }
+
+                .passenger-counter {
+                    background: #fbfcfe;
+                    border-radius: 14px;
+                }
+
+                .passenger-counter button {
+                    border-color: #e0e5eb;
+                    background: #ffffff;
+                }
+
+                .passenger-counter button:not(:disabled):hover {
+                    border-color: #f28c28;
+                    color: #e87518;
+                    background: #fff8f2;
+                }
+
+                .booking-note {
+                    border: 1px solid #f1dfcf;
+                    border-radius: 14px;
+                    background: linear-gradient(135deg, #fffaf5 0%, #fff7ef 100%);
+                    box-shadow: none;
+                }
+
+                .note-icon {
+                    background: #f28c28;
+                    box-shadow: 0 5px 14px rgba(242, 140, 40, 0.18);
+                }
+
+                .continue-button {
+                    height: 56px;
+                    margin-top: 20px;
+                    border-radius: 13px;
+                    background: linear-gradient(135deg, #172033 0%, #26385f 100%);
+                    box-shadow: 0 12px 24px rgba(23, 32, 51, 0.15);
+                    font-size: 14px;
+                    letter-spacing: .05px;
+                }
+
+                .continue-button:hover {
+                    transform: translateY(-2px);
+                    background: linear-gradient(135deg, #111827 0%, #1f3158 100%);
+                    box-shadow: 0 16px 28px rgba(23, 32, 51, 0.20);
+                }
+
+                .button-arrow {
+                    transition: transform .18s ease;
+                }
+
+                .continue-button:hover .button-arrow {
+                    transform: translateX(4px);
+                }
+
+                @media (max-width: 820px) {
+                    .book-trip-container {
+                        max-width: 720px;
+                        border-radius: 20px;
+                    }
+
+                    .available-ferries-list {
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                    }
+
+                    .book-trip-form {
+                        padding-left: 28px;
+                        padding-right: 28px;
+                    }
+
+                    .available-ferries-section {
+                        margin-left: 28px;
+                        margin-right: 28px;
+                    }
+
+                    .book-trip-heading {
+                        padding-left: 28px;
+                        padding-right: 28px;
+                    }
+                }
+
+                @media (max-width: 600px) {
+                    .book-trip-page {
+                        padding: 12px 10px 42px;
+                    }
+
+                    .book-trip-container {
+                        border-radius: 18px;
+                    }
+
+                    .book-trip-header {
+                        height: 72px;
+                        padding: 0 16px;
+                    }
+
+                    .back-button {
+                        min-width: 42px;
+                        padding: 0 10px;
+                    }
+
+                    .back-button-label {
+                        display: none;
+                    }
+
+                    .book-trip-logo img {
+                        width: 116px;
+                        height: 58px;
+                    }
+
+                    .book-trip-heading {
+                        padding: 26px 18px 20px;
+                    }
+
+                    .book-trip-heading h1 {
+                        font-size: 27px;
+                    }
+
+                    .book-trip-heading-meta {
+                        font-size: 9px;
+                    }
+
+                    .available-ferries-section {
+                        margin: 0 18px 18px;
+                        padding: 15px;
+                    }
+
+                    .available-ferries-heading {
+                        align-items: flex-start;
+                    }
+
+                    .available-ferries-list {
+                        grid-template-columns: 1fr;
+                    }
+
+                    .book-trip-form {
+                        padding-left: 18px;
+                        padding-right: 18px;
+                        padding-bottom: 28px;
+                    }
+
+                    .form-section {
+                        padding: 25px 0;
+                    }
+                }
+
             `}</style>
 
 
@@ -4953,12 +6025,14 @@ const BookTrip = () => {
                             className="back-button"
                             onClick={() =>
                                 navigate(
-                                    "/trips"
+                                    "/dashboard"
                                 )
                             }
-                            aria-label="Back to available trips"
+                            aria-label="Back to dashboard"
+                            title="Back to Dashboard"
                         >
-                            ←
+                            <span className="back-button-arrow" aria-hidden="true">←</span>
+                            <span className="back-button-label">Dashboard</span>
                         </button>
 
 
@@ -4998,6 +6072,178 @@ const BookTrip = () => {
                             Complete your travel,
                             passenger, and vehicle details.
                         </p>
+
+                        <div className="book-trip-heading-meta">
+                            <span className="heading-meta-dot" aria-hidden="true"></span>
+                            Secure booking
+                            <span className="heading-meta-separator">•</span>
+                            Iloilo ↔ Guimaras
+                        </div>
+
+                    </section>
+
+
+                    {/* =================================================
+                        AVAILABLE FERRIES
+                    ================================================= */}
+
+                    <section className="available-ferries-section">
+
+                        <div className="available-ferries-heading">
+                            <div>
+                                <div className="available-ferries-title-row">
+                                    <span className="section-accent-bar" aria-hidden="true"></span>
+                                    <div>
+                                        <h2>Available Ferries</h2>
+                                        <p>Select a ferry before continuing with your trip details.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <span className="available-ferries-date">
+                                <span aria-hidden="true">📅</span>
+                                {date || tomorrow}
+                            </span>
+                        </div>
+
+                        {ferryLoading && (
+                            <div className="ferry-loading-card">
+                                Loading available ferries...
+                            </div>
+                        )}
+
+                        {!ferryLoading && ferryError && (
+                            <div className="ferry-error-card">
+                                {ferryError}
+                            </div>
+                        )}
+
+                        {!ferryLoading && !ferryError && availableFerries.length > 0 && (
+                            <div className="available-ferries-list">
+                                {availableFerries.map((ferry) => {
+
+                                    const passengerUsed =
+                                        Number(ferry.passengers) || 0;
+
+                                    const passengerLimit =
+                                        Number(ferry.passengerCapacity) || 100;
+
+                                    const motorcycleUsed =
+                                        Number(ferry.vehicles) || 0;
+
+                                    const motorcycleLimit =
+                                        Number(ferry.vehicleCapacity) || 10;
+
+                                    const passengerRemaining =
+                                        Math.max(
+                                            0,
+                                            passengerLimit - passengerUsed
+                                        );
+
+                                    const motorcycleRemaining =
+                                        Math.max(
+                                            0,
+                                            motorcycleLimit - motorcycleUsed
+                                        );
+
+                                    const isSelected =
+                                        String(
+                                            selectedFerry?.id ||
+                                            selectedFerry?.ferryId ||
+                                            selectedFerry?.vesselId ||
+                                            ""
+                                        ) === String(ferry.id);
+
+                                    const passengerFull =
+                                        passengerRemaining <= 0;
+
+                                    const unavailable =
+                                        Boolean(ferry.manualClosed) ||
+                                        Boolean(ferry.bookingClosed) ||
+                                        passengerFull;
+
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={ferry.id}
+                                            className={`available-ferry-card ${
+                                                isSelected ? "selected" : ""
+                                            } ${
+                                                unavailable ? "unavailable" : ""
+                                            }`}
+                                            onClick={() =>
+                                                handleAvailableFerrySelect(ferry)
+                                            }
+                                            disabled={unavailable}
+                                        >
+                                            <div className="available-ferry-top">
+                                                <div className="available-ferry-name-wrap">
+                                                    <div className="available-ferry-icon">⛴️</div>
+                                                    <div>
+                                                        <strong>{ferry.vesselName}</strong>
+                                                        <span>{ferry.route || `${ferry.origin || "Iloilo"} → ${ferry.destination || "Guimaras"}`}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="available-ferry-time">
+                                                    {formatDisplayTime(ferry.departureTime)}
+                                                </div>
+                                            </div>
+
+                                            <div className="available-ferry-capacity">
+                                                <div className="available-capacity-item">
+                                                    <div className="available-capacity-icon">👤</div>
+                                                    <div>
+                                                        <span>Passengers</span>
+                                                        <strong>{passengerUsed}/{passengerLimit}</strong>
+                                                        <small>
+                                                            {passengerRemaining} passenger {passengerRemaining === 1 ? "slot" : "slots"} left
+                                                        </small>
+                                                    </div>
+                                                </div>
+
+                                                <div className="available-capacity-item">
+                                                    <div className="available-capacity-icon">🏍️</div>
+                                                    <div>
+                                                        <span>Motorcycles</span>
+                                                        <strong>{motorcycleUsed}/{motorcycleLimit}</strong>
+                                                        <small>
+                                                            {motorcycleRemaining} motorcycle {motorcycleRemaining === 1 ? "slot" : "slots"} left
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className={`available-ferry-status ${
+                                                unavailable
+                                                    ? "closed"
+                                                    : motorcycleRemaining <= 0
+                                                        ? "motorcycle-full"
+                                                        : "open"
+                                            }`}>
+                                                {ferry.manualClosed
+                                                    ? "Online booking closed"
+                                                    : passengerFull
+                                                        ? "Passenger capacity full"
+                                                        : ferry.bookingClosed
+                                                            ? "Booking unavailable"
+                                                            : motorcycleRemaining <= 0
+                                                                ? "Passenger booking available • Motorcycle full"
+                                                                : isSelected
+                                                                    ? "Selected ferry"
+                                                                    : "Available for booking"}
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {!ferryLoading && !ferryError && availableFerries.length === 0 && (
+                            <div className="ferry-empty-card">
+                                No ferry availability is currently available for this date.
+                            </div>
+                        )}
 
                     </section>
 
@@ -5806,12 +7052,21 @@ const BookTrip = () => {
                                 <div>
 
                                     <h2>
-                                        Passenger Details
+                                        {
+                                            vehicleChoice ===
+                                            "noMotorcycle"
+                                                ? "Passenger Count"
+                                                : "Passenger Details"
+                                        }
                                     </h2>
 
                                     <p>
-                                        Tell us who will be
-                                        traveling.
+                                        {
+                                            vehicleChoice ===
+                                            "noMotorcycle"
+                                                ? "Enter the total number of people travelling."
+                                                : "Tell us who will be traveling."
+                                        }
                                     </p>
 
                                 </div>
@@ -5820,392 +7075,383 @@ const BookTrip = () => {
 
 
                             {/* =================================================
-                                SOLO / WITH PASSENGER
+                                PASSENGER DETAILS / PASSENGER-ONLY COUNT
                             ================================================= */}
 
-                            <div
-                                className="passenger-choice"
-                            >
+                            {vehicleChoice !== "noMotorcycle" && (
+                                <>
 
-
-                                {/* SOLO */}
-
-                                <div
-                                    className={
-                                        `passenger-choice-card ${
-                                            passengerMode ===
-                                            "solo"
-                                                ? "active"
-                                                : ""
-                                        }`
-                                    }
-                                    onClick={() =>
-                                        handlePassengerModeChange(
-                                            "solo"
-                                        )
-                                    }
-                                >
+                                    {/* =================================================
+                                        SOLO / WITH PASSENGER
+                                    ================================================= */}
 
                                     <div
-                                        className="choice-radio"
-                                    />
-
-
-                                    <div
-                                        className="choice-icon"
-                                    >
-                                        👤
-                                    </div>
-
-
-                                    <div
-                                        className="choice-content"
+                                        className="passenger-choice"
                                     >
 
-                                        <strong>
-                                            Solo
-                                        </strong>
 
-                                        <span>
-                                            I am travelling alone.
-                                        </span>
+                                        {/* SOLO */}
 
-                                    </div>
-
-                                </div>
-
-
-                                {/* WITH PASSENGER */}
-
-                                <div
-                                    className={
-                                        `passenger-choice-card ${
-                                            passengerMode ===
-                                            "withPassenger"
-                                                ? "active"
-                                                : ""
-                                        }`
-                                    }
-                                    onClick={() =>
-                                        handlePassengerModeChange(
-                                            "withPassenger"
-                                        )
-                                    }
-                                >
-
-                                    <div
-                                        className="choice-radio"
-                                    />
-
-
-                                    <div
-                                        className="choice-icon"
-                                    >
-                                        👥
-                                    </div>
-
-
-                                    <div
-                                        className="choice-content"
-                                    >
-
-                                        <strong>
-                                            With Passenger
-                                        </strong>
-
-                                        <span>
-                                            I am travelling
-                                            with someone.
-                                        </span>
-
-                                    </div>
-
-                                </div>
-
-                            </div>
-
-
-                            {/* =================================================
-                                NO MOTORCYCLE FRIEND MESSAGE
-                            ================================================= */}
-
-                            {vehicleChoice ===
-                                "noMotorcycle" && (
-
-                                <div
-                                    className="no-motorcycle-notice"
-                                >
-
-                                    <strong>
-                                        Account Owner + Friends
-                                    </strong>
-                                    <br />
-
-                                    Passenger 1 is the account
-                                    owner. Add up to 9 friends
-                                    using the + button below.
-
-                                </div>
-
-                            )}
-
-
-                            {/* =================================================
-                                PASSENGER LIST
-                            ================================================= */}
-
-                            <div
-                                className="passenger-list"
-                            >
-
-                                {
-                                    passengerDetails.map(
-                                        (
-                                            passenger,
-                                            index
-                                        ) => (
+                                        <div
+                                            className={
+                                                `passenger-choice-card ${
+                                                    passengerMode ===
+                                                    "solo"
+                                                        ? "active"
+                                                        : ""
+                                                }`
+                                            }
+                                            onClick={() =>
+                                                handlePassengerModeChange(
+                                                    "solo"
+                                                )
+                                            }
+                                        >
 
                                             <div
-                                                className="passenger-card"
-                                                key={
-                                                    index
-                                                }
+                                                className="choice-radio"
+                                            />
+
+
+                                            <div
+                                                className="choice-icon"
+                                            >
+                                                👤
+                                            </div>
+
+
+                                            <div
+                                                className="choice-content"
                                             >
 
-                                                <div
-                                                    className="passenger-card-header"
-                                                >
+                                                <strong>
+                                                    Solo
+                                                </strong>
 
-                                                    <div
-                                                        className="passenger-card-title"
-                                                    >
-
-                                                        <div
-                                                            className="passenger-card-number"
-                                                        >
-                                                            {
-                                                                String(
-                                                                    index +
-                                                                    1
-                                                                ).padStart(
-                                                                    2,
-                                                                    "0"
-                                                                )
-                                                            }
-                                                        </div>
-
-
-                                                        <div>
-
-                                                            <strong>
-                                                                Passenger
-                                                                {" "}
-                                                                {
-                                                                    index +
-                                                                    1
-                                                                }
-                                                            </strong>
-
-
-                                                            <span>
-                                                                {" "}
-                                                                —{" "}
-                                                                {
-                                                                    index ===
-                                                                    0
-                                                                        ? "Account Owner"
-                                                                        : "Friend"
-                                                                }
-                                                            </span>
-
-                                                        </div>
-
-                                                    </div>
-
-                                                </div>
-
-
-                                                {/* PASSENGER FIELDS */}
-
-                                                <div
-                                                    className="passenger-fields"
-                                                >
-
-
-                                                    {/* FULL NAME */}
-
-                                                    <div
-                                                        className="form-group"
-                                                    >
-
-                                                        <label
-                                                            htmlFor={
-                                                                `passenger-name-${index}`
-                                                            }
-                                                        >
-                                                            Full Name
-                                                        </label>
-
-
-                                                        <input
-                                                            id={
-                                                                `passenger-name-${index}`
-                                                            }
-                                                            type="text"
-                                                            className="passenger-input"
-                                                            placeholder={
-                                                                index === 0 && accountOwnerName
-                                                                    ? "Registered account name"
-                                                                    : "Enter passenger full name"
-                                                            }
-                                                            value={
-                                                                passenger.name
-                                                            }
-                                                            onChange={(
-                                                                event
-                                                            ) =>
-                                                                updatePassenger(
-                                                                    index,
-                                                                    "name",
-                                                                    event
-                                                                        .target
-                                                                        .value
-                                                                )
-                                                            }
-                                                            readOnly={
-                                                                index === 0 && !!accountOwnerName
-                                                            }
-                                                            title={
-                                                                index === 0 && accountOwnerName
-                                                                    ? "Passenger 1 uses the name from your registered account."
-                                                                    : undefined
-                                                            }
-                                                            autoComplete="name"
-                                                        />
-
-                                                    </div>
-
-
-                                                    {/* AGE */}
-
-                                                    <div
-                                                        className="form-group"
-                                                    >
-
-                                                        <label
-                                                            htmlFor={
-                                                                `passenger-age-${index}`
-                                                            }
-                                                        >
-                                                            Age
-                                                        </label>
-
-
-                                                        <input
-                                                            id={
-                                                                `passenger-age-${index}`
-                                                            }
-                                                            type="number"
-                                                            className="passenger-input"
-                                                            placeholder="Age"
-                                                            min="1"
-                                                            max="120"
-                                                            value={
-                                                                passenger.age
-                                                            }
-                                                            onChange={(
-                                                                event
-                                                            ) =>
-                                                                updatePassenger(
-                                                                    index,
-                                                                    "age",
-                                                                    event
-                                                                        .target
-                                                                        .value
-                                                                )
-                                                            }
-                                                        />
-
-                                                    </div>
-
-
-                                                    {/* GENDER */}
-
-                                                    <div
-                                                        className="form-group"
-                                                    >
-
-                                                        <label
-                                                            htmlFor={
-                                                                `passenger-gender-${index}`
-                                                            }
-                                                        >
-                                                            Gender
-                                                        </label>
-
-
-                                                        <select
-                                                            id={
-                                                                `passenger-gender-${index}`
-                                                            }
-                                                            className="passenger-input"
-                                                            value={
-                                                                passenger.gender
-                                                            }
-                                                            onChange={(
-                                                                event
-                                                            ) =>
-                                                                updatePassenger(
-                                                                    index,
-                                                                    "gender",
-                                                                    event
-                                                                        .target
-                                                                        .value
-                                                                )
-                                                            }
-                                                        >
-
-                                                            <option
-                                                                value=""
-                                                            >
-                                                                Select gender
-                                                            </option>
-
-
-                                                            <option
-                                                                value="Male"
-                                                            >
-                                                                Male
-                                                            </option>
-
-
-                                                            <option
-                                                                value="Female"
-                                                            >
-                                                                Female
-                                                            </option>
-
-
-                                                            <option
-                                                                value="Prefer not to say"
-                                                            >
-                                                                Prefer not to say
-                                                            </option>
-
-                                                        </select>
-
-                                                    </div>
-
-                                                </div>
+                                                <span>
+                                                    I am travelling alone.
+                                                </span>
 
                                             </div>
 
-                                        )
-                                    )
-                                }
+                                        </div>
 
-                            </div>
 
+                                        {/* WITH PASSENGER */}
+
+                                        <div
+                                            className={
+                                                `passenger-choice-card ${
+                                                    passengerMode ===
+                                                    "withPassenger"
+                                                        ? "active"
+                                                        : ""
+                                                }`
+                                            }
+                                            onClick={() =>
+                                                handlePassengerModeChange(
+                                                    "withPassenger"
+                                                )
+                                            }
+                                        >
+
+                                            <div
+                                                className="choice-radio"
+                                            />
+
+
+                                            <div
+                                                className="choice-icon"
+                                            >
+                                                👥
+                                            </div>
+
+
+                                            <div
+                                                className="choice-content"
+                                            >
+
+                                                <strong>
+                                                    With Passenger
+                                                </strong>
+
+                                                <span>
+                                                    I am travelling
+                                                    with someone.
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    {/* =================================================
+                                        MOTORCYCLE PASSENGER NOTICE
+                                    ================================================= */}
+
+                                    <div
+                                        className="no-motorcycle-notice"
+                                    >
+
+                                        <strong>
+                                            Account Owner Included Automatically
+                                        </strong>
+                                        <br />
+
+                                        Your account is already counted as
+                                        Passenger 1. You only need to enter
+                                        the details of your additional passengers.
+
+                                    </div>
+
+
+                                    {/* =================================================
+                                        PASSENGER LIST
+                                    ================================================= */}
+
+                                    <div
+                                        className="passenger-list"
+                                    >
+
+                                        {
+                                            passengerMode ===
+                                            "withPassenger" &&
+                                            passengerDetails
+                                                .slice(1)
+                                                .map(
+                                                    (
+                                                        passenger,
+                                                        friendIndex
+                                                    ) => {
+
+                                                        const passengerNumber =
+                                                            friendIndex + 2;
+
+                                                        return (
+                                                            <div
+                                                                className="passenger-card"
+                                                                key={
+                                                                    friendIndex
+                                                                }
+                                                            >
+
+                                                                <div
+                                                                    className="passenger-card-header"
+                                                                >
+
+                                                                    <div
+                                                                        className="passenger-card-title"
+                                                                    >
+
+                                                                        <div
+                                                                            className="passenger-card-number"
+                                                                        >
+                                                                            {
+                                                                                String(
+                                                                                    passengerNumber
+                                                                                ).padStart(
+                                                                                    2,
+                                                                                    "0"
+                                                                                )
+                                                                            }
+                                                                        </div>
+
+
+                                                                        <div>
+
+                                                                            <strong>
+                                                                                Passenger
+                                                                                {" "}
+                                                                                {
+                                                                                    passengerNumber
+                                                                                }
+                                                                            </strong>
+
+
+                                                                            <span>
+                                                                                {" "}
+                                                                                — Additional Passenger
+                                                                            </span>
+
+                                                                        </div>
+
+                                                                    </div>
+
+                                                                </div>
+
+
+                                                                {/* PASSENGER FIELDS */}
+
+                                                                <div
+                                                                    className="passenger-fields"
+                                                                >
+
+                                                                    {/* FULL NAME */}
+
+                                                                    <div
+                                                                        className="form-group"
+                                                                    >
+
+                                                                        <label
+                                                                            htmlFor={
+                                                                                `passenger-name-${passengerNumber}`
+                                                                            }
+                                                                        >
+                                                                            Full Name
+                                                                        </label>
+
+
+                                                                        <input
+                                                                            id={
+                                                                                `passenger-name-${passengerNumber}`
+                                                                            }
+                                                                            type="text"
+                                                                            className="passenger-input"
+                                                                            placeholder="Enter passenger full name"
+                                                                            value={
+                                                                                passenger.name
+                                                                            }
+                                                                            onChange={(
+                                                                                event
+                                                                            ) =>
+                                                                                updatePassenger(
+                                                                                    passengerNumber - 1,
+                                                                                    "name",
+                                                                                    event
+                                                                                        .target
+                                                                                        .value
+                                                                                )
+                                                                            }
+                                                                            autoComplete="name"
+                                                                        />
+
+                                                                    </div>
+
+
+                                                                    {/* AGE */}
+
+                                                                    <div
+                                                                        className="form-group"
+                                                                    >
+
+                                                                        <label
+                                                                            htmlFor={
+                                                                                `passenger-age-${passengerNumber}`
+                                                                            }
+                                                                        >
+                                                                            Age
+                                                                        </label>
+
+
+                                                                        <input
+                                                                            id={
+                                                                                `passenger-age-${passengerNumber}`
+                                                                            }
+                                                                            type="number"
+                                                                            className="passenger-input"
+                                                                            placeholder="Age"
+                                                                            min="1"
+                                                                            max="120"
+                                                                            value={
+                                                                                passenger.age
+                                                                            }
+                                                                            onChange={(
+                                                                                event
+                                                                            ) =>
+                                                                                updatePassenger(
+                                                                                    passengerNumber - 1,
+                                                                                    "age",
+                                                                                    event
+                                                                                        .target
+                                                                                        .value
+                                                                                )
+                                                                            }
+                                                                        />
+
+                                                                    </div>
+
+
+                                                                    {/* GENDER */}
+
+                                                                    <div
+                                                                        className="form-group"
+                                                                    >
+
+                                                                        <label
+                                                                            htmlFor={
+                                                                                `passenger-gender-${passengerNumber}`
+                                                                            }
+                                                                        >
+                                                                            Gender
+                                                                        </label>
+
+
+                                                                        <select
+                                                                            id={
+                                                                                `passenger-gender-${passengerNumber}`
+                                                                            }
+                                                                            className="passenger-input"
+                                                                            value={
+                                                                                passenger.gender
+                                                                            }
+                                                                            onChange={(
+                                                                                event
+                                                                            ) =>
+                                                                                updatePassenger(
+                                                                                    passengerNumber - 1,
+                                                                                    "gender",
+                                                                                    event
+                                                                                        .target
+                                                                                        .value
+                                                                                )
+                                                                            }
+                                                                        >
+
+                                                                            <option
+                                                                                value=""
+                                                                            >
+                                                                                Select gender
+                                                                            </option>
+
+
+                                                                            <option
+                                                                                value="Male"
+                                                                            >
+                                                                                Male
+                                                                            </option>
+
+
+                                                                            <option
+                                                                                value="Female"
+                                                                            >
+                                                                                Female
+                                                                            </option>
+
+
+                                                                            <option
+                                                                                value="Prefer not to say"
+                                                                            >
+                                                                                Prefer not to say
+                                                                            </option>
+
+                                                                        </select>
+
+                                                                    </div>
+
+                                                                </div>
+
+                                                            </div>
+                                                        );
+                                                    }
+                                                )
+                                        }
+
+                                    </div>
+
+                                </>
+                            )}
 
                             {/* =================================================
                                 NUMBER OF PASSENGERS
@@ -6312,8 +7558,8 @@ const BookTrip = () => {
 
                                         {vehicleChoice ===
                                             "noMotorcycle"
-                                            ? "Add personal details for yourself and every friend."
-                                            : "Add personal details for every passenger."}
+                                            ? "Your account is already included in the passenger count."
+                                            : "Your account is already included. Add personal details only for your additional passengers."}
 
                                     </span>
 
@@ -6324,7 +7570,7 @@ const BookTrip = () => {
 
                                         {vehicleChoice ===
                                             "noMotorcycle"
-                                            ? "Maximum 10 passengers • Owner + 9 friends"
+                                            ? "Maximum 10 passengers"
                                             : "Maximum 3 passengers with motorcycle"}
 
                                     </span>
@@ -6362,7 +7608,7 @@ const BookTrip = () => {
 
                                     Please make sure that
                                     your selected ferry,
-                                    passenger information,
+                                    passenger count,
                                     travel schedule, and
                                     vehicle details are correct.
 

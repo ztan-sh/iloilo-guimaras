@@ -36,6 +36,14 @@ const {
 } = require("../controllers/bookingController");
 
 
+const {
+    getSchedulesForDate,
+    createSchedule,
+    updateSchedule,
+    deleteSchedule
+} = require("../controllers/ferryScheduleController");
+
+
 // =====================================================
 // AUTHENTICATED PASSENGER BOOKINGS
 // =====================================================
@@ -146,6 +154,49 @@ router.get(
 router.get(
     "/capacity",
     getBookingCapacity
+);
+
+
+// =====================================================
+// PUBLIC FERRY SCHEDULE AVAILABILITY
+// =====================================================
+//
+// Used by BookTrip.jsx to display the Admin-managed
+// ferry schedule for the travel date selected by the
+// passenger. This endpoint is intentionally public.
+//
+router.get(
+    "/schedules/available",
+    getSchedulesForDate
+);
+
+
+// =====================================================
+// ADMIN FERRY SCHEDULE MANAGEMENT
+// =====================================================
+
+router.get(
+    "/schedules",
+    adminAuth,
+    getSchedulesForDate
+);
+
+router.post(
+    "/schedules",
+    adminAuth,
+    createSchedule
+);
+
+router.put(
+    "/schedules/:id",
+    adminAuth,
+    updateSchedule
+);
+
+router.delete(
+    "/schedules/:id",
+    adminAuth,
+    deleteSchedule
 );
 
 

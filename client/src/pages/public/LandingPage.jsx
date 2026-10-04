@@ -2007,17 +2007,8 @@ const LandingPage = () => {
                         </button>
 
                         <div className="gg-nav-links">
-                            <button className="gg-nav-link" onClick={() => scrollToSection("home")}>
-                                Home
-                            </button>
-                            <button className="gg-nav-link" onClick={() => scrollToSection("about")}>
-                                Destination
-                            </button>
-                            <button className="gg-nav-link" onClick={() => scrollToSection("experience")}>
-                                Packages
-                            </button>
-                            <button className="gg-nav-link" onClick={() => scrollToSection("about")}>
-                                About us
+                            <button className="gg-nav-link" onClick={() => scrollToSection("contact")}>
+                                Contact Us
                             </button>
                         </div>
 
@@ -2061,10 +2052,9 @@ const LandingPage = () => {
 
                         {mobileMenuOpen && (
                             <div className="gg-mobile-menu">
-                                <button onClick={() => scrollToSection("home")}>Home</button>
-                                <button onClick={() => scrollToSection("about")}>Destination</button>
-                                <button onClick={() => scrollToSection("experience")}>Packages</button>
-                                <button onClick={() => scrollToSection("about")}>About us</button>
+                                <button onClick={() => scrollToSection("about")}>
+                                    Contact Us
+                                </button>
                                 <button className="mobile-book" onClick={goToLogin}>
                                     Book now
                                 </button>
@@ -2082,9 +2072,7 @@ const LandingPage = () => {
                             </h1>
 
                             <p className="gg-hero-description">
-                                Plan your Iloilo–Guimaras ferry trip with a clearer,
-                                simpler booking experience. Check schedules, choose
-                                your trip, and keep your travel details in one place.
+                                Diskubreha ang katahum sang Guimaras kag Iloilo upod sa amon. Magplano sang imo biyahe kag himua nga mas mahapos kag matahum ang imo pagpanaw.
                             </p>
 
                             <div className="gg-hero-cta">
@@ -2125,133 +2113,8 @@ const LandingPage = () => {
                     </div>
                 </section>
 
-                {/* =========================
-                    ABOUT
-                ========================= */}
-                <section className="gg-section gg-about" id="about">
-                    <div className="gg-inner gg-about-layout">
-                        <div className="gg-about-collage">
-                            <div className="gg-about-photo-main">
-                                <img src={images.rocks} alt="Guimaras coastal scenery" />
-                            </div>
+                
 
-                            <div className="gg-about-photo-small">
-                                <img src={images.beach} alt="Guimaras beach" />
-                            </div>
-
-                            <div className="gg-about-ticket">
-                                <img src={images.ticketBooth} alt="Ferry ticket booth" />
-                            </div>
-                        </div>
-
-                        <div className="gg-about-content">
-                            <p className="gg-section-label">About us</p>
-
-                            <h2>
-                                Travel between
-                                <br />
-                                <span>Iloilo and Guimaras</span>
-                            </h2>
-
-                            <p>
-                                GuimarasGo is designed to make ferry travel easier to
-                                plan. Instead of waiting at the terminal just to find
-                                out what is available, passengers can check trips,
-                                enter travel details, and manage their booking through
-                                one digital experience.
-                            </p>
-
-                            <div className="gg-about-stats">
-                                <div className="gg-stat">
-                                    <strong>01</strong>
-                                    <span>Clear booking flow</span>
-                                </div>
-                                <div className="gg-stat">
-                                    <strong>02</strong>
-                                    <span>Trip availability</span>
-                                </div>
-                                <div className="gg-stat">
-                                    <strong>03</strong>
-                                    <span>Booking status tracking</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* =========================
-                    MORE THAN BOOKING
-                ========================= */}
-                <section className="gg-section gg-more" id="experience">
-                    <div className="gg-inner">
-                        <div className="gg-more-heading">
-                            <h2>
-                                <em>Travel</em> is more than booking
-                            </h2>
-                            <p>
-                                A ferry trip starts before you reach the terminal.
-                                GuimarasGo helps organize the important parts of the
-                                journey so you can focus on getting there.
-                            </p>
-                        </div>
-
-                        <div className="gg-feature-grid">
-                            <article
-                                className="gg-feature-card"
-                                style={{ "--feature-image": `url("${images.starfish}")` }}
-                            >
-                                <div className="gg-feature-content">
-                                    <span className="gg-feature-number">01 / Planning</span>
-                                    <div>
-                                        <p>
-                                            Check the route, departure, and available
-                                            trip before committing to your booking.
-                                        </p>
-                                        <h3>
-                                            Booking is a <em>flow</em>, not one form.
-                                        </h3>
-                                    </div>
-                                </div>
-                            </article>
-
-                            <article
-                                className="gg-feature-card"
-                                style={{ "--feature-image": `url("${images.ferry}")` }}
-                            >
-                                <div className="gg-feature-content">
-                                    <span className="gg-feature-number">02 / Availability</span>
-                                    <div>
-                                        <p>
-                                            See the information you need at the point
-                                            where you are making your travel decision.
-                                        </p>
-                                        <h3>
-                                            Know what is <em>available</em>.
-                                        </h3>
-                                    </div>
-                                </div>
-                            </article>
-
-                            <article
-                                className="gg-feature-card"
-                                style={{ "--feature-image": `url("${images.rocks}")` }}
-                            >
-                                <div className="gg-feature-content">
-                                    <span className="gg-feature-number">03 / Confirmation</span>
-                                    <div>
-                                        <p>
-                                            Keep your booking status and travel details
-                                            accessible from your account.
-                                        </p>
-                                        <h3>
-                                            Travel with <em>clarity</em>.
-                                        </h3>
-                                    </div>
-                                </div>
-                            </article>
-                        </div>
-                    </div>
-                </section>
 
                 {/* =========================
                     CTA
@@ -2320,105 +2183,7 @@ const LandingPage = () => {
                     </div>
                 </section>
 
-                {/* =========================
-                    TRAVELER EXPERIENCE
-                ========================= */}
-                <section className="gg-section gg-experience">
-                    <div className="gg-inner">
-                        <div className="gg-experience-heading">
-                            <h2>
-                                <em>Journeys</em>
-                                <br />
-                                Travelers' experience
-                            </h2>
-                            <p>
-                                Designed around the moments that matter: finding a
-                                trip, preparing your details, and knowing where your
-                                booking stands.
-                            </p>
-                        </div>
-
-                        <div className="gg-experience-stage">
-                            <div className="gg-experience-quote">
-                                <div>
-                                    <div className="quote-mark">“</div>
-                                    <h3>A smoother way to travel.</h3>
-                                    <p>
-                                        Keep the important trip information together
-                                        and spend less time figuring out the next step.
-                                    </p>
-                                </div>
-
-                                <div className="gg-stars" aria-label="Five stars">
-                                    {Array.from({ length: 5 }).map((_, index) => (
-                                        <FiStar key={index} size={13} fill="currentColor" />
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div>
-                                <div className="gg-experience-images">
-                                    <div className="gg-experience-image">
-                                        <img
-                                            src={visibleExperienceCards[0].image}
-                                            alt={visibleExperienceCards[0].title}
-                                            loading="lazy"
-                                            onError={(event) => {
-                                                event.currentTarget.onerror = null;
-                                                event.currentTarget.src = images.traveler;
-                                            }}
-                                        />
-                                    </div>
-
-                                    <div className="gg-experience-image">
-                                        <img
-                                            src={visibleExperienceCards[1].image}
-                                            alt={visibleExperienceCards[1].title}
-                                            loading="lazy"
-                                            onError={(event) => {
-                                                event.currentTarget.onerror = null;
-                                                event.currentTarget.src = images.beach;
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="gg-experience-controls">
-                                    <button
-                                        type="button"
-                                        className="gg-slider-button"
-                                        onClick={() =>
-                                            setExperienceIndex(
-                                                (value) =>
-                                                    (value - 1 + experienceCards.length) %
-                                                    experienceCards.length
-                                            )
-                                        }
-                                        aria-label="Previous experience"
-                                    >
-                                        <FiChevronLeft size={17} />
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        className="gg-slider-button"
-                                        onClick={() =>
-                                            setExperienceIndex(
-                                                (value) =>
-                                                    (value + 1) %
-                                                    experienceCards.length
-                                            )
-                                        }
-                                        aria-label="Next experience"
-                                    >
-                                        <FiChevronRight size={17} />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
+               
                 {/* =========================
                     FAQ
                 ========================= */}
@@ -2549,7 +2314,7 @@ const LandingPage = () => {
                 {/* =========================
                     FOOTER
                 ========================= */}
-                <footer className="gg-footer">
+                <footer className="gg-footer" id="contact">
                     <div className="gg-inner">
                         <div className="gg-footer-grid">
                             <div className="gg-footer-brand">
@@ -2567,48 +2332,13 @@ const LandingPage = () => {
                                     <span className="gg-footer-social">◎</span>
                                 </div>
                             </div>
-
-                            <div>
-                                <div className="gg-footer-title">Pages</div>
-                                <button
-                                    className="gg-footer-link"
-                                    onClick={() => scrollToSection("home")}
-                                >
-                                    Home
-                                </button>
-                                <button
-                                    className="gg-footer-link"
-                                    onClick={() => scrollToSection("about")}
-                                >
-                                    Destination
-                                </button>
-                                <button
-                                    className="gg-footer-link"
-                                    onClick={() => scrollToSection("experience")}
-                                >
-                                    Packages
-                                </button>
-                                <button
-                                    className="gg-footer-link"
-                                    onClick={() => scrollToSection("faq")}
-                                >
-                                    FAQ
-                                </button>
-                            </div>
-
                             <div>
                                 <div className="gg-footer-title">Explore</div>
                                 <button
                                     className="gg-footer-link"
                                     onClick={() => scrollToSection("about")}
                                 >
-                                    About us
-                                </button>
-                                <button
-                                    className="gg-footer-link"
-                                    onClick={() => scrollToSection("how-it-works")}
-                                >
-                                    How it works
+                                    Contact Us
                                 </button>
                                 <button
                                     className="gg-footer-link"
