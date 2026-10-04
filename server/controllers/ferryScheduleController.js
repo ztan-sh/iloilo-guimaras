@@ -87,6 +87,44 @@ const normalizeTime = (value) => {
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 };
 
+const isAllowedDepartureTime = (value) => {
+    const normalized = normalizeTime(value);
+
+    if (!normalized) {
+        return false;
+    }
+
+    const [hourText, minuteText] = normalized.split(":");
+    const totalMinutes = Number(hourText) * 60 + Number(minuteText);
+
+    return (
+        totalMinutes >= 3 * 60 + 30 &&
+        totalMinutes <= 19 * 60 + 30 &&
+        totalMinutes % 30 === 0
+    );
+};
+
+const isAllowedArrivalTime = (value) => {
+    if (!value) {
+        return true;
+    }
+
+    const normalized = normalizeTime(value);
+
+    if (!normalized) {
+        return false;
+    }
+
+    const [hourText, minuteText] = normalized.split(":");
+    const totalMinutes = Number(hourText) * 60 + Number(minuteText);
+
+    return (
+        totalMinutes >= 4 * 60 &&
+        totalMinutes <= 20 * 60 &&
+        totalMinutes % 30 === 0
+    );
+};
+
 const formatTime = (value) => {
     const normalized = normalizeTime(value);
 
@@ -261,7 +299,11 @@ const getSchedulesForDate = async (req, res) => {
 
         const schedules = await FerrySchedule.find({
             date: requestedDate,
-            active: true
+            // Treat schedules as active unless they are explicitly disabled.
+            // This keeps older/custom records visible even if they were created
+            // before the active field existed. Deleted schedules are removed
+            // from MongoDB by deleteSchedule and therefore stay gone.
+            active: { $ne: false }
         }).sort({ departureTime: 1 });
 
         const bookings = await Booking.find({
@@ -318,6 +360,34 @@ const createSchedule = async (req, res) => {
             ? normalizeTime(arrivalTime)
             : "";
 
+        if (!isAllowedDepartureTime(normalizedDeparture)) {
+            return res.status(400).json({
+                success: false,
+                message: "Departure time must be between 3:30 AM and 7:30 PM in 30-minute increments."
+            });
+        }
+
+        if (!isAllowedArrivalTime(normalizedArrival)) {
+            return res.status(400).json({
+                success: false,
+                message: "Arrival time must be between 4:00 AM and 8:00 PM in 30-minute increments."
+            });
+        }
+
+        if (normalizedArrival) {
+            const [departureHour, departureMinute] = normalizedDeparture.split(":").map(Number);
+            const [arrivalHour, arrivalMinute] = normalizedArrival.split(":").map(Number);
+            const departureTotal = departureHour * 60 + departureMinute;
+            const arrivalTotal = arrivalHour * 60 + arrivalMinute;
+
+            if (arrivalTotal <= departureTotal) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Arrival time must be later than departure time."
+                });
+            }
+        }
+
         if (!String(vesselName || "").trim()) {
             return res.status(400).json({
                 success: false,
@@ -369,6 +439,8 @@ const createSchedule = async (req, res) => {
                     ? Number(motorcycleCapacity)
                     : MOTORCYCLE_CAPACITY),
             isDefault: false,
+            // Explicitly mark admin-created schedules as active so they are
+            // always returned by the schedule query after a refresh.
             active: true
         });
 
@@ -414,6 +486,34 @@ const updateSchedule = async (req, res) => {
             ? normalizeTime(arrivalTime)
             : "";
 
+        if (!isAllowedDepartureTime(normalizedDeparture)) {
+            return res.status(400).json({
+                success: false,
+                message: "Departure time must be between 3:30 AM and 7:30 PM in 30-minute increments."
+            });
+        }
+
+        if (!isAllowedArrivalTime(normalizedArrival)) {
+            return res.status(400).json({
+                success: false,
+                message: "Arrival time must be between 4:00 AM and 8:00 PM in 30-minute increments."
+            });
+        }
+
+        if (normalizedArrival) {
+            const [departureHour, departureMinute] = normalizedDeparture.split(":").map(Number);
+            const [arrivalHour, arrivalMinute] = normalizedArrival.split(":").map(Number);
+            const departureTotal = departureHour * 60 + departureMinute;
+            const arrivalTotal = arrivalHour * 60 + arrivalMinute;
+
+            if (arrivalTotal <= departureTotal) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Arrival time must be later than departure time."
+                });
+            }
+        }
+
         if (!String(vesselName || "").trim() || !normalizedDate || !normalizedDeparture) {
             return res.status(400).json({
                 success: false,
@@ -436,7 +536,7 @@ const updateSchedule = async (req, res) => {
             date: normalizedDate,
             vesselName: String(vesselName).trim(),
             departureTime: normalizedDeparture,
-            active: true
+            active: { $ne: false }
         });
 
         if (duplicate) {
@@ -458,6 +558,7 @@ const updateSchedule = async (req, res) => {
             Math.max(0, Number.isFinite(Number(motorcycleCapacity))
                 ? Number(motorcycleCapacity)
                 : MOTORCYCLE_CAPACITY);
+        schedule.active = true;
 
         await schedule.save();
 
