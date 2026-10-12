@@ -1,18 +1,13 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Trips from "./pages/Trips";
 
-import Dashboard from "./pages/passenger/Dashboard";
-import BookTrip from "./pages/passenger/BookTrip";
-import Payment from "./pages/passenger/Payment";
-import MayaPayment from "./pages/passenger/MayaPayment";
-import Confirmation from "./pages/passenger/confirmation";
-
-import Bookings from "./pages/Bookings";
-import Profile from "./pages/passenger/Profile";
-import Login from "./pages/passenger/Login";
-import Register from "./pages/passenger/Register";
+import MobileApp from "./pages/passenger/mobile/MobileState";
+import { ClientLogin, ClientRegister, ClientReset } from "./pages/passenger/mobile/MobileAuth";
+import { ClientDashboard, ClientSchedule, ClientBook, ClientPayment, ClientID } from "./pages/passenger/mobile/MobileBooking";
+import { ClientHistory, ClientConfirmation, ClientPass, ClientProfile, ClientEditProfile, ClientLanguage, ClientNotifications, ClientAge, ClientGender } from "./pages/passenger/mobile/MobileAccount";
+import ClientSplash from "./pages/passenger/mobile/MobileSplash";
 
 import LandingPage from "./pages/public/LandingPage";
 import GetApp from "./pages/public/GetApp";
@@ -20,9 +15,30 @@ import GetApp from "./pages/public/GetApp";
 import AdminRegister from "./pages/Admin/AdminRegister";
 import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminDashboard from "./pages/Admin/AdminDashboard";
+import AdminWorkspace from "./pages/Admin/AdminWorkspace";
+import AdminPreview from "./pages/Admin/AdminPreview";
 
 import StaffLogin from "./pages/Staff/StaffLogin";
-import StaffScanner from "./pages/Staff/StaffScanner";
+import StaffWorkspace from "./pages/Staff/StaffWorkspace";
+import StaffPreview from "./pages/Staff/StaffPreview";
+
+const testingAPK = import.meta.env.VITE_TEST_APK === "true";
+const previewHost = import.meta.env.DEV || testingAPK
+    || ["localhost", "127.0.0.1", "[::1]"].includes(window.location.hostname);
+const localPreview = import.meta.env.VITE_STAFF_PREVIEW === "true" && previewHost;
+const localAdminPreview = import.meta.env.VITE_ADMIN_PREVIEW === "true"
+    && previewHost;
+const localClientPreview = import.meta.env.VITE_CLIENT_PREVIEW === "true"
+    && previewHost;
+const mobilePages = {
+    login: <ClientLogin />, register: <ClientRegister />, dashboard: <ClientDashboard />, schedule: <ClientSchedule />,
+    'book-trip': <ClientBook />, payment: <ClientPayment />, 'maya-payment': <ClientPayment />, confirmation: <ClientConfirmation />,
+    bookings: <ClientHistory tickets />, history: <ClientHistory />, 'boarding-pass': <ClientPass />, profile: <ClientProfile />,
+    'edit-profile': <ClientEditProfile />, language: <ClientLanguage />, notifications: <ClientNotifications />,
+    'reset-password': <ClientReset />, 'reset-sent': <ClientReset />, 'passenger-age': <ClientAge />, 'passenger-gender': <ClientGender />, splash: <ClientSplash />,
+    'id-photo': <ClientID />, 'id-review': <ClientID />, 'id-required': <ClientID />, 'id-status': <ClientID />,
+    'id-approved': <ClientID />, 'id-attention': <ClientID />
+};
 
 function App() {
     return (
@@ -33,7 +49,7 @@ function App() {
             ========================================= */}
             <Route
                 path="/"
-                element={<LandingPage />}
+                element={testingAPK && localClientPreview ? <Navigate to="/preview/client/dashboard" replace /> : <LandingPage />}
             />
 
             {/* GET THE APP */}
@@ -46,59 +62,13 @@ function App() {
                 PASSENGER / TOURIST
             ========================================= */}
 
-            {/* LOGIN */}
-            <Route
-                path="/login"
-                element={<Login />}
-            />
-
-            {/* REGISTER */}
-            <Route
-                path="/register"
-                element={<Register />}
-            />
-
-            {/* DASHBOARD */}
-            <Route
-                path="/dashboard"
-                element={<Dashboard />}
-            />
-
-            {/* PROFILE */}
-            <Route
-                path="/profile"
-                element={<Profile />}
-            />
-
-            {/* BOOKINGS */}
-            <Route
-                path="/bookings"
-                element={<Bookings />}
-            />
-
-            {/* BOOK TRIP */}
-            <Route
-                path="/book-trip"
-                element={<BookTrip />}
-            />
-
-            {/* PAYMENT */}
-            <Route
-                path="/payment"
-                element={<Payment />}
-            />
-
-            {/* MAYA PAYMENT */}
-            <Route
-                path="/maya-payment"
-                element={<MayaPayment />}
-            />
-
-            {/* CONFIRMATION */}
-            <Route
-                path="/confirmation"
-                element={<Confirmation />}
-            />
+            <Route element={<MobileApp />}>
+                {Object.entries(mobilePages).map(([path, element]) => <Route key={path} path={`/${path}`} element={element} />)}
+            </Route>
+            {localClientPreview && <Route path="/preview/client" element={<MobileApp preview />}>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                {Object.entries(mobilePages).map(([path, element]) => <Route key={path} path={path} element={element} />)}
+            </Route>}
 
             {/* TRIPS */}
             <Route
@@ -121,6 +91,12 @@ function App() {
                 path="/admin-login"
                 element={<AdminLogin />}
             />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/*" element={<AdminWorkspace />} />
+            {localAdminPreview && <Route path="/preview/admin" element={<AdminPreview />}>
+                <Route path="login" element={<AdminLogin />} />
+                <Route path="*" element={<AdminWorkspace />} />
+            </Route>}
 
             {/* ADMIN DASHBOARD */}
             <Route
@@ -140,9 +116,14 @@ function App() {
 
             {/* STAFF QR SCANNER */}
             <Route
-                path="/staff/scanner"
-                element={<StaffScanner />}
+                path="/staff/*"
+                element={<StaffWorkspace />}
             />
+
+            {localPreview && <Route path="/preview/staff" element={<StaffPreview />}>
+                <Route path="login" element={<StaffLogin />} />
+                <Route path="*" element={<StaffWorkspace />} />
+            </Route>}
 
         </Routes>
     );

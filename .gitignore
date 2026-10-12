@@ -13,3 +13,6 @@ dist/
 
 # Android APK releases
 client/public/downloads/*.apk
+artifacts/*.apk
+artifacts/*.json
+artifacts/*.tmp

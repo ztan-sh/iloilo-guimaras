@@ -1,0 +1,436 @@
+{
+  "file_key": "3wPWM2XOyqMX1dSp4cC3y6",
+  "scope": {
+    "node_id": "92:70",
+    "name": "Client · Mobile"
+  },
+  "method": "Read-only structural inspection of selected nodes; no Figma mutations.",
+  "sample": [
+    {
+      "id": "437:4685",
+      "name": "Page title",
+      "type": "TEXT",
+      "boundVariables": {
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        ]
+      },
+      "textStyleId": "S:e89c30e46eb1e775e997499cc808241aec6a64d2,",
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        }
+      ]
+    },
+    {
+      "id": "437:4687",
+      "name": "Gender choice · Male",
+      "type": "INSTANCE",
+      "boundVariables": {
+        "itemSpacing": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:94"
+        },
+        "paddingLeft": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "paddingTop": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "paddingRight": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "paddingBottom": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:437:4670"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:437:4670"
+          }
+        }
+      ],
+      "mainComponent": {
+        "id": "310:2758",
+        "name": "State=Default"
+      },
+      "overrides": [
+        {
+          "id": "437:4687",
+          "overriddenFields": [
+            "fills",
+            "height",
+            "layoutPositioning",
+            "name",
+            "reactions",
+            "width"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "437:4689",
+      "name": "Gender choice · Female",
+      "type": "INSTANCE",
+      "boundVariables": {
+        "itemSpacing": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:94"
+        },
+        "paddingLeft": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "paddingTop": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "paddingRight": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "paddingBottom": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:437:4671"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:437:4671"
+          }
+        }
+      ],
+      "mainComponent": {
+        "id": "310:2758",
+        "name": "State=Default"
+      },
+      "overrides": [
+        {
+          "id": "437:4689",
+          "overriddenFields": [
+            "fills",
+            "height",
+            "layoutPositioning",
+            "name",
+            "reactions",
+            "width"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "437:4691",
+      "name": "Gender choice · Prefer not to say",
+      "type": "INSTANCE",
+      "boundVariables": {
+        "itemSpacing": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:94"
+        },
+        "paddingLeft": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "paddingTop": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "paddingRight": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "paddingBottom": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        },
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:437:4672"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:437:4672"
+          }
+        }
+      ],
+      "mainComponent": {
+        "id": "310:2758",
+        "name": "State=Default"
+      },
+      "overrides": [
+        {
+          "id": "437:4691",
+          "overriddenFields": [
+            "fills",
+            "height",
+            "layoutPositioning",
+            "name",
+            "reactions",
+            "width"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "465:4575",
+      "name": "Title",
+      "type": "TEXT",
+      "boundVariables": {
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        ]
+      },
+      "textStyleId": "S:e89c30e46eb1e775e997499cc808241aec6a64d2,",
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        }
+      ]
+    },
+    {
+      "id": "465:4582",
+      "name": "Title",
+      "type": "TEXT",
+      "boundVariables": {
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        ]
+      },
+      "textStyleId": "S:e89c30e46eb1e775e997499cc808241aec6a64d2,",
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        }
+      ]
+    },
+    {
+      "id": "499:4596",
+      "name": "Iloilo",
+      "type": "TEXT",
+      "boundVariables": {
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        ]
+      },
+      "textStyleId": "S:31ad1e9bd4d884ed17b677c985dca444dd9637cd,",
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        }
+      ]
+    },
+    {
+      "id": "499:4601",
+      "name": "Guimaras",
+      "type": "TEXT",
+      "boundVariables": {
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        ]
+      },
+      "textStyleId": "S:31ad1e9bd4d884ed17b677c985dca444dd9637cd,",
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        }
+      ]
+    },
+    {
+      "id": "122:1683",
+      "name": "Passenger name",
+      "type": "TEXT",
+      "boundVariables": {
+        "characters": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:437:4656"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        ]
+      },
+      "textStyleId": "S:31ad1e9bd4d884ed17b677c985dca444dd9637cd,",
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        }
+      ]
+    },
+    {
+      "id": "499:4607",
+      "name": "Passengers in this booking",
+      "type": "TEXT",
+      "boundVariables": {
+        "characters": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:437:4658"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:168"
+          }
+        ]
+      },
+      "textStyleId": "S:fe083841420b95bb9e735516f4f5347f064a7693,",
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:168"
+          }
+        }
+      ]
+    },
+    {
+      "id": "115:338",
+      "name": "Client / Booking primary action",
+      "type": "COMPONENT",
+      "boundVariables": {
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "color": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Only selected nodes were structurally inspected; this is not an exhaustive descendant audit.",
+    "get_code_connect_map was unavailable because the connected Figma seat lacks the required access. Placeholder library references returned no reusable React imports; original artwork and existing local components were used."
+  ],
+  "interpretation": "The gender instances retain shared main component 310:2758, variable bindings and intentional prototype overrides. Sampled dialog titles, route labels, passenger identity and primary action use shared styles or variables. No supported integration drift was found in this sample."
+}

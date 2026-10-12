@@ -1,0 +1,138 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useClient } from './MobileState';
+import { Art, ArtworkStage, Button, Choices, Field, Footer, Gender, Header, MobileDialog, NotificationBell, Panel, Progress } from './MobileUI';
+import { accountPerson, bookingIssue, canIssueTicket, departureCountdown, fareFor, money, normalizeSchedule, paymentState, photoIssue, requestFor, rideLabel, todayInManila } from './mobileUtils';
+import { discountCategory, operationsStore, personIssue } from '../../../components/operations/operationsStore';
+import { formatTime, matchesTrip } from '../../Staff/staffUtils';
+import { createId } from '../../../utils/createId.js';
+
+function VesselCard({ vessel, available, orange, onSelect }) {
+    const name = vessel === 'Felipe III' ? 'MV Felipe III' : vessel;
+    const lines = name.startsWith('MV ') ? ['MV', name.slice(3)] : name === 'Lite Ferry 22' ? ['Lite Ferry', '22'] : [name];
+    return <button type="button" className={`ggo-vessel ${orange ? 'ggo-vessel-orange' : ''}`} aria-label={`View ${vessel} schedules`} onClick={onSelect}>
+        <ArtworkStage width={354} height={258} className="ggo-vessel-card">
+            <Art className="ggo-vessel-shape" file={orange ? 'dashboard-card-orange.svg' : 'dashboard-card-white.svg'} />
+            <span className="ggo-vessel-photo"><Art file="dashboard-ferry.png" width={310} height={170.441} /></span>
+            <span className="ggo-vessel-meta"><span className="ggo-vessel-available">{available ? 'Available' : 'Full'}</span><span className="ggo-vessel-duration">25–35 min</span></span>
+            <strong className="ggo-vessel-name">{lines.map((line, i) => <span key={i}>{line}</span>)}</strong>
+            <span className="ggo-vessel-more">Show more<span className="ggo-vessel-chevron"><Art file={orange ? 'dashboard-chevron-white.svg' : 'dashboard-chevron-muted.svg'} /></span></span>
+        </ArtworkStage>
+    </button>;
+}
+export function ClientDashboard() {
+    const c = useClient(); const vessels = [...new Set(c.schedules.map(t => t.vesselName))];
+    return <main className="ggo-page ggo-has-nav ggo-dashboard">
+        <header className="ggo-header ggo-dashboard-header">
+            <div className="ggo-dashboard-toolbar"><Link aria-label="Open profile" to={c.href('profile')}><span className="ggo-dashboard-avatar"><Art file="dashboard-avatar.png" /></span></Link><NotificationBell compact /></div>
+            <h1>Hi, {c.user.fullName?.split(' ')[0] || 'traveller'}!</h1><p>Choose a vessel for your next crossing.</p>
+        </header>
+        <div className="ggo-vessels" role="region" aria-label="Available vessels" tabIndex={0}>
+            {vessels.map((vessel, i) => <VesselCard key={vessel} vessel={vessel} orange={i === 0} available={c.schedules.some(t => t.vesselName === vessel && !t.bookingClosed && t.passengerRemaining > 0)} onSelect={() => { c.setVessel(vessel); c.go('schedule'); }} />)}
+            {!c.loading && !vessels.length && <Panel><h2>No departures available</h2><p>Choose another travel date to check schedules.</p><Field label="Travel date" type="date" value={c.date} onChange={e => c.setDate(e.target.value)} /><Button onClick={() => c.go('schedule')}>View schedules</Button></Panel>}
+        </div>
+    </main>;
+}
+export function ClientSchedule() {
+    const c = useClient(); const route = c.reverse ? 'Guimaras → Iloilo' : 'Iloilo → Guimaras';
+    const [optionsOpen, setOptionsOpen] = useState(false);
+    const [now, setNow] = useState(Date.now);
+    useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(timer); }, []);
+    const trips = c.schedules.map(normalizeSchedule).filter(t => t.vesselName === c.vessel && t.route === route);
+    const next = trips.find(t => !t.bookingClosed && t.passengerRemaining > 0 && departureCountdown(t, now)?.minutes > 0);
+    const shortTime = time => {
+        const match = formatTime(time).match(/^(\d+):(\d+) (AM|PM)$/);
+        if (!match) return formatTime(time);
+        return `${Number(match[1]) % 12 + (match[3] === 'PM' ? 12 : 0)}:${match[2]}`;
+    };
+    const select = trip => { c.setDraft({ trip, people: [accountPerson(c.user)], motorcycle: false, plateNumber: '', regularFare: false }); c.go('book-trip'); };
+    return <main className="ggo-schedule">
+        <header className="ggo-schedule-hero">
+            <Art file="a2b02.png" width="428" height="228" />
+            <Link className="ggo-schedule-back" aria-label="Back to vessels" to={c.href('dashboard')}><Art file="schedule-back.svg" /></Link>
+            <NotificationBell compact />
+            <div className="ggo-schedule-intro"><h1>Hello!</h1><button type="button" className="ggo-schedule-vessel" aria-label="Change travel date or vessel" onClick={() => setOptionsOpen(true)}>{c.vessel}</button></div>
+            <div className="ggo-crossing"><strong>{c.reverse ? 'GUIMARAS' : 'ILOILO'}</strong><div className="ggo-crossing-track"><Art file="7eaf1.svg" /><Art file="7f903.svg" /><Art file="3c859.svg" className="ggo-crossing-boat" /><small>25–35 min</small></div><strong>{c.reverse ? 'ILOILO' : 'GUIMARAS'}</strong></div>
+        </header>
+        <div className="ggo-direction"><strong>{c.reverse ? 'GUIMARAS' : 'ILOILO'}</strong><button type="button" aria-label="Reverse direction" onClick={() => c.setReverse(!c.reverse)}><Art file="schedule-repeat.png" /></button><strong>{c.reverse ? 'ILOILO' : 'GUIMARAS'}</strong></div>
+        <div className="ggo-departures">{trips.map(t => {
+            const closed = t.bookingClosed || t.passengerRemaining < 1;
+            const countdown = t.id === next?.id ? departureCountdown(t, now) : null;
+            return <button type="button" key={t.id} className={`ggo-departure ${countdown ? 'ggo-departure-next' : ''}`} disabled={closed} onClick={() => select(t)} aria-label={`Select ${formatTime(t.departureTime)} departure, ${t.passengerRemaining} passenger spaces`}>
+                {countdown && <span className="ggo-leaving"><small>LEAVING IN</small><span><strong>{countdown.value}</strong><b>{countdown.unit}</b></span></span>}
+                <span className="ggo-departure-details"><span className="ggo-departure-main">
+                    <span><small>Departure on</small><strong title={formatTime(t.departureTime)}>{shortTime(t.departureTime)}</strong></span>
+                    <span className="ggo-duration"><small>Travel time</small><b>25–35 MINS</b></span>
+                    <span className="ggo-arrival"><small>Arrival</small><strong title={formatTime(t.arrivalTime)}>{shortTime(t.arrivalTime)}</strong></span>
+                </span><span className="ggo-departure-meta">
+                    {closed ? <span className="ggo-seats-left">{t.passengerRemaining} seats left</span> : <span className="ggo-capacity" aria-label={`${t.motorcycleRemaining} motorcycles available online of ${t.motorcycleCapacity} total`}><span><Art file="schedule-car.png" />{t.motorcycleRemaining}/{t.motorcycleCapacity}</span><span>available</span></span>}
+                    <span className="ggo-tap">{closed ? t.passengerRemaining < 1 ? 'Sold out' : 'Closed' : 'Tap to select'}{!closed && <b><Art file="79263.svg" /></b>}</span>
+                </span></span>
+            </button>;
+        })}{!c.loading && !trips.length && <Panel>No departures for this date and direction.</Panel>}</div>
+        {optionsOpen && <MobileDialog title="Travel options" onClose={() => setOptionsOpen(false)}><h2>Travel options</h2><div className="ggo-schedule-controls"><div><label htmlFor="ggo-schedule-date">Travel date</label><input id="ggo-schedule-date" type="date" value={c.date} min={todayInManila()} onChange={e => c.setDate(e.target.value)} /></div><div><label htmlFor="ggo-schedule-vessel">Vessel</label><select id="ggo-schedule-vessel" value={c.vessel} onChange={e => c.setVessel(e.target.value)}>{[...new Set(c.schedules.map(t => t.vesselName))].map(v => <option key={v}>{v}</option>)}{!c.schedules.length && <option>{c.vessel}</option>}</select></div></div><Button onClick={() => setOptionsOpen(false)}>Done</Button></MobileDialog>}
+    </main>;
+}
+export function BookingTicket({ draft, fare }) {
+    const [origin, destination] = draft.trip.route.split(' → ');
+    return <section className="ggo-orange-ticket" aria-label="Fare preview"><Art file="4c605.svg" className="ggo-ticket-shape" /><div className="ggo-ticket-buyer"><span>{draft.people[0].name}</span><small>Passenger 1 (Buyer)</small></div><div className="ggo-ticket-body"><h2>{draft.trip.vesselName}</h2><div className="ggo-ticket-route"><span>{formatTime(draft.trip.departureTime)}<small>{origin}</small></span><div><small>Transit</small><Art file="148be.svg" /><Art file="b5b20.svg" /><small>25–35 min</small></div><span><small>{destination}</small>{formatTime(draft.trip.arrivalTime)}</span></div><h3>Fare Summary</h3><small>{fare.discount ? 'ID approved by staff' : 'Staff approval required for discounts'}</small><small>Passenger fare {money(fare.passengerFare)}</small><div className="ggo-ticket-total"><span>TOTAL FARE</span><strong>{money(fare.total)}</strong></div><small>{fare.discount ? 'Discount applies to passenger fares only' : 'Regular fare · No discount applied'}</small></div></section>;
+}
+export function FareSummary({ draft, fare }) {
+    return <Panel className="ggo-fare"><h2>Your crossing</h2><div className="ggo-fare-meta"><small>{draft.trip.vesselName} · {formatTime(draft.trip.departureTime)}</small><small>{draft.people.length} passenger{draft.people.length === 1 ? '' : 's'}</small></div><dl><div><dt>Ride type</dt><dd>{rideLabel(draft)}</dd></div><div><dt>Passenger fare</dt><dd>{money(fare.passengerFare)}</dd></div>{draft.motorcycle && <div><dt>Motorcycle</dt><dd>{money(fare.motorcycleFare)}</dd></div>}<div><dt>Passenger discounts</dt><dd>−{money(fare.discount)}</dd></div><div><dt>PPA fee</dt><dd>{money(fare.ppa)}</dd></div><div className="ggo-total"><dt>Total to pay</dt><dd>{money(fare.total)}</dd></div></dl><small>{fare.discount ? 'Passenger discounts · ID approved by staff' : 'Regular fare · No discount applied'}</small></Panel>;
+}
+export function ClientBook() {
+    const c = useClient(); const d = c.draft;
+    const change = patch => c.setDraft({ ...d, ...patch });
+    const people = (index, patch) => change({ people: d.people.map((p, i) => i === index ? { ...p, ...patch } : p) });
+    const count = number => { if (number < 1 || number > (d.motorcycle ? 3 : 10)) return; change({ people: number < d.people.length ? d.people.slice(0, number) : [...d.people, { id: createId(), name: '', age: '', gender: '', category: 'Regular' }] }); };
+    const takeID = person => { if (!c.preview) return; const issue = personIssue(person); if (issue) return c.setError(issue); c.setPhoto(null); c.setPhotoPerson(person); c.setPhotoReturn('book-trip'); c.go('id-photo'); };
+    const submit = () => {
+        const current = c.schedules.map(normalizeSchedule).find(t => t.id === d.trip.id && t.date === d.trip.date) || d.trip;
+        const latest = { ...d, trip: current }; const issue = bookingIssue(latest, c.operations.requests, c.preview);
+        if (issue) { c.setError(issue); document.getElementById('ggo-passenger-details')?.scrollIntoView({ behavior: 'smooth' }); return; }
+        c.setDraft(latest); c.go('payment');
+    };
+    if (!d) return <main className="ggo-page"><Header title="Book ticket" description="Choose a departure to begin." /><Button onClick={() => c.go('schedule')}>View schedules</Button></main>;
+    const fare = fareFor(d, c.operations, c.preview); const eligible = d.people.filter(p => discountCategory(p) !== 'Regular');
+    return <main className="ggo-page ggo-has-footer"><Header title="Book ticket" description="Review your crossing and passenger details." /><Progress step={1} /><BookingTicket draft={d} fare={fare} /><Panel><h3>Vehicle</h3><Choices label="Vehicle" options={['No motorcycle', 'Motorcycle']} value={d.motorcycle ? 'Motorcycle' : 'No motorcycle'} onChange={value => change({ motorcycle: value === 'Motorcycle', people: value === 'Motorcycle' ? d.people.slice(0, 3) : d.people })} />{d.motorcycle && <Field label="Plate number" value={d.plateNumber} onChange={e => change({ plateNumber: e.target.value })} placeholder="ABC 1234" />}</Panel><Panel><div className="ggo-quantity"><span>How many are travelling?</span><button aria-label="Remove passenger" disabled={d.people.length === 1} onClick={() => count(d.people.length - 1)}>−</button><strong>{d.people.length}</strong><button aria-label="Add passenger" disabled={d.people.length === (d.motorcycle ? 3 : 10)} onClick={() => count(d.people.length + 1)}>+</button></div><small>{d.motorcycle ? 'Motorcycle · Maximum 3 passengers' : 'No motorcycle · Maximum 10 passengers'}</small></Panel><div id="ggo-passenger-details" className="ggo-passenger-details"><h2>Passenger details</h2>{d.people.map((p, i) => <Panel key={p.id}><div className="ggo-panel-heading"><h3>Passenger {i + 1}{i === 0 ? ' · Buyer' : ''}</h3>{i === 0 && <Link to={c.href('edit-profile')}>Edit profile</Link>}</div>{i === 0 ? <><strong>{p.name}</strong><p>{p.age === '' ? 'Age needed' : `Age ${p.age}`} · {p.gender || 'Gender needed'}</p><small>Saved profile · Used automatically for Passenger 1.</small></> : <><Field label={`Passenger ${i + 1} name`} value={p.name} onChange={e => people(i, { name: e.target.value })} required /><div className="ggo-two"><Field label={`Passenger ${i + 1} age`} type="number" inputMode="numeric" min="0" max="120" step="1" value={p.age} onChange={e => people(i, { age: e.target.value })} required /><Gender value={p.gender} onChange={e => people(i, { gender: e.target.value })} /></div></>}<h3>Passenger category</h3><Choices label={`Passenger ${i + 1} category`} options={['Regular', 'Student', 'PWD']} value={p.category} onChange={value => people(i, { category: value })} />{Number(p.age) >= 60 && <small>Age 60+ · Senior eligibility requires staff approval.</small>}{discountCategory(p) !== 'Regular' && <div className="ggo-id-request"><small>{requestFor(c.operations.requests, p)?.status === 'approved' ? 'ID approved · Passenger discount available' : requestFor(c.operations.requests, p)?.status === 'pending' ? 'ID submitted · Awaiting staff review' : requestFor(c.operations.requests, p)?.status === 'requested' ? 'Staff requested a clearer photo' : 'ID photo required for a discount'}</small>{c.preview ? <Button secondary onClick={() => requestFor(c.operations.requests, p)?.status === 'pending' || requestFor(c.operations.requests, p)?.status === 'approved' ? c.go('id-status') : takeID(p)}>{['pending', 'approved'].includes(requestFor(c.operations.requests, p)?.status) ? 'Check review status' : 'Take ID photo'}</Button> : <small>Discount review is not available yet.</small>}</div>}</Panel>)}</div>{eligible.length > 0 && <Panel><label className="ggo-check"><input type="checkbox" checked={d.regularFare} onChange={e => change({ regularFare: e.target.checked })} />Continue at regular fare</label><small>Choose this to travel while an ID review is pending.</small></Panel>}<Footer helper="Scroll for passenger details and discounts"><Button onClick={submit}>Continue · {money(fare.total)}</Button></Footer></main>;
+}
+export function ClientPayment() {
+    const c = useClient(); const d = c.draft; const [method, setMethod] = useState(c.preview ? 'GCash' : 'Maya'); const [receipt, setReceipt] = useState(null); const [submitting, setSubmitting] = useState(false); const reference = useRef(`GG-${createId().slice(0, 12).toUpperCase()}`); const inFlight = useRef(false);
+    if (!d) return <main className="ggo-page"><Header title="Payment" description="Choose a crossing before payment." /><Button onClick={() => c.go('schedule')}>View schedules</Button></main>;
+    const fare = fareFor(d, c.operations, c.preview);
+    const pay = () => { if (inFlight.current) return; inFlight.current = true; setSubmitting(true); c.run(async () => {
+        const current = c.schedules.map(normalizeSchedule).find(t => t.id === d.trip.id && t.date === d.trip.date) || d.trip;
+        const issue = bookingIssue({ ...d, trip: current }, c.operations.requests, c.preview); if (issue) throw new Error(issue);
+        const [origin, destination] = d.trip.route.split(' → ');
+        const b = { bookingReference: reference.current, userId: c.user.id || c.user._id, origin, destination, date: d.trip.date, time: d.trip.departureTime, arrivalTime: d.trip.arrivalTime, ferryId: d.trip.id, ferryName: d.trip.vesselName, vesselName: d.trip.vesselName, passengerName: d.people[0].name, passengerAge: Number(d.people[0].age), passengerGender: d.people[0].gender, passengers: d.people.length, passengerDetails: d.people.map(p => ({ ...p, age: Number(p.age) })), accompanyingPassengers: d.people.slice(1).map(p => p.name), vehicleType: d.motorcycle ? 'Motorcycle' : 'No Motorcycle', plateNumber: d.motorcycle ? d.plateNumber : '', passengerFare: fare.passengerFare, motorcycleFare: fare.motorcycleFare, ppaFee: fare.ppa, requiredAmount: fare.total, fareSnapshot: fare, paymentMethod: method };
+        let saved;
+        if (c.preview) {
+            await new Promise(resolve => setTimeout(resolve, 650));
+            saved = operationsStore.addBooking({ ...b, _id: createId(), ticketSource: 'ONLINE', paymentStatus: 'PENDING VERIFICATION', status: 'PENDING PAYMENT VERIFICATION', boardingStatus: 'NOT BOARDED', totalPaid: null, createdAt: new Date().toISOString() });
+        } else {
+            if (!receipt) throw new Error('Upload your payment receipt before submitting.');
+            if (!['image/jpeg', 'image/png'].includes(receipt.type) || receipt.size > 5 * 1024 * 1024) throw new Error('Use a JPG or PNG payment receipt smaller than 5 MB.');
+            const form = new FormData(); form.append('paymentProof', receipt); const upload = await c.request('/payment/upload-proof', { method: 'POST', body: form });
+            const result = await c.request('/payment/create-booking', { method: 'POST', body: { ...b, paymentMethod: 'Maya / QRPh', paymentProof: { fileName: upload.file.filename, originalName: upload.file.originalName, fileType: upload.file.mimetype, fileSize: upload.file.size, url: upload.file.url } } });
+            saved = result.booking; c.setBookings(prev => [...prev, saved]);
+        }
+        c.setDraft(null); c.go(`confirmation?reference=${encodeURIComponent(saved.bookingReference)}`);
+    }).finally(() => { inFlight.current = false; setSubmitting(false); }); };
+    return <main className="ggo-page ggo-has-footer"><Header title="Payment" description="Review your fare and select a payment method." /><Progress step={2} /><FareSummary draft={d} fare={fare} /><h3 className="ggo-section-label">Payment method</h3><div className="ggo-payment-methods">{['GCash', 'Maya', 'Mastercard'].map(m => <button key={m} className={method === m ? 'selected' : ''} disabled={!c.preview && m !== 'Maya'} aria-pressed={method === m} onClick={() => setMethod(m)}><span className="ggo-payment-logo">{m === 'GCash' ? <Art file="a55ac.svg" /> : m === 'Mastercard' ? <Art file="45fd3.svg" /> : <Art file="aa4b9.svg" />}</span><span>{m}</span><span className="ggo-radio" /></button>)}</div>{!c.preview && <Panel><h3>Maya / QRPh payment</h3><p>Scan the merchant QR, pay {money(fare.total)}, then upload the receipt. Your ticket will be issued after payment verification.</p><img className="ggo-merchant-qr" src="/images/maya-qr.jpg" alt="Maya merchant payment QR" onError={e => { e.currentTarget.hidden = true; }} /><Field label="Payment receipt" type="file" accept="image/jpeg,image/png" onChange={e => setReceipt(e.target.files[0])} /></Panel>}{c.preview && <small className="ggo-payment-note">This preview creates a sample processing payment. Use the preview controls on the next screen to test its outcome.</small>}<Footer><Button disabled={c.busy || submitting} onClick={pay}>{c.busy ? 'Submitting…' : c.preview ? `Pay ${money(fare.total)}` : 'Submit payment for verification'}</Button><Link className="ggo-text-link" to={c.href('book-trip')}>Back to booking</Link></Footer></main>;
+}
+export function ClientID() {
+    const c = useClient(); const f = useRef(); const person = c.photoPerson || c.draft?.people[0] || accountPerson(c.user); const path = c.path;
+    const missing = path === 'id-required'; const review = path === 'id-review'; const status = ['id-status', 'id-approved', 'id-attention'].includes(path);
+    const eligible = (c.draft?.people || [person]).filter(p => discountCategory(p) !== 'Regular'); const requests = eligible.map(p => requestFor(c.operations.requests, p));
+    const allApproved = eligible.length > 0 && requests.every(r => r?.status === 'approved' && r.photo); const attention = requests.find(r => r?.status === 'requested');
+    const title = missing ? 'ID photo required' : status ? allApproved ? 'Discount approved' : attention ? 'ID photo needs attention' : 'Awaiting staff review' : review ? 'Review ID photo' : 'Take ID photo';
+    const upload = file => { const issue = photoIssue(file); if (issue) return c.setError(issue); const reader = new FileReader(); reader.onerror = () => c.setError('Unable to read this photo. Choose another file.'); reader.onload = () => { c.setPhoto(String(reader.result)); c.go('id-review'); }; reader.readAsDataURL(file); };
+    const usePhoto = () => {
+        if (!c.photo) return c.setError('Take an ID photo first.');
+        if (!c.preview) return c.setError('Discount review is not available yet.');
+        if (c.photoReturn === 'register') { c.setRegistration({ ...c.registration, idPhoto: c.photo }); c.setPhoto(null); c.go('register'); }
+        else { operationsStore.requestID(person, c.photo, 'Client mobile booking'); c.setPhoto(null); c.go('id-status'); }
+    };
+    return <main className="ggo-page ggo-has-footer"><Header title={title} description={missing ? 'Add a photo for every passenger requesting a discount.' : status ? allApproved ? 'Staff have approved the required ID photos.' : attention ? 'Staff could not approve the submitted photo.' : 'Your ID photos have been submitted.' : review ? 'Check that the name and ID details are readable.' : 'Discount verification · Staff approval required'} /><input ref={f} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onChange={e => { if (e.target.files[0]) upload(e.target.files[0]); e.target.value = ''; }} />{missing ? <p>You can submit the discount request once all required ID photos are attached.</p> : status ? <Panel><h2>{allApproved ? 'Your passenger discount is ready' : attention ? 'Take another ID photo' : 'Passenger discount · Pending approval'}</h2><p>{allApproved ? 'A discount is applied to each approved passenger fare. The motorcycle charge stays separate.' : attention ? attention.reason : 'Each ID is reviewed separately. Continue after all requested IDs are approved.'}</p>{allApproved && c.draft && <><p>{rideLabel(c.draft)}</p><small>Total to pay</small><strong className="ggo-large-amount">{money(fareFor(c.draft, c.operations, c.preview).total)}</strong></>}<small>A booking is confirmed after payment. ID approval does not issue a ticket.</small></Panel> : <Panel><h3>{person.name || 'Passenger ID'}</h3><small>{discountCategory(person)}</small><div className="ggo-photo-frame">{review && c.photo ? <img src={c.photo} alt="Captured passenger ID for review" /> : <><strong>Place your ID inside the frame</strong><small>Check that all ID details are readable.</small></>}</div><p>{review ? 'Staff will review this photo before applying your passenger discount.' : 'Photograph the original, valid ID. Make sure the name, photo and ID details are readable.'}</p></Panel>}
+        <Footer>{missing ? <Button orange onClick={() => c.go(c.photoReturn)}>Back to {c.photoReturn === 'register' ? 'registration' : 'booking'}</Button> : status ? <><Button secondary onClick={() => { if (attention && c.draft) c.setDraft({ ...c.draft, regularFare: true }); c.go('book-trip'); }}>{attention ? 'Continue at regular fare' : 'Back to booking'}</Button><Button orange onClick={() => { if (allApproved) c.go('payment'); else if (attention) { c.setPhotoPerson(attention.passenger); c.setPhoto(null); c.go('id-photo'); } else { const latest = c.operations.requests; const done = eligible.every(p => requestFor(latest, p)?.status === 'approved'); c.setError(done ? '' : 'Staff review is still pending. Check again after the staff review.'); } }}>{allApproved ? 'Continue to payment' : attention ? 'Take a new photo' : 'Check review status'}</Button></> : review ? <><Button secondary onClick={() => { c.setPhoto(null); c.go('id-photo'); }}>Retake photo</Button><Button orange disabled={!c.preview || !c.photo} onClick={usePhoto}>Use photo</Button></> : <><Button secondary onClick={() => c.go(c.photoReturn)}>Back to {c.photoReturn === 'register' ? 'registration' : 'booking'}</Button><Button orange disabled={!c.preview} onClick={() => f.current.click()}>Take photo</Button></>}</Footer></main>;
+}

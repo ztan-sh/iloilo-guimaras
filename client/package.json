@@ -4,15 +4,22 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "test": "node --test tests/*.test.js",
     "dev": "vite",
     "build": "vite build",
+    "apk:test": "node scripts/build-testing-apk.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
     "@capacitor/core": "^8.5.2",
+    "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource/arimo": "^5.3.0",
+    "@fontsource/libre-bodoni": "^5.3.0",
+    "@gsap/react": "^2.1.2",
     "axios": "^1.20.0",
+    "gsap": "^3.15.0",
     "html5-qrcode": "^2.3.8",
     "jspdf": "^4.2.1",
     "qrcode": "^1.5.4",

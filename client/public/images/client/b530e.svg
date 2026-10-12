@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Selection control" clip-path="url(#clip0_0_31)">
+<circle id="Ellipse" cx="12" cy="12" r="11.25" stroke="#E8EFEE" stroke-width="1.5"/>
+<circle id="Selected" cx="12" cy="12" r="8" fill="#DB7B39"/>
+</g>
+<defs>
+<clipPath id="clip0_0_31">
+<rect width="24" height="24" fill="white"/>
+</clipPath>
+</defs>
+</svg>

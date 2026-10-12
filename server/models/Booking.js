@@ -173,12 +173,12 @@ const bookingSchema = new mongoose.Schema(
 
         passengerAge: {
             type: Number,
-            required: true
+            required: function () { return this.ticketSource !== "WALK_IN"; }
         },
 
         passengerGender: {
             type: String,
-            required: true
+            required: function () { return this.ticketSource !== "WALK_IN"; }
         },
 
         passengers: {
@@ -348,8 +348,16 @@ const bookingSchema = new mongoose.Schema(
 
         paymentProof: {
             type: paymentProofSchema,
-            required: true
-        }
+            required: function () { return this.ticketSource !== "WALK_IN"; }
+        },
+        ticketSource: { type: String, enum: ["ONLINE", "WALK_IN"], default: "ONLINE" },
+        contactNumber: { type: String, default: "" },
+        motorcycleModel: { type: String, default: "" },
+        accompanyingPassengers: { type: [String], default: [] },
+        paidAt: { type: Date, default: null },
+        recordedBy: { type: String, default: "" },
+        recordedByName: { type: String, default: "" },
+        boardedByName: { type: String, default: "" }
     },
 
 

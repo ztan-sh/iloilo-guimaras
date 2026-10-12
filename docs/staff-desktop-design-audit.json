@@ -1,0 +1,6 @@
+{
+  "findings": [],
+  "overall_correctness": "patch is correct",
+  "overall_explanation": "Reviewed the hierarchy and component sources of all eight screens in Staff · Desktop flow (250:15069), including 177 instances. The sampled high-impact surfaces, navigation, inputs, typography and capacity tracks use shared local components or bound variables; no supported integration drift was found. This is a sampled audit, not exhaustive verification of every override or binding; Code Connect could not be read with the current Figma plan.",
+  "overall_confidence_score": 0.88
+}

@@ -200,7 +200,8 @@ const AdminDashboard = () => {
         departureTime: "",
         arrivalTime: "",
         passengerCapacity: 100,
-        motorcycleCapacity: 10
+        motorcycleCapacity: 10,
+        walkInMotorcycleCapacity: 0
     });
 
     const [scheduleActionLoading, setScheduleActionLoading] =
@@ -2224,7 +2225,8 @@ const AdminDashboard = () => {
             departureTime: "",
             arrivalTime: "",
             passengerCapacity: 100,
-            motorcycleCapacity: 10
+            motorcycleCapacity: 10,
+            walkInMotorcycleCapacity: 0
         });
         setScheduleNotice("");
         setShowScheduleModal(true);
@@ -2273,7 +2275,8 @@ const AdminDashboard = () => {
                 Number(
                     selectedSchedule?.vehicleCapacity
                 ) ||
-                10
+                10,
+            walkInMotorcycleCapacity: Number(selectedSchedule?.walkInMotorcycleCapacity) || 0
         });
 
         setScheduleNotice("");
@@ -2382,7 +2385,8 @@ const AdminDashboard = () => {
                 ...previous,
                 [name]:
                     name === "passengerCapacity" ||
-                    name === "motorcycleCapacity"
+                    name === "motorcycleCapacity" ||
+                    name === "walkInMotorcycleCapacity"
                         ? Number(value)
                         : value
             };
@@ -2458,7 +2462,8 @@ const AdminDashboard = () => {
                 motorcycleCapacity:
                     Number.isFinite(Number(scheduleForm.motorcycleCapacity))
                         ? Number(scheduleForm.motorcycleCapacity)
-                        : 10
+                        : 10,
+                walkInMotorcycleCapacity: Number(scheduleForm.walkInMotorcycleCapacity) || 0
             };
 
             const isEdit =
@@ -3655,6 +3660,14 @@ const AdminDashboard = () => {
                                                             handleScheduleFormChange
                                                         }
                                                     />
+                                                </label>
+                                                <label>
+                                                    <span>Walk-in motorcycle allocation</span>
+                                                    <input type="number" name="walkInMotorcycleCapacity"
+                                                        min="0" max={scheduleForm.motorcycleCapacity}
+                                                        value={scheduleForm.walkInMotorcycleCapacity}
+                                                        onChange={handleScheduleFormChange} />
+                                                    <small>Reserved within the total motorcycle capacity.</small>
                                                 </label>
                                             </div>
 

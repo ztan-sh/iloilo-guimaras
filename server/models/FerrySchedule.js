@@ -52,6 +52,10 @@ const FerryScheduleSchema = new mongoose.Schema(
             min: 0
         },
 
+        // A reserved part of the existing total, never additional capacity.
+        walkInMotorcycleCapacity: { type: Number, default: 0, min: 0 },
+        staffSalesVersion: { type: Number, default: 0 },
+
         isDefault: {
             type: Boolean,
             default: false

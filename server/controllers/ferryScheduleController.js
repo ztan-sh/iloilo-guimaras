@@ -1,6 +1,7 @@
 const FerrySchedule = require("../models/FerrySchedule");
 const Booking = require("../models/Booking");
 const FerryClosure = require("../models/FerryClosure");
+const { belongsToTrip, hasMotorcycle } = require("../utils/staffTrip");
 
 const PASSENGER_CAPACITY = 100;
 const MOTORCYCLE_CAPACITY = 10;
@@ -175,39 +176,7 @@ const ensureDefaultSchedules = async (date) => {
 };
 
 const calculateScheduleCapacity = async (schedule, bookings) => {
-    const targetVessel = normalizeText(schedule.vesselName);
-    const targetTime = normalizeTime(schedule.departureTime || schedule.time);
-
-    const matchingBookings = bookings.filter((booking) => {
-        const bookingVessel = normalizeText(
-            booking.vesselName ||
-            booking.ferryName ||
-            booking.vessel ||
-            booking.ferry ||
-            booking.selectedFerry?.vesselName ||
-            booking.selectedFerry?.ferryName ||
-            booking.selectedTrip?.vesselName ||
-            booking.selectedTrip?.ferryName ||
-            ""
-        );
-
-        const bookingTime = normalizeTime(
-            booking.time ||
-            booking.departureTime ||
-            booking.tripTime ||
-            booking.selectedFerry?.time ||
-            booking.selectedFerry?.departureTime ||
-            booking.selectedTrip?.time ||
-            booking.selectedTrip?.departureTime ||
-            ""
-        );
-
-        if (bookingVessel) {
-            return bookingVessel === targetVessel;
-        }
-
-        return Boolean(bookingTime && targetTime && bookingTime === targetTime);
-    });
+    const matchingBookings = bookings.filter(booking => belongsToTrip(booking, schedule));
 
     const passengers = matchingBookings.reduce((total, booking) => {
         const count = Number(
@@ -220,24 +189,16 @@ const calculateScheduleCapacity = async (schedule, bookings) => {
         return total + (Number.isFinite(count) ? Math.max(1, count) : 1);
     }, 0);
 
-    const motorcycles = matchingBookings.reduce((total, booking) => {
-        const vehicle = normalizeText(
-            booking.vehicleType ||
-            booking.vehicle ||
-            booking.vehicleDetails?.type ||
-            ""
-        );
-
-        return vehicle.includes("motorcycle")
-            ? total + 1
-            : total;
-    }, 0);
-
-    const passengerCapacity =
-        Number(schedule.passengerCapacity) || PASSENGER_CAPACITY;
-
-    const motorcycleCapacity =
-        Number(schedule.motorcycleCapacity) || MOTORCYCLE_CAPACITY;
+    const motorcycles = matchingBookings.filter(hasMotorcycle).length;
+    const onlineMotorcycles = matchingBookings.filter(booking => booking.ticketSource !== "WALK_IN" && hasMotorcycle(booking)).length;
+    const passengerCapacity = Number(schedule.passengerCapacity) || PASSENGER_CAPACITY;
+    const motorcycleCapacity = Number(schedule.motorcycleCapacity ?? MOTORCYCLE_CAPACITY);
+    const walkInMotorcycleCapacity = Math.min(motorcycleCapacity, Math.max(0, Number(schedule.walkInMotorcycleCapacity) || 0));
+    const onlineMotorcycleCapacity = motorcycleCapacity - walkInMotorcycleCapacity;
+    const onlineMotorcycleRemaining = Math.max(0, Math.min(
+        motorcycleCapacity - motorcycles,
+        onlineMotorcycleCapacity - onlineMotorcycles
+    ));
 
     const manualClosure = await FerryClosure.findOne({
         date: schedule.date,
@@ -271,11 +232,13 @@ const calculateScheduleCapacity = async (schedule, bookings) => {
         motorcycles,
         vehicleCapacity: motorcycleCapacity,
         motorcycleCapacity,
-        vehicleRemaining: Math.max(0, motorcycleCapacity - motorcycles),
-        motorcycleRemaining: Math.max(0, motorcycleCapacity - motorcycles),
+        walkInMotorcycleCapacity,
+        onlineMotorcycleCapacity,
+        vehicleRemaining: onlineMotorcycleRemaining,
+        motorcycleRemaining: onlineMotorcycleRemaining,
         manualClosed: Boolean(manualClosure),
         passengerFull,
-        motorcycleFull: motorcycles >= motorcycleCapacity,
+        motorcycleFull: onlineMotorcycleRemaining === 0,
         automaticallyFull: passengerFull,
         bookingClosed,
         isDefault: Boolean(schedule.isDefault)
@@ -351,7 +314,8 @@ const createSchedule = async (req, res) => {
             departureTime,
             arrivalTime,
             passengerCapacity,
-            motorcycleCapacity
+            motorcycleCapacity,
+            walkInMotorcycleCapacity
         } = req.body || {};
 
         const normalizedDate = normalizeDate(date);
@@ -438,6 +402,10 @@ const createSchedule = async (req, res) => {
                 Math.max(0, Number.isFinite(Number(motorcycleCapacity))
                     ? Number(motorcycleCapacity)
                     : MOTORCYCLE_CAPACITY),
+            walkInMotorcycleCapacity: Math.min(
+                Math.max(0, Number(motorcycleCapacity) || 0),
+                Math.max(0, Number(walkInMotorcycleCapacity) || 0)
+            ),
             isDefault: false,
             // Explicitly mark admin-created schedules as active so they are
             // always returned by the schedule query after a refresh.
@@ -477,7 +445,8 @@ const updateSchedule = async (req, res) => {
             departureTime,
             arrivalTime,
             passengerCapacity,
-            motorcycleCapacity
+            motorcycleCapacity,
+            walkInMotorcycleCapacity
         } = req.body || {};
 
         const normalizedDate = normalizeDate(date);
@@ -558,6 +527,10 @@ const updateSchedule = async (req, res) => {
             Math.max(0, Number.isFinite(Number(motorcycleCapacity))
                 ? Number(motorcycleCapacity)
                 : MOTORCYCLE_CAPACITY);
+        schedule.walkInMotorcycleCapacity = Math.min(
+            schedule.motorcycleCapacity,
+            Math.max(0, Number(walkInMotorcycleCapacity ?? schedule.walkInMotorcycleCapacity) || 0)
+        );
         schedule.active = true;
 
         await schedule.save();

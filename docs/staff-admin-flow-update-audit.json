@@ -1,0 +1,6 @@
+{
+  "findings": [],
+  "overall_correctness": "patch is correct",
+  "overall_explanation": "Inspected 18 updated/new Staff and Admin design frames through high-fidelity context and screenshots, and sampled eight representative hierarchies containing 331 instances from 18 source components/variants with binding-property samples on 36 nodes. No supported integration drift was found within this scope; shared local components, including Desktop / Passenger flow row, are used by the new screens. The sampled inspection does not exhaustively verify variable identities, local overrides, publication status or Code Connect mappings.",
+  "overall_confidence_score": 0.76
+}

@@ -1,0 +1,6 @@
+{
+  "findings": [],
+  "overall_correctness": "patch is correct",
+  "overall_explanation": "No supported integration-drift findings in the latest 11-node Client mobile structural sample. Gender choices retain main component 310:2758 and bound spacing, padding, radius and state fills. Gender and payment-dialog titles use the shared Client title style and ink variable; boarding-pass route and passenger labels also use shared styles and bindings. Intentional prototype overrides are preserved. Evidence is recorded in client-mobile-audit-evidence.json. Code Connect map access was blocked by the connected Figma seat, so external React mappings could not be verified. This read-only sample does not certify every descendant, library publication or prototype interaction.",
+  "overall_confidence_score": 0.85
+}

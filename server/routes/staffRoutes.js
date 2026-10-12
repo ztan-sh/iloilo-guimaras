@@ -8,6 +8,10 @@ const router = express.Router();
 // =========================================================
 
 const staffAuth = require("../middleware/staffAuth");
+const { getWorkspace, createWalkInTicket } = require("../controllers/staffWorkspaceController");
+
+router.get("/workspace", staffAuth, getWorkspace);
+router.post("/walk-in", staffAuth, createWalkInTicket);
 
 
 // =========================================================
