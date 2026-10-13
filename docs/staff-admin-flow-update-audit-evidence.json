@@ -1,0 +1,1010 @@
+[
+  {
+    "id": "304:2346",
+    "instances": 44,
+    "sources": [
+      {
+        "id": "169:1143",
+        "name": "Desktop / GO brand mark",
+        "key": "76c11ed6da6bbe57f4342afa739d1d6691270b63"
+      },
+      {
+        "id": "163:423",
+        "name": "Active=No",
+        "key": "f8d65230dda44da2a763f479273862d193d1115f"
+      },
+      {
+        "id": "105:192",
+        "name": "__Client icon / home",
+        "key": "2ab06cb7894d867d5dbb0956dd88da4ec919725d"
+      },
+      {
+        "id": "105:218",
+        "name": "__Client icon / language",
+        "key": "572b08b4cc3768e07b66751fbc547b31a62febe0"
+      },
+      {
+        "id": "163:429",
+        "name": "Active=Yes",
+        "key": "63839a4dbb6ecd20ef708cd92b223f820400882b"
+      },
+      {
+        "id": "105:200",
+        "name": "__Client icon / card",
+        "key": "ec71abe3ae77b87aee4e50285e6e628d34fb72e3"
+      },
+      {
+        "id": "105:196",
+        "name": "__Client icon / ticket",
+        "key": "28e3e0c6666f6c0bdd65eb323e72cd04e907491b"
+      },
+      {
+        "id": "105:204",
+        "name": "__Client icon / user",
+        "key": "46dc24bd13c9759f139b1b40f3f26450aeb8e27e"
+      },
+      {
+        "id": "105:227",
+        "name": "__Client icon / check",
+        "key": "0cc1cffa90cd0fde713824877bde8d97b211818a"
+      },
+      {
+        "id": "105:234",
+        "name": "__Client icon / lock",
+        "key": "9cc2ac952cbde9c799873dd3c9f18a6e7f445b97"
+      },
+      {
+        "id": "105:212",
+        "name": "__Client icon / bell",
+        "key": "6fcb828e6e0feebe281cd94c1a91f5e3b0d0e868"
+      },
+      {
+        "id": "163:443",
+        "name": "Desktop / Secondary button",
+        "key": "3591c3c01cb16994afb5770637d6daf794521824"
+      },
+      {
+        "id": "163:436",
+        "name": "Desktop / Table cell",
+        "key": "87758cca7167df33e927379458d5c9f157ccd6ed"
+      },
+      {
+        "id": "105:276",
+        "name": "Client / Profile input",
+        "key": "1ca266919c916e08098280176643052a7621838a"
+      },
+      {
+        "id": "105:208",
+        "name": "__Client icon / pencil",
+        "key": "41c0f01f36cbfdf4688f2a4048a61b8e8076bea1"
+      },
+      {
+        "id": "168:1175",
+        "name": "Desktop / Primary button",
+        "key": "6ad41e48e5d653207b43df7a7a16c675ed819d33"
+      }
+    ],
+    "sample": [
+      {
+        "id": "393:4728",
+        "name": "Admin · Notifications · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius"
+        ]
+      },
+      {
+        "id": "320:2797",
+        "name": "Vessel pricing selector",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "fills"
+        ]
+      },
+      {
+        "id": "320:2798",
+        "name": "Vessel selector label",
+        "bindingProperties": [
+          "fills"
+        ]
+      },
+      {
+        "id": "307:3101",
+        "name": "Fare settings",
+        "bindingProperties": []
+      },
+      {
+        "id": "307:3102",
+        "name": "Base fares · tray",
+        "bindingProperties": [
+          "fills"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "325:3458",
+    "instances": 38,
+    "sources": [
+      {
+        "id": "169:1143",
+        "name": "Desktop / GO brand mark",
+        "key": "76c11ed6da6bbe57f4342afa739d1d6691270b63"
+      },
+      {
+        "id": "163:423",
+        "name": "Active=No",
+        "key": "f8d65230dda44da2a763f479273862d193d1115f"
+      },
+      {
+        "id": "105:192",
+        "name": "__Client icon / home",
+        "key": "2ab06cb7894d867d5dbb0956dd88da4ec919725d"
+      },
+      {
+        "id": "105:196",
+        "name": "__Client icon / ticket",
+        "key": "28e3e0c6666f6c0bdd65eb323e72cd04e907491b"
+      },
+      {
+        "id": "163:429",
+        "name": "Active=Yes",
+        "key": "63839a4dbb6ecd20ef708cd92b223f820400882b"
+      },
+      {
+        "id": "105:200",
+        "name": "__Client icon / card",
+        "key": "ec71abe3ae77b87aee4e50285e6e628d34fb72e3"
+      },
+      {
+        "id": "105:204",
+        "name": "__Client icon / user",
+        "key": "46dc24bd13c9759f139b1b40f3f26450aeb8e27e"
+      },
+      {
+        "id": "105:212",
+        "name": "__Client icon / bell",
+        "key": "6fcb828e6e0feebe281cd94c1a91f5e3b0d0e868"
+      },
+      {
+        "id": "105:227",
+        "name": "__Client icon / check",
+        "key": "0cc1cffa90cd0fde713824877bde8d97b211818a"
+      },
+      {
+        "id": "163:443",
+        "name": "Desktop / Secondary button",
+        "key": "3591c3c01cb16994afb5770637d6daf794521824"
+      },
+      {
+        "id": "163:436",
+        "name": "Desktop / Table cell",
+        "key": "87758cca7167df33e927379458d5c9f157ccd6ed"
+      }
+    ],
+    "sample": [
+      {
+        "id": "325:4132",
+        "name": "Discount approvals · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      },
+      {
+        "id": "393:5037",
+        "name": "Staff · Notifications · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius"
+        ]
+      },
+      {
+        "id": "325:3589",
+        "name": "Discount review instructions",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "fills"
+        ]
+      },
+      {
+        "id": "392:4721",
+        "name": "ID request queue viewport",
+        "bindingProperties": []
+      },
+      {
+        "id": "325:3592",
+        "name": "Discount requests",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "fills"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "325:3615",
+    "instances": 27,
+    "sources": [
+      {
+        "id": "169:1143",
+        "name": "Desktop / GO brand mark",
+        "key": "76c11ed6da6bbe57f4342afa739d1d6691270b63"
+      },
+      {
+        "id": "163:423",
+        "name": "Active=No",
+        "key": "f8d65230dda44da2a763f479273862d193d1115f"
+      },
+      {
+        "id": "105:192",
+        "name": "__Client icon / home",
+        "key": "2ab06cb7894d867d5dbb0956dd88da4ec919725d"
+      },
+      {
+        "id": "105:196",
+        "name": "__Client icon / ticket",
+        "key": "28e3e0c6666f6c0bdd65eb323e72cd04e907491b"
+      },
+      {
+        "id": "163:429",
+        "name": "Active=Yes",
+        "key": "63839a4dbb6ecd20ef708cd92b223f820400882b"
+      },
+      {
+        "id": "105:200",
+        "name": "__Client icon / card",
+        "key": "ec71abe3ae77b87aee4e50285e6e628d34fb72e3"
+      },
+      {
+        "id": "105:204",
+        "name": "__Client icon / user",
+        "key": "46dc24bd13c9759f139b1b40f3f26450aeb8e27e"
+      },
+      {
+        "id": "105:212",
+        "name": "__Client icon / bell",
+        "key": "6fcb828e6e0feebe281cd94c1a91f5e3b0d0e868"
+      },
+      {
+        "id": "105:227",
+        "name": "__Client icon / check",
+        "key": "0cc1cffa90cd0fde713824877bde8d97b211818a"
+      },
+      {
+        "id": "163:443",
+        "name": "Desktop / Secondary button",
+        "key": "3591c3c01cb16994afb5770637d6daf794521824"
+      },
+      {
+        "id": "324:3538",
+        "name": "State=Captured",
+        "key": "892b8deaaefba166d293f74a1539481b2b7b219b"
+      },
+      {
+        "id": "105:276",
+        "name": "Client / Profile input",
+        "key": "1ca266919c916e08098280176643052a7621838a"
+      },
+      {
+        "id": "105:208",
+        "name": "__Client icon / pencil",
+        "key": "41c0f01f36cbfdf4688f2a4048a61b8e8076bea1"
+      },
+      {
+        "id": "168:1175",
+        "name": "Desktop / Primary button",
+        "key": "6ad41e48e5d653207b43df7a7a16c675ed819d33"
+      }
+    ],
+    "sample": [
+      {
+        "id": "325:4146",
+        "name": "Discount approvals · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      },
+      {
+        "id": "393:5054",
+        "name": "Staff · Notifications · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius"
+        ]
+      },
+      {
+        "id": "325:3749",
+        "name": "Client / Discount ID photo",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "visible",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      },
+      {
+        "id": "325:3754",
+        "name": "Request section heading",
+        "bindingProperties": [
+          "fills"
+        ]
+      },
+      {
+        "id": "325:3755",
+        "name": "Request category label",
+        "bindingProperties": [
+          "fills"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "391:4243",
+    "instances": 40,
+    "sources": [
+      {
+        "id": "169:1143",
+        "name": "Desktop / GO brand mark",
+        "key": "76c11ed6da6bbe57f4342afa739d1d6691270b63"
+      },
+      {
+        "id": "163:423",
+        "name": "Active=No",
+        "key": "f8d65230dda44da2a763f479273862d193d1115f"
+      },
+      {
+        "id": "105:192",
+        "name": "__Client icon / home",
+        "key": "2ab06cb7894d867d5dbb0956dd88da4ec919725d"
+      },
+      {
+        "id": "105:218",
+        "name": "__Client icon / language",
+        "key": "572b08b4cc3768e07b66751fbc547b31a62febe0"
+      },
+      {
+        "id": "105:200",
+        "name": "__Client icon / card",
+        "key": "ec71abe3ae77b87aee4e50285e6e628d34fb72e3"
+      },
+      {
+        "id": "105:196",
+        "name": "__Client icon / ticket",
+        "key": "28e3e0c6666f6c0bdd65eb323e72cd04e907491b"
+      },
+      {
+        "id": "105:204",
+        "name": "__Client icon / user",
+        "key": "46dc24bd13c9759f139b1b40f3f26450aeb8e27e"
+      },
+      {
+        "id": "105:227",
+        "name": "__Client icon / check",
+        "key": "0cc1cffa90cd0fde713824877bde8d97b211818a"
+      },
+      {
+        "id": "105:234",
+        "name": "__Client icon / lock",
+        "key": "9cc2ac952cbde9c799873dd3c9f18a6e7f445b97"
+      },
+      {
+        "id": "163:429",
+        "name": "Active=Yes",
+        "key": "63839a4dbb6ecd20ef708cd92b223f820400882b"
+      },
+      {
+        "id": "105:212",
+        "name": "__Client icon / bell",
+        "key": "6fcb828e6e0feebe281cd94c1a91f5e3b0d0e868"
+      },
+      {
+        "id": "163:443",
+        "name": "Desktop / Secondary button",
+        "key": "3591c3c01cb16994afb5770637d6daf794521824"
+      },
+      {
+        "id": "163:436",
+        "name": "Desktop / Table cell",
+        "key": "87758cca7167df33e927379458d5c9f157ccd6ed"
+      },
+      {
+        "id": "391:4231",
+        "name": "Desktop / Passenger flow row",
+        "key": "c879eb1ac03a503bca5b044ccea1159e3317fd50"
+      },
+      {
+        "id": "168:1175",
+        "name": "Desktop / Primary button",
+        "key": "6ad41e48e5d653207b43df7a7a16c675ed819d33"
+      }
+    ],
+    "sample": [
+      {
+        "id": "393:4884",
+        "name": "Admin · Notifications · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius"
+        ]
+      },
+      {
+        "id": "391:4476",
+        "name": "Current booking summary",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "391:4616",
+    "instances": 35,
+    "sources": [
+      {
+        "id": "169:1143",
+        "name": "Desktop / GO brand mark",
+        "key": "76c11ed6da6bbe57f4342afa739d1d6691270b63"
+      },
+      {
+        "id": "163:423",
+        "name": "Active=No",
+        "key": "f8d65230dda44da2a763f479273862d193d1115f"
+      },
+      {
+        "id": "105:192",
+        "name": "__Client icon / home",
+        "key": "2ab06cb7894d867d5dbb0956dd88da4ec919725d"
+      },
+      {
+        "id": "105:196",
+        "name": "__Client icon / ticket",
+        "key": "28e3e0c6666f6c0bdd65eb323e72cd04e907491b"
+      },
+      {
+        "id": "105:200",
+        "name": "__Client icon / card",
+        "key": "ec71abe3ae77b87aee4e50285e6e628d34fb72e3"
+      },
+      {
+        "id": "105:204",
+        "name": "__Client icon / user",
+        "key": "46dc24bd13c9759f139b1b40f3f26450aeb8e27e"
+      },
+      {
+        "id": "163:429",
+        "name": "Active=Yes",
+        "key": "63839a4dbb6ecd20ef708cd92b223f820400882b"
+      },
+      {
+        "id": "105:212",
+        "name": "__Client icon / bell",
+        "key": "6fcb828e6e0feebe281cd94c1a91f5e3b0d0e868"
+      },
+      {
+        "id": "105:227",
+        "name": "__Client icon / check",
+        "key": "0cc1cffa90cd0fde713824877bde8d97b211818a"
+      },
+      {
+        "id": "163:443",
+        "name": "Desktop / Secondary button",
+        "key": "3591c3c01cb16994afb5770637d6daf794521824"
+      },
+      {
+        "id": "163:436",
+        "name": "Desktop / Table cell",
+        "key": "87758cca7167df33e927379458d5c9f157ccd6ed"
+      },
+      {
+        "id": "391:4231",
+        "name": "Desktop / Passenger flow row",
+        "key": "c879eb1ac03a503bca5b044ccea1159e3317fd50"
+      },
+      {
+        "id": "168:1175",
+        "name": "Desktop / Primary button",
+        "key": "6ad41e48e5d653207b43df7a7a16c675ed819d33"
+      }
+    ],
+    "sample": [
+      {
+        "id": "391:4629",
+        "name": "Discount approvals · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius"
+        ]
+      },
+      {
+        "id": "393:5105",
+        "name": "Staff · Notifications · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius"
+        ]
+      },
+      {
+        "id": "391:4784",
+        "name": "Current booking summary",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      },
+      {
+        "id": "391:4920",
+        "name": "Discount approvals",
+        "bindingProperties": [
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "393:4180",
+    "instances": 29,
+    "sources": [
+      {
+        "id": "169:1143",
+        "name": "Desktop / GO brand mark",
+        "key": "76c11ed6da6bbe57f4342afa739d1d6691270b63"
+      },
+      {
+        "id": "163:423",
+        "name": "Active=No",
+        "key": "f8d65230dda44da2a763f479273862d193d1115f"
+      },
+      {
+        "id": "105:192",
+        "name": "__Client icon / home",
+        "key": "2ab06cb7894d867d5dbb0956dd88da4ec919725d"
+      },
+      {
+        "id": "105:218",
+        "name": "__Client icon / language",
+        "key": "572b08b4cc3768e07b66751fbc547b31a62febe0"
+      },
+      {
+        "id": "105:200",
+        "name": "__Client icon / card",
+        "key": "ec71abe3ae77b87aee4e50285e6e628d34fb72e3"
+      },
+      {
+        "id": "105:196",
+        "name": "__Client icon / ticket",
+        "key": "28e3e0c6666f6c0bdd65eb323e72cd04e907491b"
+      },
+      {
+        "id": "105:204",
+        "name": "__Client icon / user",
+        "key": "46dc24bd13c9759f139b1b40f3f26450aeb8e27e"
+      },
+      {
+        "id": "105:227",
+        "name": "__Client icon / check",
+        "key": "0cc1cffa90cd0fde713824877bde8d97b211818a"
+      },
+      {
+        "id": "105:234",
+        "name": "__Client icon / lock",
+        "key": "9cc2ac952cbde9c799873dd3c9f18a6e7f445b97"
+      },
+      {
+        "id": "163:429",
+        "name": "Active=Yes",
+        "key": "63839a4dbb6ecd20ef708cd92b223f820400882b"
+      },
+      {
+        "id": "105:212",
+        "name": "__Client icon / bell",
+        "key": "6fcb828e6e0feebe281cd94c1a91f5e3b0d0e868"
+      },
+      {
+        "id": "163:443",
+        "name": "Desktop / Secondary button",
+        "key": "3591c3c01cb16994afb5770637d6daf794521824"
+      }
+    ],
+    "sample": [
+      {
+        "id": "393:4901",
+        "name": "Admin · Notifications · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      },
+      {
+        "id": "393:4402",
+        "name": "Notification destinations",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      },
+      {
+        "id": "393:4403",
+        "name": "Notification actions title",
+        "bindingProperties": [
+          "fills"
+        ]
+      },
+      {
+        "id": "393:4404",
+        "name": "Notification record links",
+        "bindingProperties": [
+          "itemSpacing"
+        ]
+      },
+      {
+        "id": "393:4411",
+        "name": "Notification rules",
+        "bindingProperties": [
+          "fills"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "393:4417",
+    "instances": 23,
+    "sources": [
+      {
+        "id": "169:1143",
+        "name": "Desktop / GO brand mark",
+        "key": "76c11ed6da6bbe57f4342afa739d1d6691270b63"
+      },
+      {
+        "id": "163:423",
+        "name": "Active=No",
+        "key": "f8d65230dda44da2a763f479273862d193d1115f"
+      },
+      {
+        "id": "105:192",
+        "name": "__Client icon / home",
+        "key": "2ab06cb7894d867d5dbb0956dd88da4ec919725d"
+      },
+      {
+        "id": "105:196",
+        "name": "__Client icon / ticket",
+        "key": "28e3e0c6666f6c0bdd65eb323e72cd04e907491b"
+      },
+      {
+        "id": "105:200",
+        "name": "__Client icon / card",
+        "key": "ec71abe3ae77b87aee4e50285e6e628d34fb72e3"
+      },
+      {
+        "id": "105:204",
+        "name": "__Client icon / user",
+        "key": "46dc24bd13c9759f139b1b40f3f26450aeb8e27e"
+      },
+      {
+        "id": "163:429",
+        "name": "Active=Yes",
+        "key": "63839a4dbb6ecd20ef708cd92b223f820400882b"
+      },
+      {
+        "id": "105:212",
+        "name": "__Client icon / bell",
+        "key": "6fcb828e6e0feebe281cd94c1a91f5e3b0d0e868"
+      },
+      {
+        "id": "105:227",
+        "name": "__Client icon / check",
+        "key": "0cc1cffa90cd0fde713824877bde8d97b211818a"
+      },
+      {
+        "id": "163:443",
+        "name": "Desktop / Secondary button",
+        "key": "3591c3c01cb16994afb5770637d6daf794521824"
+      }
+    ],
+    "sample": [
+      {
+        "id": "393:4430",
+        "name": "Discount approvals · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius"
+        ]
+      },
+      {
+        "id": "393:5122",
+        "name": "Staff · Notifications · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      },
+      {
+        "id": "393:4565",
+        "name": "Notification destinations",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      },
+      {
+        "id": "393:4566",
+        "name": "Notification actions title",
+        "bindingProperties": [
+          "fills"
+        ]
+      },
+      {
+        "id": "393:4567",
+        "name": "Notification record links",
+        "bindingProperties": [
+          "itemSpacing"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "250:15581",
+    "instances": 95,
+    "sources": [
+      {
+        "id": "169:1143",
+        "name": "Desktop / GO brand mark",
+        "key": "76c11ed6da6bbe57f4342afa739d1d6691270b63"
+      },
+      {
+        "id": "163:423",
+        "name": "Active=No",
+        "key": "f8d65230dda44da2a763f479273862d193d1115f"
+      },
+      {
+        "id": "105:192",
+        "name": "__Client icon / home",
+        "key": "2ab06cb7894d867d5dbb0956dd88da4ec919725d"
+      },
+      {
+        "id": "105:196",
+        "name": "__Client icon / ticket",
+        "key": "28e3e0c6666f6c0bdd65eb323e72cd04e907491b"
+      },
+      {
+        "id": "105:200",
+        "name": "__Client icon / card",
+        "key": "ec71abe3ae77b87aee4e50285e6e628d34fb72e3"
+      },
+      {
+        "id": "163:429",
+        "name": "Active=Yes",
+        "key": "63839a4dbb6ecd20ef708cd92b223f820400882b"
+      },
+      {
+        "id": "105:204",
+        "name": "__Client icon / user",
+        "key": "46dc24bd13c9759f139b1b40f3f26450aeb8e27e"
+      },
+      {
+        "id": "105:212",
+        "name": "__Client icon / bell",
+        "key": "6fcb828e6e0feebe281cd94c1a91f5e3b0d0e868"
+      },
+      {
+        "id": "105:227",
+        "name": "__Client icon / check",
+        "key": "0cc1cffa90cd0fde713824877bde8d97b211818a"
+      },
+      {
+        "id": "163:443",
+        "name": "Desktop / Secondary button",
+        "key": "3591c3c01cb16994afb5770637d6daf794521824"
+      },
+      {
+        "id": "105:276",
+        "name": "Client / Profile input",
+        "key": "1ca266919c916e08098280176643052a7621838a"
+      },
+      {
+        "id": "168:1175",
+        "name": "Desktop / Primary button",
+        "key": "6ad41e48e5d653207b43df7a7a16c675ed819d33"
+      }
+    ],
+    "sample": [
+      {
+        "id": "325:4106",
+        "name": "Discount approvals · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius"
+        ]
+      },
+      {
+        "id": "393:5003",
+        "name": "Staff · Notifications · link",
+        "bindingProperties": [
+          "itemSpacing",
+          "paddingLeft",
+          "paddingTop",
+          "paddingRight",
+          "paddingBottom",
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius"
+        ]
+      },
+      {
+        "id": "250:15620",
+        "name": "Trip summary",
+        "bindingProperties": [
+          "itemSpacing"
+        ]
+      },
+      {
+        "id": "392:4238",
+        "name": "Additional passenger inputs",
+        "bindingProperties": [
+          "itemSpacing"
+        ]
+      },
+      {
+        "id": "392:4241",
+        "name": "Full name input",
+        "bindingProperties": [
+          "topLeftRadius",
+          "topRightRadius",
+          "bottomLeftRadius",
+          "bottomRightRadius",
+          "fills"
+        ]
+      }
+    ]
+  }
+]

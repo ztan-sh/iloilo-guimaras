@@ -1,0 +1,104 @@
+.operations-panel { display: flex; flex-direction: column; gap: 16px; min-width: 0; padding: 24px; border-radius: var(--staff-radius); background: var(--staff-white); }
+.operations-panel > div > p, .operations-panel > div > h3 + strong { margin-top: 4px; }
+.operations-assisted-fields { padding: 0; margin: 0; border: 0; min-width: 0; }
+.operations-stack { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.operations-vessel-tray { display: flex; flex-direction: column; gap: 12px; padding: 12px; background: var(--staff-surface); border-radius: var(--staff-radius); }
+.operations-vessels { display: flex; gap: 12px; margin-top: 8px; }
+.operations-vessels > .staff-button { flex: 1; min-width: 0; }
+.operations-vessels .staff-button.is-selected { background: #ffecdb; color: var(--staff-accent-text); }
+.operations-vessel-tray .operations-vessels { margin-top: 0; }
+.operations-pricing-grid { display: grid; grid-template-columns: minmax(0, 708fr) minmax(0, 380fr); gap: 24px; align-items: start; }
+.operations-price-row { display: grid; grid-template-columns: minmax(0, 1fr) 212px; gap: 20px; align-items: center; padding-top: 4px; }
+.operations-price-row p { margin-top: 4px; }
+.operations-price-row .staff-field label { font-size: 12px; line-height: 16px; color: var(--staff-muted); }
+.operations-discount-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.operations-fare-table th:first-child { width: 42%; }
+.staff-root .operations-fare-table { min-width: 0; }
+.operations-fare-table th:last-child { width: 29%; }
+.operations-fare-table tbody tr:first-child { background: transparent; }
+.operations-fare-table td { height: 64px; font-size: 13px; line-height: 18px; }
+.operations-fare-table td:last-child, .operations-fare-table th:last-child { padding-right: 0; }
+.operations-inset { background: var(--staff-surface); border-radius: var(--staff-radius-small); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.operations-inset ul { padding-left: 20px; margin: 0; color: var(--staff-muted); }
+.operations-inset li + li { margin-top: 8px; }
+.operations-panel .staff-notice p, .operations-booking-summary p { color: var(--staff-paid); }
+.operations-panel .staff-notice-error p { color: var(--staff-accent-text); }
+.admin-desktop .staff-sidebar, .admin-desktop .staff-sidebar-bottom { gap: 16px; }
+.operations-summary-line { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.operations-summary-line > span { color: var(--staff-muted); }
+.operations-footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 8px 0 16px; }
+.operations-footer > .staff-button { width: auto; min-width: 180px; }
+.operations-footer .staff-actions { justify-content: flex-end; }
+.operations-footer .staff-actions > .staff-button { width: auto; min-width: 162px; flex: initial; }
+.operations-equal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: stretch; }
+.operations-id-photo { display: block; width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--staff-radius-small); background: var(--staff-background); }
+.operations-reasons { display: flex; gap: 8px; flex-wrap: wrap; }
+.operations-reasons > .staff-button { width: auto; min-height: 40px; padding: 8px 12px; font-size: 13px; }
+.operations-record-row { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--staff-line); }
+.operations-record-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.operations-record-row > div { flex: 1; min-width: 0; }
+.operations-record-row > div > p { margin-top: 4px; }
+.operations-record-row > .staff-button { width: 162px; flex-shrink: 0; }
+.operations-booking-picker { max-width: 440px; }
+.operations-booking-summary { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: center; min-height: 96px; padding: 20px; border-radius: var(--staff-radius); background: var(--staff-aqua); }
+.operations-booking-summary p { font-size: 13px; line-height: 18px; margin-top: 4px; }
+.operations-passenger-list { display: flex; flex-direction: column; gap: 12px; max-height: 432px; overflow-y: auto; padding: 24px; background: var(--staff-surface); border-radius: var(--staff-radius); }
+.operations-passenger-row { display: flex; align-items: center; gap: 16px; padding: 16px; min-height: 80px; border-radius: var(--staff-radius-small); background: white; flex-shrink: 0; }
+.operations-passenger-row > div { flex: 1; min-width: 0; }
+.operations-passenger-row p { font-size: 13px; line-height: 18px; margin-top: 4px; overflow-wrap: anywhere; }
+.operations-passenger-row > .staff-button { width: 162px; flex-shrink: 0; }
+.operations-related-actions { display: flex; gap: 12px; }
+.operations-counter { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.operations-counter > div { display: flex; gap: 16px; align-items: center; }
+.operations-counter .staff-button { width: 48px; padding: 12px; flex-shrink: 0; }
+.operations-companion { display: flex; flex-direction: column; gap: 16px; padding: 16px 0; border-top: 1px solid var(--staff-line); }
+.operations-text-link { padding: 0; border: 0; background: none; color: var(--staff-ink); font-weight: 500 !important; text-align: left; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.operations-unread { color: var(--staff-accent-text) !important; font-weight: 600; }
+.operations-preview-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.operations-preview-actions a { color: #06655e; text-underline-offset: 3px; }
+.staff-notice > p { margin-top: 4px; }
+.staff-root .staff-sidebar { min-height: 0; }
+@media (min-width: 761px) {
+    .staff-workspace .staff-sidebar { overflow: hidden; }
+    .staff-workspace .staff-sidebar > :not(nav) { flex-shrink: 0; }
+    .staff-workspace .staff-sidebar nav { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .staff-workspace .staff-nav-item { flex-shrink: 0; min-height: 40px; padding-top: 8px; padding-bottom: 8px; }
+    .staff-workspace .staff-nav-item:focus-visible { outline-offset: -3px; }
+}
+@media (min-width: 761px) and (max-height: 850px) {
+    .staff-workspace .staff-sidebar, .staff-workspace .staff-sidebar-bottom { gap: 16px; }
+    .staff-workspace .staff-workspace-label, .staff-workspace .staff-terminal-info { display: none; }
+}
+@media (max-width: 1200px) {
+    .operations-pricing-grid { grid-template-columns: minmax(0, 1fr); }
+    .operations-price-row { grid-template-columns: minmax(0, 1fr) 212px; }
+    .operations-footer { flex-wrap: wrap; }
+    .operations-equal-grid { grid-template-columns: minmax(0, 1fr); }
+    .operations-passenger-row { flex-wrap: wrap; }
+    .operations-passenger-row > div { flex-basis: 28%; }
+    .operations-passenger-row > .staff-button { margin-left: auto; }
+}
+@media (max-width: 760px) {
+    .operations-price-row { grid-template-columns: minmax(0, 1fr) 180px; }
+    .operations-booking-summary { grid-template-columns: minmax(0, 1fr); }
+    .operations-panel { padding: 20px; }
+    .operations-record-row { flex-wrap: wrap; }
+    .operations-record-row > div { flex-basis: 100%; }
+    .operations-related-actions { flex-direction: column; }
+    .operations-vessels { gap: 8px; }
+    .operations-vessels > .staff-button { padding: 10px; font-size: 13px; }
+    .operations-footer .staff-actions { width: 100%; flex-wrap: wrap; gap: 12px; }
+    .operations-footer .staff-actions > .staff-button { flex: 1; min-width: 140px; }
+    .operations-passenger-list { padding: 16px; }
+    .operations-passenger-row > div { flex-basis: 100%; }
+    .operations-passenger-row > .staff-button { width: 100%; }
+    .operations-counter { flex-direction: column; align-items: flex-start; }
+}
+@media (max-width: 430px) {
+    .operations-price-row, .operations-discount-fields { grid-template-columns: minmax(0, 1fr); }
+    .operations-discount-fields .staff-input-wrap { max-width: none; }
+    .operations-passenger-row { padding: 12px; }
+    .operations-vessels { flex-wrap: wrap; }
+    .operations-vessels > .staff-button { flex-basis: 100%; }
+}
+@media print { .operations-preview-actions { display: none; } }

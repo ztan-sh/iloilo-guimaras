@@ -1,5 +1,8 @@
 apply plugin: 'com.android.application'
 
+def clientPreview = providers.gradleProperty('clientPreview').orNull == 'true'
+def previewBuildNumber = providers.gradleProperty('previewBuildNumber').orElse('6').get().toInteger()
+
 android {
     namespace = "com.guimarasgo.ticketing"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +10,9 @@ android {
         applicationId "com.guimarasgo.ticketing"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
+        versionCode clientPreview ? previewBuildNumber : 5
         versionName "1.4"
+        manifestPlaceholders = [appIcon: '@mipmap/ic_launcher', appRoundIcon: '@mipmap/ic_launcher_round']
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -17,6 +21,15 @@ android {
         }
     }
     buildTypes {
+        debug {
+            if (clientPreview) {
+                applicationIdSuffix '.testing'
+                versionNameSuffix "-preview.${previewBuildNumber}"
+                manifestPlaceholders = [appIcon: '@drawable/ic_launcher_testing', appRoundIcon: '@drawable/ic_launcher_testing']
+                resValue 'string', 'app_name', 'GuimarasGo Test'
+                resValue 'string', 'title_activity_main', 'GuimarasGo Test'
+            }
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'prcd oguard-rules.pro'

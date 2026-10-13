@@ -1,689 +1,111 @@
 const mongoose = require("mongoose");
 const Booking = require("../models/Booking");
-
-
-// =========================================================
-// GET BOOKING BY REFERENCE
-// =========================================================
-//
-// Used when staff scans a passenger QR code.
-//
-// Route:
-// GET /api/staff/booking/:bookingReference
-//
-// =========================================================
+const FerrySchedule = require("../models/FerrySchedule");
+const { manilaDate, belongsToTrip } = require("../utils/staffTrip");
 
 const getBookingByReferenceForStaff = async (req, res) => {
-
     try {
-
-        const { bookingReference } = req.params;
-
-
-        if (!bookingReference) {
-
-            return res.status(400).json({
-                success: false,
-                message: "Booking reference is required."
-            });
-        }
-
-
-        const booking = await Booking.findOne({
-            bookingReference: bookingReference.trim()
-        });
-
-
-        if (!booking) {
-
-            return res.status(404).json({
-                success: false,
-                message: "Booking not found."
-            });
-        }
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            booking
-
-        });
-
+        const booking = await Booking.findOne({ bookingReference: String(req.params.bookingReference || "").trim() });
+        if (!booking) return res.status(404).json({ success: false, message: "Ticket not found. Check the booking reference and try again." });
+        res.json({ success: true, booking });
     } catch (error) {
-
-        console.error(
-            "Get booking by reference error:",
-            error
-        );
-
-        return res.status(500).json({
-            success: false,
-            message:
-                "Unable to retrieve booking information."
-        });
+        console.error("Staff ticket lookup error:", error);
+        res.status(500).json({ success: false, message: "Unable to retrieve booking information." });
     }
 };
 
+const findBooking = async (req, res) => {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        res.status(400).json({ success: false, message: "Invalid booking ID." });
+        return null;
+    }
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) res.status(404).json({ success: false, message: "Booking not found." });
+    return booking;
+};
 
-// =========================================================
-// VERIFY BOARDING
-// =========================================================
-//
-// Staff confirms that the passenger is allowed to board.
-//
-// Route:
-// PUT /api/staff/booking/:id/board
-//
-// =========================================================
+const validateSelectedTrip = async (req, res, booking) => {
+    // Older staff clients did not send a selected departure. The new desktop
+    // flow always supplies it and validates the exact crossing on the server.
+    if (!req.body?.tripId) return true;
+    if (!mongoose.Types.ObjectId.isValid(req.body.tripId)) {
+        res.status(400).json({ success: false, message: "Invalid selected trip." });
+        return false;
+    }
+    const trip = await FerrySchedule.findOne({ _id: req.body.tripId, active: { $ne: false } });
+    if (!trip || !belongsToTrip(booking, trip)) {
+        res.status(400).json({ success: false, message: "This ticket does not match the selected trip.", booking });
+        return false;
+    }
+    return true;
+};
 
 const verifyBoarding = async (req, res) => {
-
     try {
-
-        const { id } = req.params;
-
-
-        // -----------------------------------------------------
-        // Validate MongoDB ID
-        // -----------------------------------------------------
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-
-            return res.status(400).json({
-                success: false,
-                message: "Invalid booking ID."
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Find booking
-        // -----------------------------------------------------
-
-        const booking =
-            await Booking.findById(id);
-
-
-        if (!booking) {
-
-            return res.status(404).json({
-                success: false,
-                message: "Booking not found."
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Payment verification
-        // -----------------------------------------------------
-
-        if (
-            booking.paymentStatus !==
-            "VERIFIED"
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Payment has not been verified. Passenger cannot board."
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Booking confirmation
-        // -----------------------------------------------------
-
-        if (
-            booking.status !==
-            "CONFIRMED"
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "This booking is not confirmed."
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Already boarded
-        // -----------------------------------------------------
-
-        if (
-            booking.boardingStatus ===
-            "ON BOARD"
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Passenger is already marked as boarded.",
-                booking
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Previously rejected
-        // -----------------------------------------------------
-
-        if (
-            booking.boardingStatus ===
-            "REJECTED"
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "This passenger has been rejected for boarding."
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Mark as boarded
-        // -----------------------------------------------------
-
-        booking.boardingStatus =
-            "ON BOARD";
-
-        booking.boardedAt =
-            new Date();
-
-
-        await booking.save();
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            message:
-                "Passenger marked as boarded successfully.",
-
-            booking
-
-        });
-
+        const booking = await findBooking(req, res);
+        if (!booking) return;
+        if (booking.paymentStatus !== "VERIFIED" || booking.status !== "CONFIRMED") return res.status(400).json({ success: false, message: "Payment and booking must be confirmed before boarding.", booking });
+        if (booking.boardingStatus !== "NOT BOARDED") return res.status(400).json({ success: false, message: booking.boardingStatus === "ON BOARD" ? "Passenger is already marked as boarded." : "This ticket has been rejected for boarding.", booking });
+        if (!await validateSelectedTrip(req, res, booking)) return;
+        const updated = await Booking.findOneAndUpdate({ _id: booking._id, paymentStatus: "VERIFIED", status: "CONFIRMED", boardingStatus: "NOT BOARDED" }, { $set: { boardingStatus: "ON BOARD", boardedAt: new Date(), boardedByName: req.staff.name || "Terminal staff" } }, { new: true, runValidators: true });
+        if (!updated) return res.status(409).json({ success: false, message: "This ticket was updated by another staff member. Scan it again.", booking: await Booking.findById(booking._id) });
+        res.json({ success: true, message: "Passenger marked as boarded successfully.", booking: updated });
     } catch (error) {
-
-        console.error(
-            "Verify boarding error:",
-            error
-        );
-
-        return res.status(500).json({
-            success: false,
-            message:
-                "Unable to verify passenger boarding."
-        });
+        console.error("Verify boarding error:", error);
+        res.status(500).json({ success: false, message: "Unable to verify passenger boarding." });
     }
 };
-
-
-// =========================================================
-// TIME OUT / CONFIRM ARRIVAL
-// =========================================================
-//
-// Staff scans the same ticket again after the passenger
-// arrives at the destination, then confirms the arrival time.
-// Route:
-// PUT /api/staff/bookings/:id/timeout
-//
-// =========================================================
 
 const timeOutBooking = async (req, res) => {
     try {
-        const { id } = req.params;
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid booking ID."
-            });
-        }
-
-        const booking = await Booking.findById(id);
-
-        if (!booking) {
-            return res.status(404).json({
-                success: false,
-                message: "Booking not found."
-            });
-        }
-
-        if (booking.paymentStatus !== "VERIFIED") {
-            return res.status(400).json({
-                success: false,
-                message: "Payment has not been verified. Arrival cannot be confirmed."
-            });
-        }
-
-        if (booking.status !== "CONFIRMED") {
-            return res.status(400).json({
-                success: false,
-                message: "This booking is not confirmed."
-            });
-        }
-
-        if (booking.boardingStatus === "REJECTED") {
-            return res.status(400).json({
-                success: false,
-                message: "This passenger was rejected for boarding."
-            });
-        }
-
-        if (booking.boardingStatus !== "ON BOARD") {
-            return res.status(400).json({
-                success: false,
-                message: "Passenger must be marked as onboard before confirming arrival."
-            });
-        }
-
-        if (booking.timedOutAt) {
-            return res.status(400).json({
-                success: false,
-                message: "Passenger arrival has already been confirmed.",
-                booking
-            });
-        }
-
-        booking.timedOutAt = new Date();
-        await booking.save();
-
-        return res.status(200).json({
-            success: true,
-            message: "Passenger arrival and time out confirmed successfully.",
-            booking
-        });
+        const booking = await findBooking(req, res);
+        if (!booking) return;
+        if (booking.paymentStatus !== "VERIFIED" || booking.status !== "CONFIRMED" || booking.boardingStatus !== "ON BOARD" || booking.timedOutAt) return res.status(400).json({ success: false, message: booking.timedOutAt ? "Passenger arrival has already been confirmed." : "A confirmed, paid and boarded ticket is required to record arrival.", booking });
+        if (!await validateSelectedTrip(req, res, booking)) return;
+        const updated = await Booking.findOneAndUpdate({ _id: booking._id, paymentStatus: "VERIFIED", status: "CONFIRMED", boardingStatus: "ON BOARD", timedOutAt: null }, { $set: { timedOutAt: new Date() } }, { new: true, runValidators: true });
+        if (!updated) return res.status(409).json({ success: false, message: "Arrival was already recorded or this ticket was updated. Scan it again.", booking: await Booking.findById(booking._id) });
+        res.json({ success: true, message: "Passenger arrival and time out confirmed successfully.", booking: updated });
     } catch (error) {
         console.error("Time out booking error:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Unable to confirm passenger arrival."
-        });
+        res.status(500).json({ success: false, message: "Unable to confirm passenger arrival." });
     }
 };
-
-
-// =========================================================
-// REJECT BOARDING
-// =========================================================
-//
-// Route:
-// PUT /api/staff/booking/:id/reject
-//
-// =========================================================
 
 const rejectBoarding = async (req, res) => {
-
     try {
-
-        const { id } = req.params;
-        const { reason } = req.body || {};
-
-
-        // -----------------------------------------------------
-        // Validate rejection reason
-        // -----------------------------------------------------
-
-        if (typeof reason !== "string" || !reason.trim()) {
-            return res.status(400).json({
-                success: false,
-                message: "A rejection reason is required."
-            });
-        }
-
-        const trimmedReason = reason.trim();
-
-        if (trimmedReason.length > 500) {
-            return res.status(400).json({
-                success: false,
-                message: "Rejection reason must not exceed 500 characters."
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Validate MongoDB ID
-        // -----------------------------------------------------
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-
-            return res.status(400).json({
-                success: false,
-                message: "Invalid booking ID."
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Find booking
-        // -----------------------------------------------------
-
-        const booking =
-            await Booking.findById(id);
-
-
-        if (!booking) {
-
-            return res.status(404).json({
-                success: false,
-                message: "Booking not found."
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Already boarded
-        // -----------------------------------------------------
-
-        if (
-            booking.boardingStatus ===
-            "ON BOARD"
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "This passenger has already boarded and cannot be rejected."
-            });
-        }
-
-
-        // -----------------------------------------------------
-        // Reject boarding
-        // -----------------------------------------------------
-
-        booking.boardingStatus =
-            "REJECTED";
-
-        // Keep the administrator's payment status unchanged.
-        // Staff rejection is a separate boarding decision.
-        booking.status =
-            "CANCELLED";
-
-        booking.rejectionReason =
-            trimmedReason;
-
-        booking.rejectedAt =
-            new Date();
-
-
-        await booking.save();
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            message:
-                "Passenger boarding has been rejected.",
-
-            booking
-
-        });
-
+        const reason = req.body?.reason;
+        if (typeof reason !== "string" || !reason.trim() || reason.trim().length > 500) return res.status(400).json({ success: false, message: "A rejection reason of 1–500 characters is required." });
+        const booking = await findBooking(req, res);
+        if (!booking) return;
+        const updated = await Booking.findOneAndUpdate({ _id: booking._id, boardingStatus: { $nin: ["ON BOARD", "REJECTED"] } }, { $set: { boardingStatus: "REJECTED", status: "CANCELLED", rejectionReason: reason.trim(), rejectedAt: new Date() } }, { new: true, runValidators: true });
+        if (!updated) return res.status(409).json({ success: false, message: "This ticket has already been boarded or rejected.", booking: await Booking.findById(booking._id) });
+        res.json({ success: true, message: "Passenger boarding has been rejected.", booking: updated });
     } catch (error) {
-
-        console.error(
-            "Reject boarding error:",
-            error
-        );
-
-        return res.status(500).json({
-            success: false,
-            message:
-                "Unable to reject passenger boarding."
-        });
+        console.error("Reject boarding error:", error);
+        res.status(500).json({ success: false, message: "Unable to reject passenger boarding." });
     }
 };
-
-
-// =========================================================
-// GET TODAY'S BOARDING BOOKINGS
-// =========================================================
-//
-// Route:
-// GET /api/staff/boarding
-//
-// =========================================================
 
 const getTodayBoardingBookings = async (req, res) => {
-
     try {
-
-        // -----------------------------------------------------
-        // Get today's date as YYYY-MM-DD
-        // -----------------------------------------------------
-
-        const today =
-            new Date()
-                .toISOString()
-                .split("T")[0];
-
-
-        // -----------------------------------------------------
-        // Find today's confirmed bookings
-        // that are ready for boarding
-        // -----------------------------------------------------
-
-        const bookings =
-            await Booking.find({
-
-                date: today,
-
-                paymentStatus:
-                    "VERIFIED",
-
-                status:
-                    "CONFIRMED",
-
-                boardingStatus:
-                    "NOT BOARDED"
-
-            })
-            .sort({
-                time: 1
-            });
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            count:
-                bookings.length,
-
-            bookings
-
-        });
-
+        const bookings = await Booking.find({ date: manilaDate(), paymentStatus: "VERIFIED", status: "CONFIRMED", boardingStatus: "NOT BOARDED" }).sort({ time: 1 });
+        res.json({ success: true, count: bookings.length, bookings });
     } catch (error) {
-
-        console.error(
-            "Get today's boarding bookings error:",
-            error
-        );
-
-        return res.status(500).json({
-            success: false,
-            message:
-                "Unable to retrieve today's boarding bookings."
-        });
+        console.error("Staff boarding list error:", error);
+        res.status(500).json({ success: false, message: "Unable to retrieve today's boarding bookings." });
     }
 };
-
-
-// =========================================================
-// GET BOARDING STATISTICS
-// =========================================================
-//
-// Route:
-// GET /api/staff/statistics
-//
-// =========================================================
 
 const getBoardingStatistics = async (req, res) => {
-
     try {
-
-        // -----------------------------------------------------
-        // Today's date
-        // -----------------------------------------------------
-
-        const today =
-            new Date()
-                .toISOString()
-                .split("T")[0];
-
-
-        // -----------------------------------------------------
-        // Count today's bookings
-        // -----------------------------------------------------
-
-        const totalBookings =
-            await Booking.countDocuments({
-                date: today
-            });
-
-
-        // -----------------------------------------------------
-        // Confirmed bookings
-        // -----------------------------------------------------
-
-        const confirmedBookings =
-            await Booking.countDocuments({
-
-                date: today,
-
-                status:
-                    "CONFIRMED"
-
-            });
-
-
-        // -----------------------------------------------------
-        // Verified payments
-        // -----------------------------------------------------
-
-        const verifiedPayments =
-            await Booking.countDocuments({
-
-                date: today,
-
-                paymentStatus:
-                    "VERIFIED"
-
-            });
-
-
-        // -----------------------------------------------------
-        // Not boarded
-        // -----------------------------------------------------
-
-        const notBoarded =
-            await Booking.countDocuments({
-
-                date: today,
-
-                boardingStatus:
-                    "NOT BOARDED"
-
-            });
-
-
-        // -----------------------------------------------------
-        // On board
-        // -----------------------------------------------------
-
-        const boarded =
-            await Booking.countDocuments({
-
-                date: today,
-
-                boardingStatus:
-                    "ON BOARD"
-
-            });
-
-
-        // -----------------------------------------------------
-        // Rejected
-        // -----------------------------------------------------
-
-        const rejected =
-            await Booking.countDocuments({
-
-                date: today,
-
-                boardingStatus:
-                    "REJECTED"
-
-            });
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            statistics: {
-
-                date: today,
-
-                totalBookings,
-
-                confirmedBookings,
-
-                verifiedPayments,
-
-                notBoarded,
-
-                boarded,
-
-                rejected
-
-            }
-
-        });
-
+        const date = manilaDate();
+        const filters = [{}, { status: "CONFIRMED" }, { paymentStatus: "VERIFIED" }, { boardingStatus: "NOT BOARDED" }, { boardingStatus: "ON BOARD" }, { boardingStatus: "REJECTED" }];
+        const [totalBookings, confirmedBookings, verifiedPayments, notBoarded, boarded, rejected] = await Promise.all(filters.map(filter => Booking.countDocuments({ date, ...filter })));
+        res.json({ success: true, statistics: { date, totalBookings, confirmedBookings, verifiedPayments, notBoarded, boarded, rejected } });
     } catch (error) {
-
-        console.error(
-            "Get boarding statistics error:",
-            error
-        );
-
-        return res.status(500).json({
-            success: false,
-            message:
-                "Unable to retrieve boarding statistics."
-        });
+        console.error("Staff statistics error:", error);
+        res.status(500).json({ success: false, message: "Unable to retrieve boarding statistics." });
     }
 };
 
-
-// =========================================================
-// EXPORT
-// =========================================================
-
-module.exports = {
-
-    getBookingByReferenceForStaff,
-
-    verifyBoarding,
-
-    timeOutBooking,
-
-    rejectBoarding,
-
-    getTodayBoardingBookings,
-
-    getBoardingStatistics
-
-};
+module.exports = { getBookingByReferenceForStaff, verifyBoarding, timeOutBooking, rejectBoarding, getTodayBoardingBookings, getBoardingStatistics };

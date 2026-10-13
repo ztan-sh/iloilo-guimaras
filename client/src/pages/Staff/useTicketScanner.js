@@ -1,0 +1,75 @@
+import { useEffect, useRef, useState } from "react";
+import { Html5Qrcode } from "html5-qrcode";
+
+export default function useTicketScanner(onDecoded) {
+    const resource = useRef(null);
+    const callback = useRef(onDecoded);
+    const mounted = useRef(true);
+    const [scanning, setScanning] = useState(false);
+    const [starting, setStarting] = useState(false);
+    const [cameraError, setCameraError] = useState("");
+    callback.current = onDecoded;
+
+    const release = async current => {
+        if (!current) return;
+        current.cancelled = true;
+        try {
+            await current.started;
+            if (current.scanner.isScanning) await current.scanner.stop();
+            current.scanner.clear();
+        } catch { /* A failed camera start has no active stream to stop. */ }
+    };
+
+    const stop = async () => {
+        const current = resource.current;
+        resource.current = null;
+        await release(current);
+        if (mounted.current) { setScanning(false); setStarting(false); }
+    };
+
+    const start = async () => {
+        if (resource.current) return;
+        setCameraError("");
+        if (!navigator.mediaDevices?.getUserMedia) {
+            setCameraError("Camera access requires a supported browser and HTTPS. You can look up the ticket ID instead.");
+            return;
+        }
+        setStarting(true);
+        const current = { scanner: new Html5Qrcode("staff-qr-reader"), cancelled: false, decoded: false };
+        resource.current = current;
+        try {
+            current.started = current.scanner.start({ facingMode: "environment" }, {
+                fps: 20, aspectRatio: 1,
+                qrbox: (width, height) => { const size = Math.min(350, Math.floor(Math.min(width, height) * 0.75)); return { width: size, height: size }; }
+            }, decoded => {
+                if (current.cancelled || current.decoded) return;
+                current.decoded = true;
+                callback.current(decoded);
+            }, () => {});
+            await current.started;
+            if (current.cancelled || !mounted.current) return;
+            setScanning(true);
+            setStarting(false);
+            try {
+                const capabilities = current.scanner.getRunningTrackCapabilities();
+                if (capabilities?.focusMode?.includes("continuous")) await current.scanner.applyVideoConstraints({ focusMode: "continuous" });
+            } catch { /* Continuous focus is optional on supported cameras. */ }
+        } catch (error) {
+            if (resource.current === current) resource.current = null;
+            if (mounted.current && !current.cancelled) {
+                setStarting(false); setScanning(false);
+                setCameraError(error?.name === "NotAllowedError"
+                    ? "Camera permission was denied. Allow camera access, or look up the ticket ID."
+                    : "Unable to start the camera. Check your camera connection, or look up the ticket ID.");
+            }
+            try { current.scanner.clear(); } catch { /* No scanner surface was created. */ }
+        }
+    };
+
+    useEffect(() => {
+        mounted.current = true;
+        return () => { mounted.current = false; const current = resource.current; resource.current = null; void release(current); };
+    }, []);
+
+    return { start, stop, scanning, starting, cameraError };
+}

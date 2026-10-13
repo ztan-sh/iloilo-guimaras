@@ -1,6 +1,7 @@
 const FerrySchedule = require("../models/FerrySchedule");
 const Booking = require("../models/Booking");
 const FerryClosure = require("../models/FerryClosure");
+const { belongsToTrip, hasMotorcycle } = require("../utils/staffTrip");
 
 const PASSENGER_CAPACITY = 100;
 const MOTORCYCLE_CAPACITY = 10;
@@ -185,69 +186,40 @@ const ensureDefaultSchedules = async (date) => {
     }
 };
 
-const calculateScheduleCapacity = async (
-    schedule,
-    bookings
-) => {
-    const targetVessel =
-        normalizeText(
-            schedule.vesselName
+const calculateScheduleCapacity = async (schedule, bookings) => {
+    const targetVessel = normalizeText(schedule.vesselName);
+    const targetTime = normalizeTime(schedule.departureTime || schedule.time);
+
+    const matchingBookings = bookings.filter((booking) => {
+        const bookingVessel = normalizeText(
+            booking.vesselName ||
+            booking.ferryName ||
+            booking.vessel ||
+            booking.ferry ||
+            booking.selectedFerry?.vesselName ||
+            booking.selectedFerry?.ferryName ||
+            booking.selectedTrip?.vesselName ||
+            booking.selectedTrip?.ferryName ||
+            ""
         );
 
-    const targetTime =
-        normalizeTime(
-            schedule.departureTime ||
-            schedule.time
+        const bookingTime = normalizeTime(
+            booking.time ||
+            booking.departureTime ||
+            booking.tripTime ||
+            booking.selectedFerry?.time ||
+            booking.selectedFerry?.departureTime ||
+            booking.selectedTrip?.time ||
+            booking.selectedTrip?.departureTime ||
+            ""
         );
 
-    const matchingBookings =
-        bookings.filter((booking) => {
-            const bookingVessel =
-                normalizeText(
-                    booking.vesselName ||
-                    booking.ferryName ||
-                    booking.vessel ||
-                    booking.ferry ||
-                    booking.selectedFerry?.vesselName ||
-                    booking.selectedFerry?.ferryName ||
-                    booking.selectedTrip?.vesselName ||
-                    booking.selectedTrip?.ferryName ||
-                    ""
-                );
+        if (bookingVessel) {
+            return bookingVessel === targetVessel;
+        }
 
-            const bookingTime =
-                normalizeTime(
-                    booking.time ||
-                    booking.departureTime ||
-                    booking.tripTime ||
-                    booking.selectedFerry?.time ||
-                    booking.selectedFerry?.departureTime ||
-                    booking.selectedTrip?.time ||
-                    booking.selectedTrip?.departureTime ||
-                    ""
-                );
-
-            /*
-             * Match by vessel name whenever
-             * the booking has vessel information.
-             */
-            if (bookingVessel) {
-                return (
-                    bookingVessel ===
-                    targetVessel
-                );
-            }
-
-            /*
-             * Fallback for older bookings that
-             * don't have vessel information.
-             */
-            return Boolean(
-                bookingTime &&
-                targetTime &&
-                bookingTime === targetTime
-            );
-        });
+        return Boolean(bookingTime && targetTime && bookingTime === targetTime);
+    });
 
     const passengers =
         matchingBookings.reduce(
@@ -272,37 +244,24 @@ const calculateScheduleCapacity = async (
             0
         );
 
-    const motorcycles =
-        matchingBookings.reduce(
-            (total, booking) => {
-                const vehicle =
-                    normalizeText(
-                        booking.vehicleType ||
-                        booking.vehicle ||
-                        booking.vehicleDetails?.type ||
-                        ""
-                    );
-
-                return vehicle.includes(
-                    "motorcycle"
-                )
-                    ? total + 1
-                    : total;
-            },
-            0
+    const motorcycles = matchingBookings.reduce((total, booking) => {
+        const vehicle = normalizeText(
+            booking.vehicleType ||
+            booking.vehicle ||
+            booking.vehicleDetails?.type ||
+            ""
         );
 
+        return vehicle.includes("motorcycle")
+            ? total + 1
+            : total;
+    }, 0);
+
     const passengerCapacity =
-        Number(
-            schedule.passengerCapacity
-        ) ||
-        PASSENGER_CAPACITY;
+        Number(schedule.passengerCapacity) || PASSENGER_CAPACITY;
 
     const motorcycleCapacity =
-        Number(
-            schedule.motorcycleCapacity
-        ) ||
-        MOTORCYCLE_CAPACITY;
+        Number(schedule.motorcycleCapacity) || MOTORCYCLE_CAPACITY;
 
     const manualClosure =
         await FerryClosure.findOne({
@@ -383,50 +342,17 @@ const calculateScheduleCapacity = async (
         passengers,
 
         passengerCapacity,
-
-        passengerRemaining:
-            Math.max(
-                0,
-                passengerCapacity -
-                passengers
-            ),
-
-        vehicles:
-            motorcycles,
-
+        passengerRemaining: Math.max(0, passengerCapacity - passengers),
+        vehicles: motorcycles,
         motorcycles,
-
-        vehicleCapacity:
-            motorcycleCapacity,
-
+        vehicleCapacity: motorcycleCapacity,
         motorcycleCapacity,
-
-        vehicleRemaining:
-            Math.max(
-                0,
-                motorcycleCapacity -
-                motorcycles
-            ),
-
-        motorcycleRemaining:
-            Math.max(
-                0,
-                motorcycleCapacity -
-                motorcycles
-            ),
-
-        manualClosed:
-            Boolean(manualClosure),
-
+        vehicleRemaining: Math.max(0, motorcycleCapacity - motorcycles),
+        motorcycleRemaining: Math.max(0, motorcycleCapacity - motorcycles),
+        manualClosed: Boolean(manualClosure),
         passengerFull,
-
-        motorcycleFull:
-            motorcycles >=
-            motorcycleCapacity,
-
-        automaticallyFull:
-            passengerFull,
-
+        motorcycleFull: motorcycles >= motorcycleCapacity,
+        automaticallyFull: passengerFull,
         bookingClosed,
 
         isDefault:
@@ -570,7 +496,8 @@ const createSchedule = async (
             departureTime,
             arrivalTime,
             passengerCapacity,
-            motorcycleCapacity
+            motorcycleCapacity,
+            walkInMotorcycleCapacity
         } = req.body || {};
 
         const normalizedDate =
@@ -707,60 +634,43 @@ const createSchedule = async (
             });
         }
 
-        const schedule =
-            await FerrySchedule.create({
-                vesselName:
-                    String(
-                        vesselName
-                    ).trim(),
+        const schedule = await FerrySchedule.create({
+            vesselName: String(vesselName).trim(),
+            route,
+            date: normalizedDate,
+            departureTime: normalizedDeparture,
+            time: normalizedDeparture,
+            arrivalTime: normalizedArrival,
+            passengerCapacity:
+                Math.max(1, Number(passengerCapacity) || PASSENGER_CAPACITY),
+           motorcycleCapacity: Math.max(
+    0,
+    Number.isFinite(Number(motorcycleCapacity))
+        ? Number(motorcycleCapacity)
+        : MOTORCYCLE_CAPACITY
+),
 
-                route,
-
-                date:
-                    normalizedDate,
-
-                departureTime:
-                    normalizedDeparture,
-
-                time:
-                    normalizedDeparture,
-
-                arrivalTime:
-                    normalizedArrival,
-
-                passengerCapacity:
-                    Math.max(
-                        1,
-                        Number(
-                            passengerCapacity
-                        ) ||
-                        PASSENGER_CAPACITY
-                    ),
-
-                motorcycleCapacity:
-                    Math.max(
-                        0,
-                        Number.isFinite(
-                            Number(
-                                motorcycleCapacity
-                            )
-                        )
-                            ? Number(
-                                motorcycleCapacity
-                            )
-                            : MOTORCYCLE_CAPACITY
-                    ),
-
-                isDefault:
-                    false,
-
-                /*
-                 * Admin-created schedules are
-                 * immediately active.
-                 */
-                active:
-                    true
-            });
+walkInMotorcycleCapacity: Math.min(
+    Math.max(
+        0,
+        Number.isFinite(Number(walkInMotorcycleCapacity))
+            ? Number(walkInMotorcycleCapacity)
+            : (
+                Number(motorcycleCapacity) ||
+                MOTORCYCLE_CAPACITY
+            )
+    ),
+    Math.max(
+        0,
+        Number.isFinite(Number(motorcycleCapacity))
+            ? Number(motorcycleCapacity)
+            : MOTORCYCLE_CAPACITY
+    )
+),
+            // Explicitly mark admin-created schedules as active so they are
+            // always returned by the schedule query after a refresh.
+            active: true
+        });
 
         return res.status(201).json({
             success: true,
@@ -810,7 +720,8 @@ const updateSchedule = async (
             departureTime,
             arrivalTime,
             passengerCapacity,
-            motorcycleCapacity
+            motorcycleCapacity,
+            walkInMotorcycleCapacity
         } = req.body || {};
 
         const normalizedDate =
@@ -975,23 +886,27 @@ const updateSchedule = async (
                 ) ||
                 PASSENGER_CAPACITY
             );
+schedule.motorcycleCapacity = Math.max(
+    0,
+    Number.isFinite(Number(motorcycleCapacity))
+        ? Number(motorcycleCapacity)
+        : MOTORCYCLE_CAPACITY
+);
 
-        schedule.motorcycleCapacity =
-            Math.max(
-                0,
-                Number.isFinite(
-                    Number(
-                        motorcycleCapacity
-                    )
-                )
-                    ? Number(
-                        motorcycleCapacity
-                    )
-                    : MOTORCYCLE_CAPACITY
-            );
+schedule.walkInMotorcycleCapacity = Math.min(
+    schedule.motorcycleCapacity,
+    Math.max(
+        0,
+        Number.isFinite(Number(walkInMotorcycleCapacity))
+            ? Number(walkInMotorcycleCapacity)
+            : Number(
+                schedule.walkInMotorcycleCapacity ??
+                schedule.motorcycleCapacity
+            )
+    )
+);
 
-        schedule.active =
-            true;
+schedule.active = true;
 
         await schedule.save();
 

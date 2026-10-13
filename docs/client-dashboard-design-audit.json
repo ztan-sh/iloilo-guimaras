@@ -1,0 +1,6 @@
+{
+  "findings": [],
+  "overall_correctness": "patch is correct",
+  "overall_explanation": "No supported integration-drift findings in the 13-node dashboard structural sample. All three active vessel cards reference the Client / Vessel card Orange or White variants; shared typography and ink/muted bindings remain on the title and description, and the dashboard surface, list spacing and scroll tail use variables. The visible legacy navigation follows the user's custom contour treatment; a hidden shared navigation alternative is not evidence that the visible prototype is invalid. Intentional instance overrides were preserved. This sample does not certify every descendant, published library or external Code Connect mapping.",
+  "overall_confidence_score": 0.86
+}

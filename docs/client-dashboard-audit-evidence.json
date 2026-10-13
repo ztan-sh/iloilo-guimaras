@@ -1,0 +1,352 @@
+{
+  "file_key": "3wPWM2XOyqMX1dSp4cC3y6",
+  "scope": "1:1521",
+  "method": "Read-only structural inspection; Figma was not modified.",
+  "sample": [
+    {
+      "id": "1:1521",
+      "type": "FRAME",
+      "name": "Client dashboard · Mobile",
+      "visible": true,
+      "width": 402,
+      "height": 874,
+      "rotation": 0,
+      "boundFields": [
+        "fills"
+      ],
+      "fills": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 0.9372549057006836,
+            "g": 0.9372549057006836,
+            "b": 0.9372549057006836
+          },
+          "boundColor": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:546:4611"
+          }
+        }
+      ]
+    },
+    {
+      "id": "139:457",
+      "type": "FRAME",
+      "name": "Dashboard / Vessel cards",
+      "visible": true,
+      "width": 354,
+      "height": 594,
+      "rotation": 0,
+      "boundFields": [
+        "itemSpacing",
+        "paddingBottom"
+      ],
+      "fills": []
+    },
+    {
+      "id": "548:4642",
+      "type": "INSTANCE",
+      "name": "Vessel / MV Halili",
+      "visible": true,
+      "width": 354,
+      "height": 258,
+      "rotation": 0,
+      "boundFields": [
+        "itemSpacing",
+        "paddingLeft",
+        "paddingTop",
+        "paddingRight"
+      ],
+      "fills": [],
+      "mainComponent": {
+        "id": "548:4610",
+        "name": "Treatment=Orange",
+        "key": "44b459d185d050f93d09c7434a61c46ee4268697"
+      },
+      "overrideCount": 4
+    },
+    {
+      "id": "548:4658",
+      "type": "INSTANCE",
+      "name": "Vessel / MV Felipe III",
+      "visible": true,
+      "width": 354,
+      "height": 258,
+      "rotation": 0,
+      "boundFields": [
+        "itemSpacing",
+        "paddingLeft",
+        "paddingTop",
+        "paddingRight"
+      ],
+      "fills": [],
+      "mainComponent": {
+        "id": "548:4611",
+        "name": "Treatment=White",
+        "key": "2b68fdefed5afd74e226ad8d570db60dfd0604db"
+      },
+      "overrideCount": 2
+    },
+    {
+      "id": "548:4674",
+      "type": "INSTANCE",
+      "name": "Vessel / Lite Ferry 22",
+      "visible": true,
+      "width": 354,
+      "height": 258,
+      "rotation": 0,
+      "boundFields": [
+        "itemSpacing",
+        "paddingLeft",
+        "paddingTop",
+        "paddingRight"
+      ],
+      "fills": [],
+      "mainComponent": {
+        "id": "548:4611",
+        "name": "Treatment=White",
+        "key": "2b68fdefed5afd74e226ad8d570db60dfd0604db"
+      },
+      "overrideCount": 1
+    },
+    {
+      "id": "560:4976",
+      "type": "TEXT",
+      "name": "Page title",
+      "visible": true,
+      "width": 117,
+      "height": 32,
+      "rotation": 0,
+      "boundFields": [
+        "fills"
+      ],
+      "textStyleId": "S:e89c30e46eb1e775e997499cc808241aec6a64d2,",
+      "fills": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 0.09803921729326248,
+            "g": 0.15294118225574493,
+            "b": 0.16078431904315948
+          },
+          "boundColor": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:167"
+          }
+        }
+      ]
+    },
+    {
+      "id": "560:4977",
+      "type": "TEXT",
+      "name": "Page description",
+      "visible": true,
+      "width": 354,
+      "height": 20,
+      "rotation": 0,
+      "boundFields": [
+        "fills"
+      ],
+      "textStyleId": "S:07ceeb300d3a51cf8143b97f7379552452b435a6,",
+      "fills": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 0.40784314274787903,
+            "g": 0.48235294222831726,
+            "b": 0.4901960790157318
+          },
+          "boundColor": {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:168"
+          }
+        }
+      ]
+    },
+    {
+      "id": "560:4984",
+      "type": "INSTANCE",
+      "name": "3D Avatars / 9",
+      "visible": true,
+      "width": 33,
+      "height": 27,
+      "rotation": 0,
+      "boundFields": [],
+      "fills": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1
+          }
+        }
+      ],
+      "mainComponent": {
+        "id": "1:123",
+        "name": "3D Avatars / 9",
+        "key": "464a05cb215cd2bd8b28fcd25f30e98ce9f389a1"
+      },
+      "overrideCount": 2,
+      "children": [
+        {
+          "id": "I560:4984;52767:23894",
+          "name": "Avatars / 3d_avatar_9",
+          "type": "RECTANGLE",
+          "width": 33,
+          "height": 27,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "560:4985",
+      "type": "INSTANCE",
+      "name": "Notification bell",
+      "visible": true,
+      "width": 44,
+      "height": 44,
+      "rotation": 0,
+      "boundFields": [],
+      "fills": [],
+      "mainComponent": {
+        "id": "379:4033",
+        "name": "Client / Notification bell",
+        "key": "65d28f43c52748e03d0403725cb3d5efba4abc7a"
+      },
+      "overrideCount": 1
+    },
+    {
+      "id": "548:4625",
+      "type": "INSTANCE",
+      "name": "Show more chevron",
+      "visible": true,
+      "width": 14,
+      "height": 14,
+      "rotation": 180,
+      "boundFields": [],
+      "fills": [],
+      "mainComponent": {
+        "id": "1:125",
+        "name": "keyboard_arrow_up",
+        "key": "2c4df8b843f2df892944d10bf1da82214379b303"
+      },
+      "overrideCount": 2,
+      "children": [
+        {
+          "id": "I548:4625;57995:3429",
+          "name": "icon",
+          "type": "VECTOR",
+          "width": 7,
+          "height": 4.316666603088379,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "548:4639",
+      "type": "INSTANCE",
+      "name": "Show more chevron",
+      "visible": true,
+      "width": 14,
+      "height": 14,
+      "rotation": 180,
+      "boundFields": [],
+      "fills": [],
+      "mainComponent": {
+        "id": "1:125",
+        "name": "keyboard_arrow_up",
+        "key": "2c4df8b843f2df892944d10bf1da82214379b303"
+      },
+      "overrideCount": 2,
+      "children": [
+        {
+          "id": "I548:4639;57995:3429",
+          "name": "icon",
+          "type": "VECTOR",
+          "width": 7,
+          "height": 4.316666603088379,
+          "rotation": 0
+        }
+      ]
+    },
+    {
+      "id": "555:4680",
+      "type": "INSTANCE",
+      "name": "Dashboard / Shared glass navigation",
+      "visible": false,
+      "width": 354,
+      "height": 88,
+      "rotation": 0,
+      "boundFields": [
+        "paddingLeft",
+        "paddingTop",
+        "paddingRight",
+        "paddingBottom",
+        "topLeftRadius",
+        "topRightRadius",
+        "bottomLeftRadius",
+        "bottomRightRadius"
+      ],
+      "fills": [],
+      "mainComponent": {
+        "id": "555:4651",
+        "name": "Active=Home",
+        "key": "5b68396896ab4bbdadef4f6e8aac230bfd4609ed"
+      },
+      "overrideCount": 5
+    },
+    {
+      "id": "1:1536",
+      "type": "GROUP",
+      "name": "Group 8",
+      "visible": true,
+      "width": 388,
+      "height": 87,
+      "rotation": 0,
+      "boundFields": [],
+      "children": [
+        {
+          "id": "1:1537",
+          "name": "Union",
+          "type": "BOOLEAN_OPERATION",
+          "width": 388,
+          "height": 87,
+          "rotation": 0
+        },
+        {
+          "id": "1:1540",
+          "name": "Ellipse 14",
+          "type": "ELLIPSE",
+          "width": 64,
+          "height": 64,
+          "rotation": 0
+        },
+        {
+          "id": "1:1541",
+          "name": "Ellipse 15",
+          "type": "ELLIPSE",
+          "width": 64,
+          "height": 64,
+          "rotation": 0
+        },
+        {
+          "id": "1:1542",
+          "name": "Ellipse 16",
+          "type": "ELLIPSE",
+          "width": 64,
+          "height": 64,
+          "rotation": 0
+        },
+        {
+          "id": "1:1543",
+          "name": "Ellipse 13",
+          "type": "ELLIPSE",
+          "width": 64,
+          "height": 64,
+          "rotation": 0
+        }
+      ]
+    }
+  ]
+}
