@@ -95,7 +95,10 @@ const isAllowedDepartureTime = (value) => {
     }
 
     const [hourText, minuteText] = normalized.split(":");
-    const totalMinutes = Number(hourText) * 60 + Number(minuteText);
+
+    const totalMinutes =
+        Number(hourText) * 60 +
+        Number(minuteText);
 
     return (
         totalMinutes >= 3 * 60 + 30 &&
@@ -116,7 +119,10 @@ const isAllowedArrivalTime = (value) => {
     }
 
     const [hourText, minuteText] = normalized.split(":");
-    const totalMinutes = Number(hourText) * 60 + Number(minuteText);
+
+    const totalMinutes =
+        Number(hourText) * 60 +
+        Number(minuteText);
 
     return (
         totalMinutes >= 4 * 60 &&
@@ -133,8 +139,13 @@ const formatTime = (value) => {
     }
 
     const [hourText, minuteText] = normalized.split(":");
+
     let hour = Number(hourText);
-    const period = hour >= 12 ? "PM" : "AM";
+
+    const period =
+        hour >= 12
+            ? "PM"
+            : "AM";
 
     hour %= 12;
 
@@ -174,150 +185,341 @@ const ensureDefaultSchedules = async (date) => {
     }
 };
 
-const calculateScheduleCapacity = async (schedule, bookings) => {
-    const targetVessel = normalizeText(schedule.vesselName);
-    const targetTime = normalizeTime(schedule.departureTime || schedule.time);
-
-    const matchingBookings = bookings.filter((booking) => {
-        const bookingVessel = normalizeText(
-            booking.vesselName ||
-            booking.ferryName ||
-            booking.vessel ||
-            booking.ferry ||
-            booking.selectedFerry?.vesselName ||
-            booking.selectedFerry?.ferryName ||
-            booking.selectedTrip?.vesselName ||
-            booking.selectedTrip?.ferryName ||
-            ""
+const calculateScheduleCapacity = async (
+    schedule,
+    bookings
+) => {
+    const targetVessel =
+        normalizeText(
+            schedule.vesselName
         );
 
-        const bookingTime = normalizeTime(
-            booking.time ||
-            booking.departureTime ||
-            booking.tripTime ||
-            booking.selectedFerry?.time ||
-            booking.selectedFerry?.departureTime ||
-            booking.selectedTrip?.time ||
-            booking.selectedTrip?.departureTime ||
-            ""
+    const targetTime =
+        normalizeTime(
+            schedule.departureTime ||
+            schedule.time
         );
 
-        if (bookingVessel) {
-            return bookingVessel === targetVessel;
-        }
+    const matchingBookings =
+        bookings.filter((booking) => {
+            const bookingVessel =
+                normalizeText(
+                    booking.vesselName ||
+                    booking.ferryName ||
+                    booking.vessel ||
+                    booking.ferry ||
+                    booking.selectedFerry?.vesselName ||
+                    booking.selectedFerry?.ferryName ||
+                    booking.selectedTrip?.vesselName ||
+                    booking.selectedTrip?.ferryName ||
+                    ""
+                );
 
-        return Boolean(bookingTime && targetTime && bookingTime === targetTime);
-    });
+            const bookingTime =
+                normalizeTime(
+                    booking.time ||
+                    booking.departureTime ||
+                    booking.tripTime ||
+                    booking.selectedFerry?.time ||
+                    booking.selectedFerry?.departureTime ||
+                    booking.selectedTrip?.time ||
+                    booking.selectedTrip?.departureTime ||
+                    ""
+                );
 
-    const passengers = matchingBookings.reduce((total, booking) => {
-        const count = Number(
-            booking.passengers ||
-            booking.numberOfPassengers ||
-            booking.passengerCount ||
-            1
+            /*
+             * Match by vessel name whenever
+             * the booking has vessel information.
+             */
+            if (bookingVessel) {
+                return (
+                    bookingVessel ===
+                    targetVessel
+                );
+            }
+
+            /*
+             * Fallback for older bookings that
+             * don't have vessel information.
+             */
+            return Boolean(
+                bookingTime &&
+                targetTime &&
+                bookingTime === targetTime
+            );
+        });
+
+    const passengers =
+        matchingBookings.reduce(
+            (total, booking) => {
+                const count =
+                    Number(
+                        booking.passengers ||
+                        booking.numberOfPassengers ||
+                        booking.passengerCount ||
+                        1
+                    );
+
+                return (
+                    total +
+                    (
+                        Number.isFinite(count)
+                            ? Math.max(1, count)
+                            : 1
+                    )
+                );
+            },
+            0
         );
 
-        return total + (Number.isFinite(count) ? Math.max(1, count) : 1);
-    }, 0);
+    const motorcycles =
+        matchingBookings.reduce(
+            (total, booking) => {
+                const vehicle =
+                    normalizeText(
+                        booking.vehicleType ||
+                        booking.vehicle ||
+                        booking.vehicleDetails?.type ||
+                        ""
+                    );
 
-    const motorcycles = matchingBookings.reduce((total, booking) => {
-        const vehicle = normalizeText(
-            booking.vehicleType ||
-            booking.vehicle ||
-            booking.vehicleDetails?.type ||
-            ""
+                return vehicle.includes(
+                    "motorcycle"
+                )
+                    ? total + 1
+                    : total;
+            },
+            0
         );
-
-        return vehicle.includes("motorcycle")
-            ? total + 1
-            : total;
-    }, 0);
 
     const passengerCapacity =
-        Number(schedule.passengerCapacity) || PASSENGER_CAPACITY;
+        Number(
+            schedule.passengerCapacity
+        ) ||
+        PASSENGER_CAPACITY;
 
     const motorcycleCapacity =
-        Number(schedule.motorcycleCapacity) || MOTORCYCLE_CAPACITY;
+        Number(
+            schedule.motorcycleCapacity
+        ) ||
+        MOTORCYCLE_CAPACITY;
 
-    const manualClosure = await FerryClosure.findOne({
-        date: schedule.date,
-        $or: [
-            { ferryId: schedule._id.toString() },
-            { ferryId: schedule.vesselName },
-            { ferryName: schedule.vesselName }
-        ],
-        isClosed: true
-    }).lean();
+    const manualClosure =
+        await FerryClosure.findOne({
+            date: schedule.date,
 
-    const passengerFull = passengers >= passengerCapacity;
-    const bookingClosed = Boolean(manualClosure) || passengerFull;
+            $or: [
+                {
+                    ferryId:
+                        schedule._id.toString()
+                },
+                {
+                    ferryId:
+                        schedule.vesselName
+                },
+                {
+                    ferryName:
+                        schedule.vesselName
+                }
+            ],
+
+            isClosed: true
+        }).lean();
+
+    const passengerFull =
+        passengers >= passengerCapacity;
+
+    const bookingClosed =
+        Boolean(manualClosure) ||
+        passengerFull;
 
     return {
-        id: schedule._id.toString(),
-        ferryId: schedule._id.toString(),
-        vesselName: schedule.vesselName,
-        ferryName: schedule.vesselName,
-        route: schedule.route,
-        origin: schedule.route.startsWith("Guimaras") ? "Guimaras" : "Iloilo",
-        destination: schedule.route.startsWith("Guimaras") ? "Iloilo" : "Guimaras",
-        date: schedule.date,
-        departureTime: formatTime(schedule.departureTime),
-        time: schedule.time || schedule.departureTime,
-        arrivalTime: formatTime(schedule.arrivalTime),
+        id:
+            schedule._id.toString(),
+
+        ferryId:
+            schedule._id.toString(),
+
+        vesselName:
+            schedule.vesselName,
+
+        ferryName:
+            schedule.vesselName,
+
+        route:
+            schedule.route,
+
+        origin:
+            schedule.route.startsWith(
+                "Guimaras"
+            )
+                ? "Guimaras"
+                : "Iloilo",
+
+        destination:
+            schedule.route.startsWith(
+                "Guimaras"
+            )
+                ? "Iloilo"
+                : "Guimaras",
+
+        date:
+            schedule.date,
+
+        departureTime:
+            formatTime(
+                schedule.departureTime
+            ),
+
+        time:
+            schedule.time ||
+            schedule.departureTime,
+
+        arrivalTime:
+            formatTime(
+                schedule.arrivalTime
+            ),
+
         passengers,
+
         passengerCapacity,
-        passengerRemaining: Math.max(0, passengerCapacity - passengers),
-        vehicles: motorcycles,
+
+        passengerRemaining:
+            Math.max(
+                0,
+                passengerCapacity -
+                passengers
+            ),
+
+        vehicles:
+            motorcycles,
+
         motorcycles,
-        vehicleCapacity: motorcycleCapacity,
+
+        vehicleCapacity:
+            motorcycleCapacity,
+
         motorcycleCapacity,
-        vehicleRemaining: Math.max(0, motorcycleCapacity - motorcycles),
-        motorcycleRemaining: Math.max(0, motorcycleCapacity - motorcycles),
-        manualClosed: Boolean(manualClosure),
+
+        vehicleRemaining:
+            Math.max(
+                0,
+                motorcycleCapacity -
+                motorcycles
+            ),
+
+        motorcycleRemaining:
+            Math.max(
+                0,
+                motorcycleCapacity -
+                motorcycles
+            ),
+
+        manualClosed:
+            Boolean(manualClosure),
+
         passengerFull,
-        motorcycleFull: motorcycles >= motorcycleCapacity,
-        automaticallyFull: passengerFull,
+
+        motorcycleFull:
+            motorcycles >=
+            motorcycleCapacity,
+
+        automaticallyFull:
+            passengerFull,
+
         bookingClosed,
-        isDefault: Boolean(schedule.isDefault)
+
+        isDefault:
+            Boolean(
+                schedule.isDefault
+            )
     };
 };
 
-const getSchedulesForDate = async (req, res) => {
+const getSchedulesForDate = async (
+    req,
+    res
+) => {
     try {
-        const requestedDate = normalizeDate(
-            req.query.date || new Date().toISOString().slice(0, 10)
-        );
+        const requestedDate =
+            normalizeDate(
+                req.query.date ||
+                new Date()
+                    .toISOString()
+                    .slice(0, 10)
+            );
 
         if (!requestedDate) {
             return res.status(400).json({
                 success: false,
-                message: "A valid date is required (YYYY-MM-DD)."
+                message:
+                    "A valid date is required (YYYY-MM-DD)."
             });
         }
 
-        await ensureDefaultSchedules(requestedDate);
-
-        const schedules = await FerrySchedule.find({
-            date: requestedDate,
-            // Treat schedules as active unless they are explicitly disabled.
-            // This keeps older/custom records visible even if they were created
-            // before the active field existed. Deleted schedules are removed
-            // from MongoDB by deleteSchedule and therefore stay gone.
-            active: { $ne: false }
-        }).sort({ departureTime: 1 });
-
-        const bookings = await Booking.find({
-            status: { $ne: "CANCELLED" },
-            paymentStatus: { $ne: "REJECTED" }
-        }).lean();
-
-        const dateBookings = bookings.filter(
-            (booking) => normalizeDate(booking.date) === requestedDate
+        /*
+         * Make sure the default schedules exist
+         * for this exact requested date.
+         */
+        await ensureDefaultSchedules(
+            requestedDate
         );
+
+        /*
+         * IMPORTANT:
+         * Both Admin and Passenger use this
+         * controller.
+         *
+         * Only schedules belonging to the
+         * requested date are returned.
+         */
+        const schedules =
+            await FerrySchedule.find({
+                date: requestedDate,
+
+                /*
+                 * Existing schedules remain visible
+                 * unless explicitly disabled.
+                 */
+                active: {
+                    $ne: false
+                }
+            }).sort({
+                departureTime: 1
+            });
+
+        /*
+         * Get bookings so we can calculate the
+         * current passenger/motorcycle capacity.
+         */
+        const bookings =
+            await Booking.find({
+                status: {
+                    $ne: "CANCELLED"
+                },
+
+                paymentStatus: {
+                    $ne: "REJECTED"
+                }
+            }).lean();
+
+        /*
+         * Only bookings for the selected travel
+         * date affect that day's capacity.
+         */
+        const dateBookings =
+            bookings.filter(
+                (booking) =>
+                    normalizeDate(
+                        booking.date
+                    ) === requestedDate
+            );
 
         const capacities = [];
 
-        for (const schedule of schedules) {
+        for (
+            const schedule of schedules
+        ) {
             capacities.push(
                 await calculateScheduleCapacity(
                     schedule,
@@ -328,21 +530,38 @@ const getSchedulesForDate = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            date: requestedDate,
-            schedules: capacities,
+
+            date:
+                requestedDate,
+
+            schedules:
+                capacities,
+
+            /*
+             * Keep capacities as well because
+             * existing frontend code may use it.
+             */
             capacities
         });
+
     } catch (error) {
-        console.error("Get ferry schedules error:", error);
+        console.error(
+            "Get ferry schedules error:",
+            error
+        );
 
         return res.status(500).json({
             success: false,
-            message: "Unable to retrieve ferry schedules."
+            message:
+                "Unable to retrieve ferry schedules."
         });
     }
 };
 
-const createSchedule = async (req, res) => {
+const createSchedule = async (
+    req,
+    res
+) => {
     try {
         const {
             vesselName,
@@ -354,119 +573,233 @@ const createSchedule = async (req, res) => {
             motorcycleCapacity
         } = req.body || {};
 
-        const normalizedDate = normalizeDate(date);
-        const normalizedDeparture = normalizeTime(departureTime);
-        const normalizedArrival = arrivalTime
-            ? normalizeTime(arrivalTime)
-            : "";
+        const normalizedDate =
+            normalizeDate(date);
 
-        if (!isAllowedDepartureTime(normalizedDeparture)) {
+        const normalizedDeparture =
+            normalizeTime(
+                departureTime
+            );
+
+        const normalizedArrival =
+            arrivalTime
+                ? normalizeTime(
+                    arrivalTime
+                )
+                : "";
+
+        if (
+            !isAllowedDepartureTime(
+                normalizedDeparture
+            )
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Departure time must be between 3:30 AM and 7:30 PM in 30-minute increments."
+                message:
+                    "Departure time must be between 3:30 AM and 7:30 PM in 30-minute increments."
             });
         }
 
-        if (!isAllowedArrivalTime(normalizedArrival)) {
+        if (
+            !isAllowedArrivalTime(
+                normalizedArrival
+            )
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Arrival time must be between 4:00 AM and 8:00 PM in 30-minute increments."
+                message:
+                    "Arrival time must be between 4:00 AM and 8:00 PM in 30-minute increments."
             });
         }
 
         if (normalizedArrival) {
-            const [departureHour, departureMinute] = normalizedDeparture.split(":").map(Number);
-            const [arrivalHour, arrivalMinute] = normalizedArrival.split(":").map(Number);
-            const departureTotal = departureHour * 60 + departureMinute;
-            const arrivalTotal = arrivalHour * 60 + arrivalMinute;
+            const [
+                departureHour,
+                departureMinute
+            ] =
+                normalizedDeparture
+                    .split(":")
+                    .map(Number);
 
-            if (arrivalTotal <= departureTotal) {
+            const [
+                arrivalHour,
+                arrivalMinute
+            ] =
+                normalizedArrival
+                    .split(":")
+                    .map(Number);
+
+            const departureTotal =
+                departureHour * 60 +
+                departureMinute;
+
+            const arrivalTotal =
+                arrivalHour * 60 +
+                arrivalMinute;
+
+            if (
+                arrivalTotal <=
+                departureTotal
+            ) {
                 return res.status(400).json({
                     success: false,
-                    message: "Arrival time must be later than departure time."
+                    message:
+                        "Arrival time must be later than departure time."
                 });
             }
         }
 
-        if (!String(vesselName || "").trim()) {
+        if (
+            !String(
+                vesselName || ""
+            ).trim()
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Ferry/vessel name is required."
+                message:
+                    "Ferry/vessel name is required."
             });
         }
 
-        if (!normalizedDate || !normalizedDeparture) {
+        if (
+            !normalizedDate ||
+            !normalizedDeparture
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Travel date and departure time are required."
+                message:
+                    "Travel date and departure time are required."
             });
         }
 
-        if (![
-            "Iloilo → Guimaras",
-            "Guimaras → Iloilo"
-        ].includes(route)) {
+        if (
+            ![
+                "Iloilo → Guimaras",
+                "Guimaras → Iloilo"
+            ].includes(route)
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "A valid ferry route is required."
+                message:
+                    "A valid ferry route is required."
             });
         }
 
-        const existing = await FerrySchedule.findOne({
-            date: normalizedDate,
-            vesselName: String(vesselName).trim(),
-            departureTime: normalizedDeparture
-        });
+        const existing =
+            await FerrySchedule.findOne({
+                date:
+                    normalizedDate,
+
+                vesselName:
+                    String(
+                        vesselName
+                    ).trim(),
+
+                departureTime:
+                    normalizedDeparture
+            });
 
         if (existing) {
             return res.status(409).json({
                 success: false,
-                message: "A ferry schedule with the same vessel, date, and departure time already exists."
+                message:
+                    "A ferry schedule with the same vessel, date, and departure time already exists."
             });
         }
 
-        const schedule = await FerrySchedule.create({
-            vesselName: String(vesselName).trim(),
-            route,
-            date: normalizedDate,
-            departureTime: normalizedDeparture,
-            time: normalizedDeparture,
-            arrivalTime: normalizedArrival,
-            passengerCapacity:
-                Math.max(1, Number(passengerCapacity) || PASSENGER_CAPACITY),
-            motorcycleCapacity:
-                Math.max(0, Number.isFinite(Number(motorcycleCapacity))
-                    ? Number(motorcycleCapacity)
-                    : MOTORCYCLE_CAPACITY),
-            isDefault: false,
-            // Explicitly mark admin-created schedules as active so they are
-            // always returned by the schedule query after a refresh.
-            active: true
-        });
+        const schedule =
+            await FerrySchedule.create({
+                vesselName:
+                    String(
+                        vesselName
+                    ).trim(),
+
+                route,
+
+                date:
+                    normalizedDate,
+
+                departureTime:
+                    normalizedDeparture,
+
+                time:
+                    normalizedDeparture,
+
+                arrivalTime:
+                    normalizedArrival,
+
+                passengerCapacity:
+                    Math.max(
+                        1,
+                        Number(
+                            passengerCapacity
+                        ) ||
+                        PASSENGER_CAPACITY
+                    ),
+
+                motorcycleCapacity:
+                    Math.max(
+                        0,
+                        Number.isFinite(
+                            Number(
+                                motorcycleCapacity
+                            )
+                        )
+                            ? Number(
+                                motorcycleCapacity
+                            )
+                            : MOTORCYCLE_CAPACITY
+                    ),
+
+                isDefault:
+                    false,
+
+                /*
+                 * Admin-created schedules are
+                 * immediately active.
+                 */
+                active:
+                    true
+            });
 
         return res.status(201).json({
             success: true,
-            message: "Ferry trip added successfully.",
+
+            message:
+                "Ferry trip added successfully.",
+
             schedule
         });
+
     } catch (error) {
-        console.error("Create ferry schedule error:", error);
+        console.error(
+            "Create ferry schedule error:",
+            error
+        );
 
         return res.status(500).json({
             success: false,
-            message: "Unable to create ferry schedule."
+            message:
+                "Unable to create ferry schedule."
         });
     }
 };
 
-const updateSchedule = async (req, res) => {
+const updateSchedule = async (
+    req,
+    res
+) => {
     try {
-        const schedule = await FerrySchedule.findById(req.params.id);
+        const schedule =
+            await FerrySchedule.findById(
+                req.params.id
+            );
 
         if (!schedule) {
             return res.status(404).json({
                 success: false,
-                message: "Ferry schedule not found."
+                message:
+                    "Ferry schedule not found."
             });
         }
 
@@ -480,133 +813,261 @@ const updateSchedule = async (req, res) => {
             motorcycleCapacity
         } = req.body || {};
 
-        const normalizedDate = normalizeDate(date);
-        const normalizedDeparture = normalizeTime(departureTime);
-        const normalizedArrival = arrivalTime
-            ? normalizeTime(arrivalTime)
-            : "";
+        const normalizedDate =
+            normalizeDate(date);
 
-        if (!isAllowedDepartureTime(normalizedDeparture)) {
+        const normalizedDeparture =
+            normalizeTime(
+                departureTime
+            );
+
+        const normalizedArrival =
+            arrivalTime
+                ? normalizeTime(
+                    arrivalTime
+                )
+                : "";
+
+        if (
+            !isAllowedDepartureTime(
+                normalizedDeparture
+            )
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Departure time must be between 3:30 AM and 7:30 PM in 30-minute increments."
+                message:
+                    "Departure time must be between 3:30 AM and 7:30 PM in 30-minute increments."
             });
         }
 
-        if (!isAllowedArrivalTime(normalizedArrival)) {
+        if (
+            !isAllowedArrivalTime(
+                normalizedArrival
+            )
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Arrival time must be between 4:00 AM and 8:00 PM in 30-minute increments."
+                message:
+                    "Arrival time must be between 4:00 AM and 8:00 PM in 30-minute increments."
             });
         }
 
         if (normalizedArrival) {
-            const [departureHour, departureMinute] = normalizedDeparture.split(":").map(Number);
-            const [arrivalHour, arrivalMinute] = normalizedArrival.split(":").map(Number);
-            const departureTotal = departureHour * 60 + departureMinute;
-            const arrivalTotal = arrivalHour * 60 + arrivalMinute;
+            const [
+                departureHour,
+                departureMinute
+            ] =
+                normalizedDeparture
+                    .split(":")
+                    .map(Number);
 
-            if (arrivalTotal <= departureTotal) {
+            const [
+                arrivalHour,
+                arrivalMinute
+            ] =
+                normalizedArrival
+                    .split(":")
+                    .map(Number);
+
+            const departureTotal =
+                departureHour * 60 +
+                departureMinute;
+
+            const arrivalTotal =
+                arrivalHour * 60 +
+                arrivalMinute;
+
+            if (
+                arrivalTotal <=
+                departureTotal
+            ) {
                 return res.status(400).json({
                     success: false,
-                    message: "Arrival time must be later than departure time."
+                    message:
+                        "Arrival time must be later than departure time."
                 });
             }
         }
 
-        if (!String(vesselName || "").trim() || !normalizedDate || !normalizedDeparture) {
+        if (
+            !String(
+                vesselName || ""
+            ).trim() ||
+            !normalizedDate ||
+            !normalizedDeparture
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "Vessel, date, and departure time are required."
+                message:
+                    "Vessel, date, and departure time are required."
             });
         }
 
-        if (![
-            "Iloilo → Guimaras",
-            "Guimaras → Iloilo"
-        ].includes(route)) {
+        if (
+            ![
+                "Iloilo → Guimaras",
+                "Guimaras → Iloilo"
+            ].includes(route)
+        ) {
             return res.status(400).json({
                 success: false,
-                message: "A valid ferry route is required."
+                message:
+                    "A valid ferry route is required."
             });
         }
 
-        const duplicate = await FerrySchedule.findOne({
-            _id: { $ne: schedule._id },
-            date: normalizedDate,
-            vesselName: String(vesselName).trim(),
-            departureTime: normalizedDeparture,
-            active: { $ne: false }
-        });
+        const duplicate =
+            await FerrySchedule.findOne({
+                _id: {
+                    $ne:
+                        schedule._id
+                },
+
+                date:
+                    normalizedDate,
+
+                vesselName:
+                    String(
+                        vesselName
+                    ).trim(),
+
+                departureTime:
+                    normalizedDeparture,
+
+                active: {
+                    $ne: false
+                }
+            });
 
         if (duplicate) {
             return res.status(409).json({
                 success: false,
-                message: "Another ferry schedule already uses this vessel, date, and departure time."
+                message:
+                    "Another ferry schedule already uses this vessel, date, and departure time."
             });
         }
 
-        schedule.vesselName = String(vesselName).trim();
-        schedule.route = route;
-        schedule.date = normalizedDate;
-        schedule.departureTime = normalizedDeparture;
-        schedule.time = normalizedDeparture;
-        schedule.arrivalTime = normalizedArrival;
+        schedule.vesselName =
+            String(
+                vesselName
+            ).trim();
+
+        schedule.route =
+            route;
+
+        schedule.date =
+            normalizedDate;
+
+        schedule.departureTime =
+            normalizedDeparture;
+
+        schedule.time =
+            normalizedDeparture;
+
+        schedule.arrivalTime =
+            normalizedArrival;
+
         schedule.passengerCapacity =
-            Math.max(1, Number(passengerCapacity) || PASSENGER_CAPACITY);
+            Math.max(
+                1,
+                Number(
+                    passengerCapacity
+                ) ||
+                PASSENGER_CAPACITY
+            );
+
         schedule.motorcycleCapacity =
-            Math.max(0, Number.isFinite(Number(motorcycleCapacity))
-                ? Number(motorcycleCapacity)
-                : MOTORCYCLE_CAPACITY);
-        schedule.active = true;
+            Math.max(
+                0,
+                Number.isFinite(
+                    Number(
+                        motorcycleCapacity
+                    )
+                )
+                    ? Number(
+                        motorcycleCapacity
+                    )
+                    : MOTORCYCLE_CAPACITY
+            );
+
+        schedule.active =
+            true;
 
         await schedule.save();
 
         return res.status(200).json({
             success: true,
-            message: "Ferry schedule updated successfully.",
+
+            message:
+                "Ferry schedule updated successfully.",
+
             schedule
         });
+
     } catch (error) {
-        console.error("Update ferry schedule error:", error);
+        console.error(
+            "Update ferry schedule error:",
+            error
+        );
 
         return res.status(500).json({
             success: false,
-            message: "Unable to update ferry schedule."
+            message:
+                "Unable to update ferry schedule."
         });
     }
 };
 
-const deleteSchedule = async (req, res) => {
+const deleteSchedule = async (
+    req,
+    res
+) => {
     try {
-        const schedule = await FerrySchedule.findById(req.params.id);
+        const schedule =
+            await FerrySchedule.findById(
+                req.params.id
+            );
 
         if (!schedule) {
             return res.status(404).json({
                 success: false,
-                message: "Ferry schedule not found."
+                message:
+                    "Ferry schedule not found."
             });
         }
 
+        /*
+         * Default schedules are protected.
+         */
         if (schedule.isDefault) {
             return res.status(400).json({
                 success: false,
-                message: "Default ferry schedules cannot be removed."
+                message:
+                    "Default ferry schedules cannot be removed."
             });
         }
 
-        await FerrySchedule.deleteOne({ _id: schedule._id });
+        await FerrySchedule.deleteOne({
+            _id:
+                schedule._id
+        });
 
         return res.status(200).json({
             success: true,
-            message: "Ferry schedule removed successfully."
+            message:
+                "Ferry schedule removed successfully."
         });
+
     } catch (error) {
-        console.error("Delete ferry schedule error:", error);
+        console.error(
+            "Delete ferry schedule error:",
+            error
+        );
 
         return res.status(500).json({
             success: false,
-            message: "Unable to remove ferry schedule."
+            message:
+                "Unable to remove ferry schedule."
         });
     }
 };

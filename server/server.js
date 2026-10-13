@@ -20,6 +20,9 @@ const staffAuthRoutes =
 const adminStaffRoutes =
     require("./routes/adminStaffRoutes");
 
+const notificationRoutes =
+    require("./routes/notificationRoutes");
+
 
 dotenv.config();
 
@@ -245,6 +248,10 @@ app.use(
     ferryClosureRoutes
 );
 
+app.use(
+    "/api/notifications",
+    notificationRoutes
+);
 
 // ===============================
 // STAFF

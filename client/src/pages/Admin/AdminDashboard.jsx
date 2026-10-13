@@ -1,11 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+
 const API_URL =
     import.meta.env.VITE_API_BASE_URL ||
     "http://localhost:5000/api";
 
 const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
+
+const logoUrl =
+    "/images/guimarasgo-logo.png";
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -64,6 +68,20 @@ const AdminDashboard = () => {
 
     const [ferryBookings, setFerryBookings] =
         useState([]);
+
+    // =========================================================
+    // TICKET RECORD BOOKINGS
+    // =========================================================
+    // Keeps the complete admin booking list separate from the
+    // Dashboard's today-only ferry capacity booking list.
+    // This ensures every passenger booking can appear here.
+    // =========================================================
+
+    const [ticketBookings, setTicketBookings] =
+        useState([]);
+
+    const [ticketRecordsLoading, setTicketRecordsLoading] =
+        useState(false);
 
     // =========================================================
     // BOOKING SEARCH + FERRY CONTROL
@@ -126,6 +144,13 @@ const AdminDashboard = () => {
 
     const [selectedPayment, setSelectedPayment] =
         useState(null);
+
+    // Ticket Records selection/search state
+    const [selectedTicket, setSelectedTicket] =
+        useState(null);
+
+    const [ticketSearch, setTicketSearch] =
+        useState("");
 
     const [confirmAction, setConfirmAction] =
         useState(null);
@@ -588,6 +613,61 @@ const AdminDashboard = () => {
     };
 
     // =========================================================
+    // LOAD ALL TICKET RECORDS
+    // =========================================================
+    // Uses the existing authenticated Admin /bookings endpoint.
+    // The backend returns every booking stored in MongoDB, sorted
+    // newest first. Nothing is filtered by today's date here.
+    // =========================================================
+
+    const loadTicketRecords = async () => {
+        const token = localStorage.getItem("adminToken");
+
+        if (!token) {
+            return;
+        }
+
+        try {
+            setTicketRecordsLoading(true);
+
+            const response = await fetch(
+                `${API_URL}/bookings`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        Accept: "application/json"
+                    },
+                    cache: "no-store"
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    data?.message ||
+                    "Unable to load ticket records."
+                );
+            }
+
+            setTicketBookings(
+                Array.isArray(data?.bookings)
+                    ? data.bookings
+                    : []
+            );
+
+        } catch (error) {
+            console.error(
+                "Ticket records loading error:",
+                error
+            );
+        } finally {
+            setTicketRecordsLoading(false);
+        }
+    };
+
+    // =========================================================
     // MATCH BOOKINGS TO A FERRY
     // =========================================================
 
@@ -598,16 +678,46 @@ const AdminDashboard = () => {
                 .replace(/\s+/g, " ")
                 .toLowerCase();
 
+        // Convert both "3:30 AM" and "03:30" into the same
+        // comparable value. Older bookings and newer schedules
+        // do not always store departure time in the same format.
+        const normalizeTime = value => {
+            const text = String(value || "").trim().toUpperCase();
+            if (!text) return "";
+
+            const ampm = text.match(/^(\d{1,2})(?::(\d{1,2}))?\s*(AM|PM)$/);
+            if (ampm) {
+                let hour = Number(ampm[1]);
+                const minute = Number(ampm[2] || 0);
+                const period = ampm[3];
+
+                if (period === "AM" && hour === 12) hour = 0;
+                if (period === "PM" && hour !== 12) hour += 12;
+
+                return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+            }
+
+            const twentyFourHour = text.match(/^(\d{1,2}):(\d{2})/);
+            if (twentyFourHour) {
+                return `${String(Number(twentyFourHour[1])).padStart(2, "0")}:${twentyFourHour[2]}`;
+            }
+
+            return normalize(text);
+        };
+
         const ferryId = normalize(
             ferry?.id ||
-            ferry?.vesselName
+            ferry?.ferryId
         );
 
         const ferryName = normalize(
-            ferry?.vesselName
+            ferry?.vesselName ||
+            ferry?.ferryName ||
+            ferry?.vessel ||
+            ferry?.name
         );
 
-        const ferryTime = normalize(
+        const ferryTime = normalizeTime(
             ferry?.time ||
             ferry?.departureTime
         );
@@ -629,31 +739,37 @@ const AdminDashboard = () => {
                     booking?.selectedFerry?.vesselName ||
                     booking?.selectedFerry?.ferryName ||
                     booking?.selectedTrip?.vesselName ||
-                    booking?.selectedTrip?.ferryName
+                    booking?.selectedTrip?.ferryName ||
+                    booking?.trip?.vesselName ||
+                    booking?.trip?.ferryName
                 );
 
-                const bookingTime = normalize(
+                const bookingTime = normalizeTime(
                     booking?.time ||
                     booking?.departureTime ||
                     booking?.tripTime ||
                     booking?.selectedFerry?.time ||
                     booking?.selectedFerry?.departureTime ||
                     booking?.selectedTrip?.time ||
-                    booking?.selectedTrip?.departureTime
+                    booking?.selectedTrip?.departureTime ||
+                    booking?.trip?.time ||
+                    booking?.trip?.departureTime
                 );
 
-                return (
-                    (bookingId !== "" &&
-                        bookingId === ferryId) ||
-                    (bookingName !== "" &&
-                        bookingName === ferryName) ||
-                    (
-                        bookingId === "" &&
-                        bookingName === "" &&
-                        bookingTime !== "" &&
-                        bookingTime === ferryTime
-                    )
-                );
+                // Prefer the persistent ferry ID when both sides have one.
+                if (bookingId && ferryId && bookingId === ferryId) {
+                    return true;
+                }
+
+                // Vessel/ferry name is the next most reliable match.
+                if (bookingName && ferryName && bookingName === ferryName) {
+                    return true;
+                }
+
+                // Finally match by normalized departure time. This handles
+                // bookings stored as "03:30" and schedules displayed as
+                // "3:30 AM".
+                return Boolean(bookingTime && ferryTime && bookingTime === ferryTime);
             }
         );
     };
@@ -1030,20 +1146,48 @@ const AdminDashboard = () => {
     // =========================================================
 
     useEffect(() => {
-        loadFerryCapacities();
-        loadFerryBookings();
+    // The Schedules page has its own loader:
+    // loadScheduleCapacity(scheduleDate)
+    //
+    // Do not allow the dashboard's /capacity endpoint
+    // to overwrite the schedule-management state.
+    if (activeView === "schedules") {
+        return;
+    }
 
-        /*
-         * Keep Ferry Capacity live without visibly reloading the
-         * section every few seconds. Background updates are silent.
-         */
+    loadFerryCapacities();
+    loadFerryBookings();
+
+    /*
+     * Keep the Dashboard Ferry Capacity live without
+     * overwriting the Admin Schedule Management data.
+     */
+    const interval = setInterval(() => {
+        loadFerryCapacities({ silent: true });
+        loadFerryBookings();
+    }, 15000);
+
+    return () => clearInterval(interval);
+}, [activeView]);
+
+    // =========================================================
+    // LIVE TICKET RECORDS REFRESH
+    // =========================================================
+    // Refresh only while the Ticket Records page is open so the
+    // page picks up newly created passenger bookings automatically.
+    // =========================================================
+
+    useEffect(() => {
+        if (activeView !== "ticket-records") {
+            return;
+        }
+
         const interval = setInterval(() => {
-            loadFerryCapacities({ silent: true });
-            loadFerryBookings();
-        }, 15000);
+            loadTicketRecords();
+        }, 10000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [activeView]);
 
     // =========================================================
     // LOAD DASHBOARD STATISTICS
@@ -1305,6 +1449,179 @@ const AdminDashboard = () => {
     }, [loading]);
 
     // =========================================================
+    // TICKET RECORDS HELPERS
+    // =========================================================
+
+    const getTicketReference = (booking) =>
+        booking?.bookingReference ||
+        booking?.referenceNumber ||
+        booking?.ticketNumber ||
+        booking?._id ||
+        "—";
+
+    const getTicketPassengerName = (booking) =>
+        booking?.passengerName ||
+        booking?.fullName ||
+        booking?.name ||
+        booking?.passenger?.name ||
+        booking?.customerName ||
+        "Unknown passenger";
+
+    const getTicketRoute = (booking) => {
+        if (booking?.origin && booking?.destination) {
+            return `${booking.origin} → ${booking.destination}`;
+        }
+
+        return (
+            booking?.route ||
+            booking?.routeName ||
+            booking?.direction ||
+            "Iloilo → Guimaras"
+        );
+    };
+
+    const getTicketDeparture = (booking) =>
+        booking?.departureTime ||
+        booking?.time ||
+        booking?.tripTime ||
+        booking?.selectedFerry?.departureTime ||
+        booking?.selectedFerry?.time ||
+        booking?.selectedTrip?.departureTime ||
+        booking?.selectedTrip?.time ||
+        "—";
+
+    const getTicketPassengerCount = (booking) => {
+        const count = Number(
+            booking?.passengers ||
+            booking?.numberOfPassengers ||
+            booking?.passengerCount ||
+            1
+        );
+
+        return Number.isFinite(count) && count > 0 ? count : 1;
+    };
+
+    const getTicketVehicle = (booking) => {
+        const vehicle = String(
+            booking?.vehicleType ||
+            booking?.vehicle ||
+            booking?.vehicleDetails?.type ||
+            ""
+        ).trim();
+
+        if (!vehicle) {
+            return "No motorcycle";
+        }
+
+        return vehicle;
+    };
+
+    const getTicketStatus = (booking) => {
+        const status = String(
+            booking?.paymentStatus ||
+            booking?.status ||
+            ""
+        ).trim().toUpperCase();
+
+        if (
+            status === "VERIFIED" ||
+            status === "PAID" ||
+            status === "COMPLETED"
+        ) {
+            return "Paid";
+        }
+
+        if (status === "REJECTED" || status === "CANCELLED") {
+            return "Rejected";
+        }
+
+        if (status === "PENDING") {
+            return "Pending";
+        }
+
+        return status
+            ? status
+                .toLowerCase()
+                .replace(/\b\w/g, (letter) => letter.toUpperCase())
+            : "Pending";
+    };
+
+    const getTicketSource = (booking) => {
+        const source = String(
+            booking?.source ||
+            booking?.bookingSource ||
+            booking?.channel ||
+            ""
+        ).trim();
+
+        if (!source) {
+            return "Online";
+        }
+
+        if (source.toLowerCase().includes("walk")) {
+            return "Walk-in";
+        }
+
+        if (source.toLowerCase().includes("kiosk")) {
+            return "Kiosk";
+        }
+
+        return source.charAt(0).toUpperCase() + source.slice(1);
+    };
+
+    const getTicketBoardingStatus = (booking) => {
+        const status = String(
+            booking?.boardingStatus ||
+            ""
+        ).trim().toUpperCase();
+
+        if (status === "BOARDED") {
+            return "Boarded";
+        }
+
+        return "Awaiting boarding";
+    };
+
+    const ticketRecords = ticketBookings.filter((booking) => {
+        const status = String(
+            booking?.status || ""
+        ).toUpperCase();
+
+        return status !== "CANCELLED";
+    });
+
+    const filteredTicketRecords = ticketRecords.filter((booking) => {
+        const query = String(ticketSearch || "")
+            .trim()
+            .toLowerCase();
+
+        if (!query) {
+            return true;
+        }
+
+        return [
+            getTicketReference(booking),
+            getTicketPassengerName(booking),
+            getTicketRoute(booking)
+        ]
+            .join(" ")
+            .toLowerCase()
+            .includes(query);
+    });
+
+    const currentTicket =
+        selectedTicket &&
+        ticketRecords.some(
+            (booking) =>
+                String(booking?._id) ===
+                String(selectedTicket?._id)
+        )
+            ? selectedTicket
+            : filteredTicketRecords[0] ||
+              ticketRecords[0] ||
+              null;
+
+    // =========================================================
     // OPEN PAYMENT TAB FROM DASHBOARD
     // =========================================================
 
@@ -1328,6 +1645,12 @@ const AdminDashboard = () => {
             setActivePaymentTab("pending");
 
             loadAllPaymentLists();
+        }
+
+        if (view === "ticket-records") {
+            setSelectedTicket(null);
+            setTicketSearch("");
+            loadTicketRecords();
         }
     };
 
@@ -1493,6 +1816,62 @@ const AdminDashboard = () => {
 
             setActionLoading(null);
 
+        }
+    };
+
+    // =========================================================
+    // CANCEL BOOKING WITH REQUIRED REASON
+    // =========================================================
+
+    const handleCancelBooking = async (bookingId, bookingReference = "") => {
+        const reason = window.prompt(
+            `Enter the reason for cancelling booking${bookingReference ? ` ${bookingReference}` : ""}:`
+        );
+
+        if (reason === null) return;
+        const trimmedReason = reason.trim();
+        if (!trimmedReason) {
+            showNotification("A cancellation reason is required.", "error");
+            return;
+        }
+        if (trimmedReason.length > 1000) {
+            showNotification("The cancellation reason must be 1,000 characters or fewer.", "error");
+            return;
+        }
+        if (!window.confirm("Cancel this booking and notify the passenger by email and in-app notification?")) return;
+
+        const token = localStorage.getItem("adminToken");
+        if (!token) {
+            showNotification("Your admin session has expired. Please log in again.", "error");
+            return;
+        }
+
+        setActionLoading(bookingId);
+        try {
+            const response = await fetch(`${API_URL}/bookings/${bookingId}/cancel`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                    Accept: "application/json"
+                },
+                body: JSON.stringify({ reason: trimmedReason })
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(data.message || "Unable to cancel booking.");
+
+            await Promise.all([loadAllPaymentLists(), loadStatistics()]);
+            showNotification(
+                data.emailSent === false
+                    ? "Booking cancelled. In-app notification was created, but email delivery is not configured or failed."
+                    : "Booking cancelled. The passenger notification was created and email was submitted.",
+                "success"
+            );
+        } catch (error) {
+            console.error("Cancel booking error:", error);
+            showNotification(error.message || "Unable to cancel booking.", "error");
+        } finally {
+            setActionLoading(null);
         }
     };
 
@@ -2646,7 +3025,40 @@ const AdminDashboard = () => {
         .slice(0, 4);
 
     const selectedTrip = nextDepartures[0] || ferryCapacities[0] || null;
-    const selectedTripPassengers = Number(selectedTrip?.passengers) || 0;
+
+    // The capacity endpoint can report 0 even when actual bookings
+    // already exist. Use the authenticated booking records as the
+    // source of truth for the Overview paid-passenger count.
+    const selectedTripBookings = selectedTrip
+        ? getFerryBookings(selectedTrip)
+        : [];
+
+    const selectedTripPaidBookings = selectedTripBookings.filter((booking) => {
+        const paymentStatus = String(
+            booking?.paymentStatus ||
+            booking?.payment_status ||
+            booking?.status ||
+            ""
+        ).trim().toUpperCase();
+
+        return [
+            "VERIFIED",
+            "PAID",
+            "COMPLETED",
+            "SUCCESS",
+            "SUCCESSFUL"
+        ].includes(paymentStatus);
+    });
+
+    const selectedTripPassengers = selectedTripPaidBookings.reduce((total, booking) => {
+        return total + (Number(
+            booking?.passengers ??
+            booking?.numberOfPassengers ??
+            booking?.passengerCount ??
+            1
+        ) || 1);
+    }, 0);
+
     const selectedTripPassengerCapacity = Number(selectedTrip?.passengerCapacity) || 0;
     const selectedTripMotorcycles = Number(selectedTrip?.motorcycles) || Number(selectedTrip?.motorcycleCount) || 0;
     const selectedTripMotorcycleCapacity = Number(selectedTrip?.motorcycleCapacity) || Number(selectedTrip?.motorcycleLimit) || 0;
@@ -2911,8 +3323,17 @@ const AdminDashboard = () => {
 
             <aside className={`sidebar ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
                 <div className="operations-brand">
-                    <div className="operations-brand-mark" aria-hidden="true">
-                        <span>G</span><span>G</span>
+                    <div className="operations-brand-mark">
+                        <img
+                            src={logoUrl}
+                            alt="GuimarasGo"
+                            style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "contain",
+                                display: "block"
+                            }}
+                        />
                     </div>
                     <strong>GuimarasGo</strong>
                 </div>
@@ -2941,7 +3362,11 @@ const AdminDashboard = () => {
                         <span>Schedules</span>
                     </button>
 
-                    <button type="button" className="side-item" onClick={() => showNotification("Ticket records will be available here.", "success")}>
+                    <button
+                        type="button"
+                        className={`side-item ${activeView === "ticket-records" ? "active" : ""}`}
+                        onClick={() => handleViewChange("ticket-records")}
+                    >
                         <span className="operations-nav-icon" aria-hidden="true">▤</span>
                         <span>Ticket records</span>
                     </button>
@@ -3065,8 +3490,8 @@ const AdminDashboard = () => {
                             <div className="operations-kpi-grid">
                                 <div className="operations-kpi-card">
                                     <span>Paid passengers</span>
-                                    <strong>{selectedTripPassengerCapacity ? `${selectedTripPassengers} / ${selectedTripPassengerCapacity}` : `${todayPassengers}`}</strong>
-                                    <small>{Math.max(0, selectedTripPassengerCapacity - selectedTripPassengers)} passenger seats remaining</small>
+                                    <strong>{selectedTripPassengerCapacity ? `${selectedTripPassengers} / ${selectedTripPassengerCapacity}` : `${selectedTripPassengers} paid`}</strong>
+                                    <small>{selectedTripPassengerCapacity ? `${Math.max(0, selectedTripPassengerCapacity - selectedTripPassengers)} passenger seats remaining` : "Paid passengers on the selected trip"}</small>
                                 </div>
 
                                 <div className="operations-kpi-card">
@@ -3202,7 +3627,7 @@ const AdminDashboard = () => {
                                 <label className="schedule-filter-field">
                                     <span>Travel date</span>
                                     <div className="schedule-input-shell">
-                                        <span aria-hidden="true">✈</span>
+                                        <span aria-hidden="true">⛴</span>
                                         <input
                                             type="date"
                                             value={scheduleDate}
@@ -3697,6 +4122,456 @@ const AdminDashboard = () => {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {/* =================================================
+                        TICKET RECORDS VIEW
+                    ================================================= */}
+
+                    {activeView ===
+                        "ticket-records" && (
+
+                        <div className="ticket-records-page">
+
+                            <div className="ticket-records-header">
+                                <div>
+                                    <span className="ticket-records-eyebrow">
+                                        ADMINISTRATION
+                                    </span>
+
+                                    <h2>Ticket records</h2>
+
+                                    <p>
+                                        Review all passenger bookings and ticket records.
+                                    </p>
+                                </div>
+
+                                <div className="ticket-records-date">
+                                    <strong>
+                                        {formatScheduleDate(scheduleDate)}
+                                    </strong>
+
+                                    <span>
+                                        Iloilo ⇄ Guimaras
+                                    </span>
+                                </div>
+                            </div>
+
+                            <section className="ticket-selected-trip">
+
+                                <div className="ticket-selected-route">
+                                    <strong>
+                                        {selectedTripRoute}
+                                    </strong>
+
+                                    <span>
+                                        {selectedTrip?.vesselName ||
+                                            "Ferry schedule"}
+                                        {selectedTrip?.date
+                                            ? ` · ${formatDate(selectedTrip.date)}`
+                                            : ""}
+                                    </span>
+                                </div>
+
+                                <div className="ticket-trip-time">
+                                    <span>Departure</span>
+
+                                    <strong>
+                                        {selectedTrip?.departureTime ||
+                                            selectedTrip?.time ||
+                                            "—"}
+                                    </strong>
+                                </div>
+
+                                <div className="ticket-trip-time">
+                                    <span>Arrival</span>
+
+                                    <strong>
+                                        {selectedTripArrival}
+                                    </strong>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        handleViewChange("schedules")
+                                    }
+                                >
+                                    View trip
+                                </button>
+
+                            </section>
+
+                            <div className="ticket-records-layout">
+
+                                <section className="paid-tickets-panel">
+
+                                    <div className="ticket-panel-heading">
+                                        <div>
+                                            <h3>Ticket records</h3>
+
+                                            <p>
+                                                Showing {ticketRecords.length} ticket
+                                                {ticketRecords.length === 1
+                                                    ? ""
+                                                    : "s"}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className="ticket-refresh-button"
+                                            onClick={loadTicketRecords}
+                                        >
+                                            ↻ Refresh
+                                        </button>
+                                    </div>
+
+                                    <div className="ticket-search-wrap">
+                                        <span aria-hidden="true">
+                                            ⌕
+                                        </span>
+
+                                        <input
+                                            type="search"
+                                            value={ticketSearch}
+                                            onChange={(event) =>
+                                                setTicketSearch(
+                                                    event.target.value
+                                                )
+                                            }
+                                            placeholder="Search ticket ID or passenger name"
+                                            aria-label="Search ticket ID or passenger name"
+                                        />
+                                    </div>
+
+                                    {ticketRecordsLoading && ticketRecords.length === 0 ? (
+
+                                        <div className="ticket-records-empty">
+                                            <div className="ticket-empty-icon">↻</div>
+                                            <h3>Loading ticket records</h3>
+                                            <p>Checking the latest passenger bookings.</p>
+                                        </div>
+
+                                    ) : filteredTicketRecords.length > 0 ? (
+
+                                        <div className="paid-ticket-table">
+
+                                            <div className="paid-ticket-table-head">
+                                                <span>
+                                                    Passenger / ticket
+                                                </span>
+
+                                                <span>
+                                                    Source
+                                                </span>
+
+                                                <span>
+                                                    Travelers
+                                                </span>
+
+                                                <span>
+                                                    Status
+                                                </span>
+                                            </div>
+
+                                            <div className="paid-ticket-table-body">
+
+                                                {filteredTicketRecords.map(
+                                                    (booking) => {
+
+                                                        const status =
+                                                            getTicketStatus(
+                                                                booking
+                                                            );
+
+                                                        const statusClass =
+                                                            status
+                                                                .toLowerCase()
+                                                                .replace(
+                                                                    /\s+/g,
+                                                                    "-"
+                                                                );
+
+                                                        const isSelected =
+                                                            String(
+                                                                currentTicket?._id
+                                                            ) ===
+                                                            String(
+                                                                booking?._id
+                                                            );
+
+                                                        const passengerCount =
+                                                            getTicketPassengerCount(
+                                                                booking
+                                                            );
+
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                key={
+                                                                    booking?._id
+                                                                }
+                                                                className={`paid-ticket-row ${
+                                                                    isSelected
+                                                                        ? "selected"
+                                                                        : ""
+                                                                }`}
+                                                                onClick={() =>
+                                                                    setSelectedTicket(
+                                                                        booking
+                                                                    )
+                                                                }
+                                                            >
+                                                                <span className="paid-ticket-passenger">
+                                                                    <strong>
+                                                                        {getTicketPassengerName(
+                                                                            booking
+                                                                        )}
+                                                                    </strong>
+
+                                                                    <small>
+                                                                        {getTicketReference(
+                                                                            booking
+                                                                        )}
+                                                                    </small>
+                                                                </span>
+
+                                                                <span>
+                                                                    {getTicketSource(
+                                                                        booking
+                                                                    )}
+                                                                </span>
+
+                                                                <span>
+                                                                    <strong>
+                                                                        {
+                                                                            passengerCount
+                                                                        }{" "}
+                                                                        {passengerCount ===
+                                                                        1
+                                                                            ? "passenger"
+                                                                            : "passengers"}
+                                                                    </strong>
+
+                                                                    <small>
+                                                                        {getTicketVehicle(
+                                                                            booking
+                                                                        )}
+                                                                    </small>
+                                                                </span>
+
+                                                                <span>
+                                                                    <em
+                                                                        className={`ticket-status ${statusClass}`}
+                                                                    >
+                                                                        {
+                                                                            status
+                                                                        }
+                                                                    </em>
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    }
+                                                )}
+
+                                            </div>
+                                        </div>
+
+                                    ) : (
+
+                                        <div className="ticket-records-empty">
+                                            <div className="ticket-empty-icon">
+                                                ▤
+                                            </div>
+
+                                            <h3>
+                                                {ticketRecords.length
+                                                    ? "No matching tickets"
+                                                    : "No ticket records"}
+                                            </h3>
+
+                                            <p>
+                                                {ticketRecords.length
+                                                    ? "Try another passenger name or ticket reference."
+                                                    : "New passenger bookings will appear here automatically."}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                </section>
+
+                                <aside className="ticket-information-panel">
+
+                                    {currentTicket ? (
+
+                                        <>
+                                            <div className="ticket-information-header">
+
+                                                <div>
+                                                    <strong>
+                                                        {getTicketReference(
+                                                            currentTicket
+                                                        )}
+                                                    </strong>
+
+                                                    <span>
+                                                        Ticket holder
+                                                    </span>
+                                                </div>
+
+                                                <em
+                                                    className={`ticket-status ${getTicketStatus(
+                                                        currentTicket
+                                                    )
+                                                        .toLowerCase()
+                                                        .replace(
+                                                            /\s+/g,
+                                                            "-"
+                                                        )}`}
+                                                >
+                                                    {getTicketStatus(
+                                                        currentTicket
+                                                    )}
+                                                </em>
+
+                                            </div>
+
+                                            <div className="ticket-information-body">
+
+                                                <div className="ticket-information-item">
+                                                    <span>
+                                                        Ticket holder
+                                                    </span>
+
+                                                    <strong>
+                                                        {getTicketPassengerName(
+                                                            currentTicket
+                                                        )}
+                                                    </strong>
+                                                </div>
+
+                                                <div className="ticket-information-item">
+                                                    <span>
+                                                        Route & departure
+                                                    </span>
+
+                                                    <strong>
+                                                        {getTicketRoute(
+                                                            currentTicket
+                                                        )}{" "}
+                                                        ·{" "}
+                                                        {getTicketDeparture(
+                                                            currentTicket
+                                                        )}
+                                                    </strong>
+                                                </div>
+
+                                                <div className="ticket-information-item">
+                                                    <span>
+                                                        Passengers
+                                                    </span>
+
+                                                    <strong>
+                                                        {getTicketPassengerCount(
+                                                            currentTicket
+                                                        )}{" "}
+                                                        {getTicketPassengerCount(
+                                                            currentTicket
+                                                        ) === 1
+                                                            ? "passenger"
+                                                            : "passengers"}
+                                                    </strong>
+                                                </div>
+
+                                                <div className="ticket-information-item">
+                                                    <span>
+                                                        Motorcycle
+                                                    </span>
+
+                                                    <strong>
+                                                        {getTicketVehicle(
+                                                            currentTicket
+                                                        )}
+                                                    </strong>
+                                                </div>
+
+                                                <div className="ticket-information-item">
+                                                    <span>
+                                                        Payment
+                                                    </span>
+
+                                                    <strong>
+                                                        {formatAmount(
+                                                            currentTicket?.totalPaid ??
+                                                            currentTicket?.totalAmount ??
+                                                            currentTicket?.amountPaid ??
+                                                            0
+                                                        )}
+                                                        {" · "}
+                                                        {getTicketStatus(
+                                                            currentTicket
+                                                        )}
+                                                    </strong>
+                                                </div>
+
+                                                <div className="ticket-information-item">
+                                                    <span>
+                                                        Boarding status
+                                                    </span>
+
+                                                    <strong>
+                                                        {getTicketBoardingStatus(
+                                                            currentTicket
+                                                        )}
+                                                    </strong>
+                                                </div>
+
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                className="ticket-view-payment-button"
+                                                onClick={() => {
+                                                    setSelectedPayment(
+                                                        currentTicket
+                                                    );
+
+                                                    setActivePaymentTab(
+                                                        "verified"
+                                                    );
+
+                                                    handleViewChange(
+                                                        "payments"
+                                                    );
+                                                }}
+                                            >
+                                                View payment
+                                            </button>
+                                        </>
+
+                                    ) : (
+
+                                        <div className="ticket-information-empty">
+                                            <div className="ticket-empty-icon">
+                                                ✓
+                                            </div>
+
+                                            <h3>
+                                                Select a ticket
+                                            </h3>
+
+                                            <p>
+                                                Choose a ticket from the list
+                                                to review its information.
+                                            </p>
+                                        </div>
+                                    )}
+
+                                </aside>
+
+                            </div>
                         </div>
                     )}
 
@@ -4388,6 +5263,18 @@ const AdminDashboard = () => {
 
                                                                 ✓ Verify Payment
 
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                className="cancel-booking-button"
+                                                                disabled={actionLoading === payment._id}
+                                                                onClick={() => handleCancelBooking(
+                                                                    payment._id,
+                                                                    payment.bookingReference || payment.referenceNumber || ""
+                                                                )}
+                                                            >
+                                                                {actionLoading === payment._id ? "Processing…" : "Cancel Booking"}
                                                             </button>
 
                                                         </div>
@@ -10063,9 +10950,12 @@ const AdminDashboard = () => {
 }
 
 @media (max-width: 1050px) and (min-width: 651px) {
+    /* Keep the full desktop operations sidebar readable on
+       smaller desktop/tablet widths. Do not collapse the
+       navigation into the mobile drawer until 650px. */
     .sidebar {
-        width: 190px;
-        min-width: 190px;
+        width: 260px;
+        min-width: 260px;
     }
 
     .operations-overview-page {
@@ -11210,7 +12100,449 @@ const AdminDashboard = () => {
     }
 }
 
+/* =========================================================
+   TICKET RECORDS
+========================================================= */
+
+.ticket-records-page {
+    width: 100%;
+    min-height: 100%;
+    padding: 28px 35px 35px;
+    box-sizing: border-box;
+}
+
+.ticket-records-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+
+.ticket-records-eyebrow {
+    display: block;
+    margin-bottom: 6px;
+    color: #77726a;
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+.ticket-records-header h2 {
+    margin: 0;
+    color: #20242b;
+    font-size: 24px;
+    line-height: 1.1;
+}
+
+.ticket-records-header p {
+    margin: 7px 0 0;
+    color: #7c7972;
+    font-size: 9px;
+}
+
+.ticket-records-date {
+    padding-top: 4px;
+    text-align: right;
+}
+
+.ticket-records-date strong,
+.ticket-records-date span {
+    display: block;
+}
+
+.ticket-records-date strong {
+    color: #20242b;
+    font-size: 9px;
+}
+
+.ticket-records-date span {
+    margin-top: 5px;
+    color: #88837b;
+    font-size: 7px;
+}
+
+.ticket-selected-trip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 90px 90px 120px;
+    align-items: center;
+    gap: 20px;
+    min-height: 66px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    border: 1px solid #d5ebe8;
+    border-radius: 17px;
+    background: #e2f2f0;
+}
+
+.ticket-selected-route strong {
+    display: block;
+    color: #20242b;
+    font-size: 13px;
+}
+
+.ticket-selected-route span {
+    display: block;
+    margin-top: 5px;
+    color: #747d79;
+    font-size: 7px;
+}
+
+.ticket-trip-time span {
+    display: block;
+    color: #777;
+    font-size: 7px;
+}
+
+.ticket-trip-time strong {
+    display: block;
+    margin-top: 4px;
+    color: #20242b;
+    font-size: 9px;
+}
+
+.ticket-selected-trip > button {
+    height: 32px;
+    border: 0;
+    border-radius: 999px;
+    background: #f7f0e8;
+    color: #24272d;
+    font-size: 8px;
+    cursor: pointer;
+}
+
+.ticket-records-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(245px, .7fr);
+    gap: 15px;
+    align-items: start;
+}
+
+.paid-tickets-panel,
+.ticket-information-panel {
+    min-width: 0;
+    border: 1px solid #eee8df;
+    border-radius: 17px;
+    background: #fff;
+    box-shadow: 0 4px 0 rgba(233, 226, 216, .45);
+}
+
+.paid-tickets-panel {
+    overflow: hidden;
+}
+
+.ticket-panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 15px 10px;
+}
+
+.ticket-panel-heading h3 {
+    margin: 0;
+    color: #20242b;
+    font-size: 13px;
+}
+
+.ticket-panel-heading p {
+    margin: 4px 0 0;
+    color: #88837b;
+    font-size: 7px;
+}
+
+.ticket-refresh-button {
+    height: 28px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 999px;
+    background: #f7f3ed;
+    color: #33373d;
+    font-size: 8px;
+    cursor: pointer;
+}
+
+.ticket-search-wrap {
+    height: 31px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 15px 11px;
+    padding: 0 10px;
+    border: 1px solid #e8e2da;
+    border-radius: 999px;
+    box-sizing: border-box;
+}
+
+.ticket-search-wrap > span {
+    color: #72777d;
+    font-size: 12px;
+}
+
+.ticket-search-wrap input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #25282d;
+    font-size: 8px;
+}
+
+.paid-ticket-table {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.paid-ticket-table-head,
+.paid-ticket-row {
+    min-width: 570px;
+    display: grid;
+    grid-template-columns: minmax(170px, 1.5fr) 75px 105px 70px;
+    gap: 10px;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.paid-ticket-table-head {
+    padding: 0 15px 7px;
+    color: #85817a;
+    font-size: 6px;
+}
+
+.paid-ticket-table-body {
+    border-top: 1px solid #f0ece6;
+}
+
+.paid-ticket-row {
+    width: 100%;
+    min-height: 43px;
+    padding: 0 15px;
+    border: 0;
+    border-bottom: 1px solid #eee9e2;
+    background: #fff;
+    color: #3d4147;
+    text-align: left;
+    font-size: 7px;
+    cursor: pointer;
+}
+
+.paid-ticket-row:hover,
+.paid-ticket-row.selected {
+    background: #f5fbfa;
+}
+
+.paid-ticket-passenger strong,
+.paid-ticket-passenger small,
+.paid-ticket-row span:nth-child(3) strong,
+.paid-ticket-row span:nth-child(3) small {
+    display: block;
+}
+
+.paid-ticket-passenger strong,
+.paid-ticket-row span:nth-child(3) strong {
+    color: #292d33;
+    font-size: 7px;
+}
+
+.paid-ticket-passenger small,
+.paid-ticket-row span:nth-child(3) small {
+    margin-top: 3px;
+    color: #898b8f;
+    font-size: 6px;
+}
+
+.ticket-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 47px;
+    min-height: 18px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    font-size: 6px;
+    font-style: normal;
+    font-weight: 700;
+}
+
+.ticket-status.paid,
+.ticket-status.verified,
+.ticket-status.completed {
+    background: #dff3f0;
+    color: #168f83;
+}
+
+.ticket-status.pending {
+    background: #fff3d9;
+    color: #a36b00;
+}
+
+.ticket-status.rejected {
+    background: #ffe5e5;
+    color: #c23a3a;
+}
+
+.ticket-status.boarded {
+    background: #e7f1ff;
+    color: #2d6db3;
+}
+
+.ticket-records-empty,
+.ticket-information-empty {
+    padding: 36px 20px;
+    text-align: center;
+}
+
+.ticket-empty-icon {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    background: #f4f1eb;
+    color: #77726a;
+    font-size: 15px;
+}
+
+.ticket-records-empty h3,
+.ticket-information-empty h3 {
+    margin: 10px 0 4px;
+    color: #292d33;
+    font-size: 11px;
+}
+
+.ticket-records-empty p,
+.ticket-information-empty p {
+    max-width: 260px;
+    margin: 0 auto;
+    color: #8a8882;
+    font-size: 7px;
+    line-height: 1.5;
+}
+
+.ticket-information-panel {
+    overflow: hidden;
+}
+
+.ticket-information-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 15px 14px 12px;
+    border-bottom: 1px solid #eee9e2;
+}
+
+.ticket-information-header strong {
+    display: block;
+    color: #25292f;
+    font-size: 12px;
+}
+
+.ticket-information-header span {
+    display: block;
+    margin-top: 4px;
+    color: #898b8f;
+    font-size: 7px;
+}
+
+.ticket-information-body {
+    padding: 2px 14px 8px;
+}
+
+.ticket-information-item {
+    padding: 9px 0;
+    border-bottom: 1px solid #f0ece6;
+}
+
+.ticket-information-item:last-child {
+    border-bottom: 0;
+}
+
+.ticket-information-item span,
+.ticket-information-item strong {
+    display: block;
+}
+
+.ticket-information-item span {
+    margin-bottom: 4px;
+    color: #85817a;
+    font-size: 6px;
+}
+
+.ticket-information-item strong {
+    color: #292d33;
+    font-size: 7px;
+    line-height: 1.35;
+}
+
+.ticket-view-payment-button {
+    width: calc(100% - 28px);
+    height: 32px;
+    margin: 5px 14px 13px;
+    border: 0;
+    border-radius: 999px;
+    background: #f4eee6;
+    color: #30343a;
+    font-size: 7px;
+    cursor: pointer;
+}
+
+@media (max-width: 900px) {
+    .ticket-records-layout {
+        grid-template-columns: minmax(0, 1fr) 230px;
+    }
+
+    .ticket-selected-trip {
+        grid-template-columns: minmax(0, 1fr) 80px 80px 105px;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 650px) {
+    .ticket-records-page {
+        padding: 24px 14px 30px;
+    }
+
+    .ticket-records-header {
+        display: block;
+    }
+
+    .ticket-records-date {
+        margin-top: 12px;
+        text-align: left;
+    }
+
+    .ticket-selected-trip {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ticket-selected-route {
+        grid-column: 1 / -1;
+    }
+
+    .ticket-records-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .ticket-information-panel {
+        order: -1;
+    }
+}
+
+@media (max-width: 390px) {
+    .ticket-selected-trip {
+        grid-template-columns: 1fr;
+    }
+
+    .ticket-selected-route {
+        grid-column: auto;
+    }
+}
 `}
+
 </style>
 
         </main>

@@ -1,6 +1,11 @@
 const Booking = require("../models/Booking");
 const FerryClosure = require("../models/FerryClosure");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
 
+const {
+    sendCancellationEmail
+} = require("../services/emailService");
 // =========================================================
 // FERRY ONLINE BOOKING CLOSURE
 // =========================================================
@@ -1566,30 +1571,138 @@ const getBookingStatistics = async (req, res) => {
 };
 
 
+
+const cancelBooking = async (req, res) => {
+    try {
+        const bookingId = req.params.id;
+
+        const cancellationReason =
+            typeof req.body?.reason === "string"
+                ? req.body.reason.trim()
+                : "";
+
+        if (!cancellationReason) {
+            return res.status(400).json({
+                success: false,
+                message: "A cancellation reason is required."
+            });
+        }
+
+        if (cancellationReason.length > 1000) {
+            return res.status(400).json({
+                success: false,
+                message: "The cancellation reason must not exceed 1000 characters."
+            });
+        }
+
+        const booking = await Booking.findById(bookingId);
+
+        if (!booking) {
+            return res.status(404).json({
+                success: false,
+                message: "Booking not found."
+            });
+        }
+
+        if (booking.status === "CANCELLED") {
+            return res.status(400).json({
+                success: false,
+                message: "This booking has already been cancelled."
+            });
+        }
+
+        if (!booking.userId) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "This booking is not linked to a passenger account. Link it to the correct passenger before cancelling."
+            });
+        }
+
+        const passenger = await User.findById(booking.userId);
+
+        if (!passenger) {
+            return res.status(400).json({
+                success: false,
+                message: "The passenger account linked to this booking was not found."
+            });
+        }
+
+        // Save the cancellation without changing paymentStatus.
+        booking.status = "CANCELLED";
+        await booking.save();
+
+        const reference =
+            booking.bookingReference || booking._id.toString();
+
+        let notification;
+
+        try {
+            notification = await Notification.create({
+                userId: passenger._id,
+                bookingId: booking._id,
+                bookingReference: reference,
+                type: "BOOKING_CANCELLED",
+                title: "Booking Cancelled",
+                message:
+                    `Your booking ${reference} has been cancelled. Reason: ${cancellationReason}`,
+                cancellationReason
+            });
+        } catch (notificationError) {
+            console.error(
+                "Create cancellation notification error:",
+                notificationError
+            );
+
+            // Avoid reporting complete success if the persistent
+            // passenger notification could not be created.
+            return res.status(500).json({
+                success: false,
+                bookingCancelled: true,
+                message:
+                    "The booking was cancelled, but the passenger notification could not be saved. Please retry notification delivery without cancelling the booking again."
+            });
+        }
+
+        // Email is best-effort; it must not undo the cancellation.
+        const emailResult = await sendCancellationEmail({
+            to: passenger.email,
+            passengerName: passenger.fullName,
+            bookingReference: reference,
+            cancellationReason
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Booking cancelled and passenger notified.",
+            booking,
+            notification,
+            emailSent: emailResult.sent
+        });
+    } catch (error) {
+        console.error("Cancel booking error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to cancel the booking."
+        });
+    }
+};
+
+
 // =========================================================
 // EXPORT
 // =========================================================
-
 module.exports = {
-
     getAllBookings,
-
     getPendingPayments,
-
     getVerifiedPayments,
-
     getBookingById,
-
     getBookingByReference,
-
     setFerryBookingStatus,
-
     verifyPayment,
-
     rejectPayment,
-
+    cancelBooking,
     getBookingStatistics,
-
     getBookingCapacity
-
 };

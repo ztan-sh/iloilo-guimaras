@@ -1858,3 +1858,8 @@ body {
         flex: 0 0 auto !important;
     }
 }
+/* GuimarasGo admin cancellation action */
+.cancel-booking-button { min-height: 42px; padding: 11px 16px; border: 1px solid #b42318; border-radius: 9px; background: #fff; color: #b42318; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; transition: background .18s ease, color .18s ease, transform .18s ease; }
+.cancel-booking-button:hover:not(:disabled) { background: #b42318; color: #fff; transform: translateY(-1px); }
+.cancel-booking-button:disabled { opacity: .55; cursor: wait; }
+@media (max-width: 640px) { .cancel-booking-button { width: 100%; } }

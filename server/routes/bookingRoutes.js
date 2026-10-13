@@ -12,27 +12,17 @@ const Booking =
     require("../models/Booking");
 
 const {
-
     getAllBookings,
-
     getPendingPayments,
-
     getVerifiedPayments,
-
     getBookingById,
-
     getBookingByReference,
-
     setFerryBookingStatus,
-
     verifyPayment,
-
     rejectPayment,
-
+    cancelBooking,
     getBookingStatistics,
-
     getBookingCapacity
-
 } = require("../controllers/bookingController");
 
 
@@ -78,6 +68,12 @@ router.get(
             });
         }
     }
+);
+
+router.put(
+    "/:id/cancel",
+    adminAuth,
+    cancelBooking
 );
 
 

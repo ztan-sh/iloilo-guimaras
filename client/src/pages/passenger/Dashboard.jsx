@@ -20,9 +20,9 @@ import {
     FaUsers,
     FaMapMarkerAlt,
     FaShieldAlt,
-    FaSignOutAlt
+    FaSignOutAlt,
+    FaBell
 } from "react-icons/fa";
-
 
 // =========================================================
 // API
@@ -53,6 +53,20 @@ const Dashboard = () => {
         showLogoutModal,
         setShowLogoutModal
     ] = useState(false);
+
+
+    // =========================================================
+    // NOTIFICATIONS (added without changing existing dashboard flow)
+    // =========================================================
+
+    const [notifications, setNotifications] = useState([]);
+    const [notificationsLoading, setNotificationsLoading] = useState(false);
+    const [notificationError, setNotificationError] = useState("");
+    const [showNotifications, setShowNotifications] = useState(false);
+
+    const unreadNotifications = notifications.filter(
+        (notification) => !notification.isRead
+    ).length;
 
 
     // =========================================================
@@ -570,6 +584,123 @@ const Dashboard = () => {
 
     ];
 
+
+
+
+    const loadNotifications = async () => {
+    const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
+
+    if (!token) {
+        setNotifications([]);
+        return;
+    }
+
+    setNotificationsLoading(true);
+    setNotificationError("");
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/notifications`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/json"
+                }
+            }
+        );
+
+        const contentType = response.headers.get("content-type") || "";
+        const responseText = await response.text();
+        let data = {};
+        if (contentType.includes("application/json") && responseText) {
+            try { data = JSON.parse(responseText); } catch { data = {}; }
+        } else if (responseText.trim().startsWith("<!DOCTYPE") || responseText.trim().startsWith("<html")) {
+            throw new Error("The notifications API returned an HTML page instead of JSON. Check that the backend is running and /api/notifications is registered.");
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || `Unable to load notifications (HTTP ${response.status}).`
+            );
+        }
+        if (!contentType.includes("application/json")) {
+            throw new Error("The notifications endpoint did not return JSON. Check the backend API URL and route.");
+        }
+
+        setNotifications(
+            Array.isArray(data.notifications)
+                ? data.notifications
+                : Array.isArray(data.data)
+                    ? data.data
+                    : []
+        );
+    } catch (error) {
+        console.error("Notification loading error:", error);
+        setNotificationError(error.message);
+    } finally {
+        setNotificationsLoading(false);
+    }
+};
+
+const markNotificationAsRead = async (notificationId) => {
+    const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
+
+    if (!token) return;
+
+    try {
+        const response = await fetch(
+            `${API_URL}/api/notifications/${notificationId}/read`,
+            {
+                method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/json"
+                }
+            }
+        );
+
+        const contentType = response.headers.get("content-type") || "";
+        const responseText = await response.text();
+        let data = {};
+        if (contentType.includes("application/json") && responseText) {
+            try { data = JSON.parse(responseText); } catch { data = {}; }
+        } else if (responseText.trim().startsWith("<!DOCTYPE") || responseText.trim().startsWith("<html")) {
+            throw new Error("The notifications API returned HTML instead of JSON. Check the backend route.");
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                data.message || `Unable to update notification (HTTP ${response.status}).`
+            );
+        }
+
+        setNotifications((previous) =>
+            previous.map((notification) =>
+                notification._id === notificationId
+                    ? {
+                        ...notification,
+                        isRead: true,
+                        readAt: new Date().toISOString()
+                    }
+                    : notification
+            )
+        );
+    } catch (error) {
+        console.error("Mark notification as read error:", error);
+        setNotificationError(error.message);
+    }
+};
+
+    const openNotifications = () => {
+        setShowNotifications(true);
+        loadNotifications();
+    };
+
+    const closeNotifications = () => setShowNotifications(false);
 
     return (
 
@@ -1356,6 +1487,29 @@ const Dashboard = () => {
                     transition: 0.2s ease;
                 }
 
+                .nav-notification-count {
+                    position: absolute;
+                    top: -3px;
+                    right: -5px;
+                    min-width: 15px;
+                    height: 15px;
+                    padding: 0 3px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 2px solid #ffffff;
+                    border-radius: 999px;
+                    background: #dc2626;
+                    color: #ffffff;
+                    font-size: 8px;
+                    line-height: 1;
+                    font-weight: 800;
+                }
+
+                .nav-item .nav-bell-wrap {
+                    position: relative;
+                }
+
                 .nav-item small {
                     font-size: 9px;
                     font-weight: 750;
@@ -1686,6 +1840,318 @@ const Dashboard = () => {
                     }
                 }
 
+
+                /* =================================================
+                   PASSENGER NOTIFICATIONS
+                ================================================= */
+
+                .notification-overlay {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                    background: rgba(15, 23, 42, 0.48);
+                    backdrop-filter: blur(4px);
+                }
+                .notification-modal {
+                    width: min(760px, 100%);
+                    max-height: min(78vh, 760px);
+                    overflow-y: auto;
+                    background: #fff;
+                    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+                }
+                .notification-modal-actions { display: flex; align-items: center; gap: 8px; }
+                .notification-close {
+                    width: 38px; height: 38px; border: 1px solid #e2e8f0;
+                    border-radius: 12px; background: #fff; color: #475569;
+                    font-size: 25px; line-height: 1; cursor: pointer;
+                }
+                @media (max-width: 600px) {
+                    .notification-overlay { padding: 12px; align-items: flex-start; }
+                    .notification-modal { margin-top: 8vh; max-height: 78vh; padding: 18px; }
+                    .notification-heading { gap: 10px; }
+                    .notification-modal-actions { gap: 6px; }
+                }
+
+                .notification-section {
+                    margin-top: 30px;
+                    padding: 22px;
+                    border: 1px solid #e5eaf0;
+                    border-radius: 20px;
+                    background: rgba(255, 255, 255, 0.92);
+                    box-shadow: 0 7px 24px rgba(15, 23, 42, 0.04);
+                }
+
+                .notification-heading,
+                .notification-title {
+                    display: flex;
+                    align-items: center;
+                }
+
+                .notification-heading {
+                    justify-content: space-between;
+                    gap: 14px;
+                    margin-bottom: 16px;
+                }
+
+                .notification-title {
+                    gap: 12px;
+                    min-width: 0;
+                }
+
+                .notification-title h2 {
+                    margin: 0;
+                    color: #172033;
+                    font-size: 20px;
+                    font-weight: 850;
+                }
+
+                .notification-title p {
+                    margin: 5px 0 0;
+                    color: #94a3b8;
+                    font-size: 11px;
+                }
+
+                .notification-bell {
+                    position: relative;
+                    width: 44px;
+                    height: 44px;
+                    flex: 0 0 auto;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 14px;
+                    background: #fff2e9;
+                    color: #f36d14;
+                    font-size: 17px;
+                }
+
+                .notification-badge {
+                    position: absolute;
+                    top: -5px;
+                    right: -5px;
+                    min-width: 19px;
+                    height: 19px;
+                    padding: 0 5px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border: 2px solid #fff;
+                    border-radius: 999px;
+                    background: #dc2626;
+                    color: #fff;
+                    font-size: 9px;
+                    font-weight: 800;
+                }
+
+                .notification-refresh {
+                    min-height: 36px;
+                    padding: 0 13px;
+                    border: 1px solid #fed7aa;
+                    border-radius: 10px;
+                    background: #fff7ed;
+                    color: #c85b0a;
+                    font-size: 11px;
+                    font-weight: 800;
+                    cursor: pointer;
+                }
+
+                .notification-refresh:disabled {
+                    opacity: .6;
+                    cursor: wait;
+                }
+
+                .notification-error {
+                    margin: 0 0 12px;
+                    padding: 10px 12px;
+                    border-radius: 10px;
+                    background: #fef2f2;
+                    color: #b91c1c;
+                    font-size: 12px;
+                }
+
+                .notification-empty {
+                    min-height: 112px;
+                    padding: 20px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    border: 1px dashed #dbe2ea;
+                    border-radius: 14px;
+                    background: #fbfcfe;
+                    color: #94a3b8;
+                    font-size: 12px;
+                    text-align: center;
+                }
+
+                .notification-empty svg {
+                    color: #f36d14;
+                    font-size: 20px;
+                }
+
+                .notification-empty strong {
+                    color: #475569;
+                    font-size: 13px;
+                }
+
+                .notification-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+
+                .notification-card {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 12px;
+                    padding: 15px;
+                    border: 1px solid #e5eaf0;
+                    border-radius: 14px;
+                    background: #fff;
+                }
+
+                .notification-card.unread {
+                    border-color: #fed7aa;
+                    background: #fffaf6;
+                }
+
+                .notification-card-icon {
+                    width: 36px;
+                    height: 36px;
+                    flex: 0 0 auto;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 11px;
+                    background: #fff2e9;
+                    color: #f36d14;
+                }
+
+                .notification-card-content {
+                    flex: 1;
+                    min-width: 0;
+                }
+
+                .notification-card-heading,
+                .notification-card-footer {
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: space-between;
+                    gap: 10px;
+                }
+
+                .notification-card-heading strong {
+                    color: #172033;
+                    font-size: 13px;
+                    line-height: 1.45;
+                }
+
+                .unread-label {
+                    flex: 0 0 auto;
+                    padding: 4px 7px;
+                    border-radius: 999px;
+                    background: #ffedd5;
+                    color: #c2410c;
+                    font-size: 8px;
+                    font-weight: 850;
+                    letter-spacing: .04em;
+                }
+
+                .notification-card-content > p {
+                    margin: 7px 0;
+                    color: #596579;
+                    font-size: 12px;
+                    line-height: 1.6;
+                    overflow-wrap: anywhere;
+                }
+
+                .notification-reference {
+                    display: block;
+                    margin-top: 6px;
+                    color: #64748b;
+                    font-size: 10px;
+                    overflow-wrap: anywhere;
+                }
+
+                .notification-reason {
+                    margin-top: 9px;
+                    padding: 10px 11px;
+                    border-radius: 9px;
+                    background: #fef2f2;
+                    color: #991b1b;
+                    font-size: 11px;
+                    line-height: 1.55;
+                    overflow-wrap: anywhere;
+                }
+
+                .notification-card-footer {
+                    align-items: center;
+                    flex-wrap: wrap;
+                    margin-top: 12px;
+                }
+
+                .notification-card-footer small {
+                    color: #94a3b8;
+                    font-size: 10px;
+                }
+
+                .notification-card-footer button {
+                    padding: 0;
+                    border: 0;
+                    background: transparent;
+                    color: #e9680c;
+                    font-size: 10px;
+                    font-weight: 800;
+                    cursor: pointer;
+                }
+
+                .notification-card-footer button:hover {
+                    text-decoration: underline;
+                }
+
+                @media (max-width: 600px) {
+                    .notification-section {
+                        margin-top: 24px;
+                        padding: 15px;
+                        border-radius: 17px;
+                    }
+
+                    .notification-title h2 {
+                        font-size: 18px;
+                    }
+
+                    .notification-title p {
+                        max-width: 190px;
+                        line-height: 1.45;
+                    }
+
+                    .notification-bell {
+                        width: 39px;
+                        height: 39px;
+                    }
+
+                    .notification-refresh {
+                        min-height: 33px;
+                        padding: 0 10px;
+                        font-size: 10px;
+                    }
+
+                    .notification-card {
+                        padding: 12px;
+                        gap: 9px;
+                    }
+
+                    .notification-card-icon {
+                        width: 31px;
+                        height: 31px;
+                    }
+                }
+
                 `}</style>
 
 
@@ -1730,8 +2196,8 @@ const Dashboard = () => {
                                 type="button"
                                 className="logout-header-button"
                                 onClick={handleLogoutClick}
-                                aria-label="Logout"
-                                title="Logout"
+                                aria-label="Log out"
+                                title="Log out"
                             >
                                 <FaSignOutAlt />
                             </button>
@@ -1862,6 +2328,9 @@ const Dashboard = () => {
                         </button>
 
                     </section>
+
+
+{/* Notifications are shown from the bottom navigation bell only. */}
 
 
                     {/* =================================================
@@ -2249,30 +2718,6 @@ const Dashboard = () => {
 
                         </button>
 
-
-                        {/* SEARCH */}
-
-                        <button
-                            type="button"
-                            className="nav-item"
-                            onClick={() =>
-                                navigate(
-                                    "/trips"
-                                )
-                            }
-                        >
-
-                            <span>
-                                <FaSearch />
-                            </span>
-
-                            <small>
-                                Search
-                            </small>
-
-                        </button>
-
-
                         {/* TICKETS */}
 
                         <button
@@ -2318,6 +2763,25 @@ const Dashboard = () => {
 
                         </button>
 
+                        {/* NOTIFICATIONS */}
+
+                        <button
+                            type="button"
+                            className="nav-item"
+                            onClick={openNotifications}
+                            aria-label={`Notifications${unreadNotifications > 0 ? `, ${unreadNotifications} unread` : ""}`}
+                        >
+                            <span className="nav-bell-wrap">
+                                <FaBell />
+                                {unreadNotifications > 0 && (
+                                    <span className="nav-notification-count">
+                                        {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                                    </span>
+                                )}
+                            </span>
+                            <small>Notifications</small>
+                        </button>
+
                     </nav>
 
                 </div>
@@ -2328,6 +2792,62 @@ const Dashboard = () => {
             {/* =========================================================
                LOGOUT CONFIRMATION MODAL
             ========================================================= */}
+
+            {showNotifications && (
+                <div className="notification-overlay" role="presentation" onClick={closeNotifications}>
+                    <section
+                        id="passenger-notifications"
+                        className="notification-section notification-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="passenger-notifications-title"
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className="notification-heading">
+                            <div className="notification-title">
+                                <span className="notification-bell"><FaBell /></span>
+                                <div>
+                                    <h2 id="passenger-notifications-title">Notifications</h2>
+                                    <p>Updates about your ferry bookings</p>
+                                </div>
+                            </div>
+                            <div className="notification-modal-actions">
+                                <button type="button" className="notification-refresh" onClick={loadNotifications} disabled={notificationsLoading}>
+                                    {notificationsLoading ? "Loading..." : "Refresh"}
+                                </button>
+                                <button type="button" className="notification-close" onClick={closeNotifications} aria-label="Close notifications">×</button>
+                            </div>
+                        </div>
+                        {notificationError && <p className="notification-error">{notificationError}</p>}
+                        {notificationsLoading && notifications.length === 0 ? (
+                            <div className="notification-empty">Loading notifications...</div>
+                        ) : notifications.length === 0 ? (
+                            <div className="notification-empty"><FaBell /><strong>You're all caught up!</strong><span>New booking updates will appear here.</span></div>
+                        ) : (
+                            <div className="notification-list">
+                                {notifications.map((notification) => (
+                                    <article key={notification._id} className={`notification-card ${notification.isRead ? "read" : "unread"}`}>
+                                        <div className="notification-card-icon"><FaBell /></div>
+                                        <div className="notification-card-content">
+                                            <div className="notification-card-heading">
+                                                <strong>{notification.title || "Booking Update"}</strong>
+                                                {!notification.isRead && <span className="unread-label">NEW</span>}
+                                            </div>
+                                            <p>{notification.message}</p>
+                                            {notification.bookingReference && <span className="notification-reference">Booking Reference: {notification.bookingReference}</span>}
+                                            {notification.cancellationReason && <div className="notification-reason"><strong>Cancellation reason:</strong> {notification.cancellationReason}</div>}
+                                            <div className="notification-card-footer">
+                                                <small>{notification.createdAt ? new Date(notification.createdAt).toLocaleString() : "Recently"}</small>
+                                                {!notification.isRead && <button type="button" onClick={() => markNotificationAsRead(notification._id)}>Mark as read</button>}
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                </div>
+            )}
 
             {showLogoutModal && (
 

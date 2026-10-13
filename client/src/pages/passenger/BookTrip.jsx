@@ -1052,7 +1052,45 @@ const BookTrip = () => {
 
                 if (cancelled) return;
 
-                const ferries = data.capacities.map((ferry) => {
+                const requestedDate = getFerryCapacityDate();
+
+                // The public passenger page must render only the schedules
+                // returned for the exact date the passenger selected.
+                // This prevents schedules from another travel date from
+                // appearing in the Available Ferries cards.
+                const scheduleList = Array.isArray(data?.schedules)
+                    ? data.schedules
+                    : Array.isArray(data?.capacities)
+                        ? data.capacities
+                        : [];
+
+                const normalizeScheduleDate = (value) => {
+                    const text = String(value || "").trim();
+
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+                        return text;
+                    }
+
+                    const match = text.match(
+                        /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/
+                    );
+
+                    if (match) {
+                        return `${match[3]}-${String(match[1]).padStart(2, "0")}-${String(match[2]).padStart(2, "0")}`;
+                    }
+
+                    return text;
+                };
+
+                const ferries = scheduleList
+                    .filter((ferry) => {
+                        const ferryDate = normalizeScheduleDate(
+                            ferry?.date || requestedDate
+                        );
+
+                        return ferryDate === requestedDate;
+                    })
+                    .map((ferry) => {
 
                     const passengers = Math.max(
                         0,
@@ -1111,7 +1149,17 @@ const BookTrip = () => {
                         bookingClosed:
                             Boolean(ferry.bookingClosed)
                     };
-                });
+                })
+                    .sort((a, b) => {
+                        const timeA = normalizeTime(
+                            a?.departureTime || a?.time || ""
+                        ) || "99:99";
+                        const timeB = normalizeTime(
+                            b?.departureTime || b?.time || ""
+                        ) || "99:99";
+
+                        return timeA.localeCompare(timeB);
+                    });
 
                 setAvailableFerries(ferries);
 
