@@ -7,16 +7,16 @@ import { discountCategory, operationsStore, personIssue } from '../../../compone
 import { formatTime, matchesTrip } from '../../Staff/staffUtils';
 import { createId } from '../../../utils/createId.js';
 
-function VesselCard({ vessel, available, orange, onSelect }) {
+function VesselCard({ vessel, available, treatment, stackOrder, onSelect }) {
     const name = vessel === 'Felipe III' ? 'MV Felipe III' : vessel;
     const lines = name.startsWith('MV ') ? ['MV', name.slice(3)] : name === 'Lite Ferry 22' ? ['Lite Ferry', '22'] : [name];
-    return <button type="button" className={`ggo-vessel ${orange ? 'ggo-vessel-orange' : ''}`} aria-label={`View ${vessel} schedules`} onClick={onSelect}>
+    return <button type="button" className={`ggo-vessel ggo-vessel-${treatment}`} style={{ zIndex: stackOrder }} aria-label={`View ${vessel} schedules`} onClick={onSelect}>
         <ArtworkStage width={354} height={258} className="ggo-vessel-card">
-            <Art className="ggo-vessel-shape" file={orange ? 'dashboard-card-orange.svg' : 'dashboard-card-white.svg'} />
+            <Art className="ggo-vessel-shape" file={`dashboard-card-${treatment}.svg`} />
             <span className="ggo-vessel-photo"><Art file="dashboard-ferry.png" width={310} height={170.441} /></span>
             <span className="ggo-vessel-meta"><span className="ggo-vessel-available">{available ? 'Available' : 'Full'}</span><span className="ggo-vessel-duration">25–35 min</span></span>
             <strong className="ggo-vessel-name">{lines.map((line, i) => <span key={i}>{line}</span>)}</strong>
-            <span className="ggo-vessel-more">Show more<span className="ggo-vessel-chevron"><Art file={orange ? 'dashboard-chevron-white.svg' : 'dashboard-chevron-muted.svg'} /></span></span>
+            <span className="ggo-vessel-more">Show more<span className="ggo-vessel-chevron"><Art file="dashboard-chevron-white.svg" /></span></span>
         </ArtworkStage>
     </button>;
 }
@@ -28,7 +28,7 @@ export function ClientDashboard() {
             <h1>Hi, {c.user.fullName?.split(' ')[0] || 'traveller'}!</h1><p>Choose a vessel for your next crossing.</p>
         </header>
         <div className="ggo-vessels" role="region" aria-label="Available vessels" tabIndex={0}>
-            {vessels.map((vessel, i) => <VesselCard key={vessel} vessel={vessel} orange={i === 0} available={c.schedules.some(t => t.vesselName === vessel && !t.bookingClosed && t.passengerRemaining > 0)} onSelect={() => { c.setVessel(vessel); c.go('schedule'); }} />)}
+            {vessels.map((vessel, i) => <VesselCard key={vessel} vessel={vessel} stackOrder={vessels.length - i} treatment={/halili/i.test(vessel) ? 'orange' : /felipe/i.test(vessel) ? 'gold' : /lite ferry 22/i.test(vessel) ? 'brown' : ['orange', 'gold', 'brown'][i % 3]} available={c.schedules.some(t => t.vesselName === vessel && !t.bookingClosed && t.passengerRemaining > 0)} onSelect={() => { c.setVessel(vessel); c.go('schedule'); }} />)}
             {!c.loading && !vessels.length && <Panel><h2>No departures available</h2><p>Choose another travel date to check schedules.</p><Field label="Travel date" type="date" value={c.date} onChange={e => c.setDate(e.target.value)} /><Button onClick={() => c.go('schedule')}>View schedules</Button></Panel>}
         </div>
     </main>;
@@ -82,7 +82,7 @@ const trips = c.schedules
         if (!match) return formatTime(time);
         return `${Number(match[1]) % 12 + (match[3] === 'PM' ? 12 : 0)}:${match[2]}`;
     };
-    const select = trip => { c.setDraft({ trip, people: [accountPerson(c.user)], motorcycle: false, plateNumber: '', regularFare: false }); c.go('book-trip'); };
+    const select = trip => { c.setDraft({ trip, people: [accountPerson(c.user)], motorcycle: false, motorcycleType: '', plateNumber: '', regularFare: false }); c.go('book-trip'); };
     return <main className="ggo-schedule">
         <header className="ggo-schedule-hero">
             <Art file="a2b02.png" width="428" height="228" />
@@ -112,18 +112,40 @@ const trips = c.schedules
 }
 export function BookingTicket({ draft, fare }) {
     const [origin, destination] = draft.trip.route.split(' → ');
-    return <section className="ggo-orange-ticket" aria-label="Fare preview"><Art file="4c605.svg" className="ggo-ticket-shape" /><div className="ggo-ticket-buyer"><span>{draft.people[0].name}</span><small>Passenger 1 (Buyer)</small></div><div className="ggo-ticket-body"><h2>{draft.trip.vesselName}</h2><div className="ggo-ticket-route"><span>{formatTime(draft.trip.departureTime)}<small>{origin}</small></span><div><small>Transit</small><Art file="148be.svg" /><Art file="b5b20.svg" /><small>25–35 min</small></div><span><small>{destination}</small>{formatTime(draft.trip.arrivalTime)}</span></div><h3>Fare Summary</h3><small>{fare.discount ? 'ID approved by staff' : 'Staff approval required for discounts'}</small><small>Passenger fare {money(fare.passengerFare)}</small><div className="ggo-ticket-total"><span>TOTAL FARE</span><strong>{money(fare.total)}</strong></div><small>{fare.discount ? 'Discount applies to passenger fares only' : 'Regular fare · No discount applied'}</small></div></section>;
+    return <section className="ggo-orange-ticket" aria-label="Fare preview">
+        <Art file="4c605.svg" className="ggo-ticket-shape" />
+        <div className="ggo-ticket-buyer"><span title={draft.people[0].name}>{draft.people[0].name}</span><small>Passenger 1 (Buyer)</small></div>
+        <h2 className="ggo-ticket-vessel">{draft.trip.vesselName}</h2>
+        <div className="ggo-ticket-route">
+            <Art file="148be.svg" className="ggo-ticket-route-line" />
+            <span className="ggo-ticket-origin"><small>{origin}</small><span>{formatTime(draft.trip.departureTime)}</span></span>
+            <span className="ggo-ticket-transit"><small>Destination</small><small>25–35 min</small></span>
+            <span className="ggo-ticket-destination"><small>{destination}</small><span>{formatTime(draft.trip.arrivalTime)}</span></span>
+        </div>
+        <h3 className="ggo-ticket-fare-heading">Fare Summary</h3>
+        <small className="ggo-ticket-approval">{fare.discount ? 'ID approved by staff' : 'Staff approval required for discounts'}</small>
+        <small className="ggo-ticket-passenger-fare">Passenger fare {money(fare.passengerFare)}</small>
+        <Art file="b5b20.svg" className="ggo-ticket-fare-line" />
+        <div className="ggo-ticket-total"><span>TOTAL FARE</span><strong>{money(fare.total)}</strong></div>
+        <small className="ggo-ticket-fare-status">{fare.discount ? 'Discount applies to passenger fares only' : 'Regular fare · No discount requested'}</small>
+    </section>;
 }
 export function FareSummary({ draft, fare }) {
     return <Panel className="ggo-fare"><h2>Your crossing</h2><div className="ggo-fare-meta"><small>{draft.trip.vesselName} · {formatTime(draft.trip.departureTime)}</small><small>{draft.people.length} passenger{draft.people.length === 1 ? '' : 's'}</small></div><dl><div><dt>Ride type</dt><dd>{rideLabel(draft)}</dd></div><div><dt>Passenger fare</dt><dd>{money(fare.passengerFare)}</dd></div>{draft.motorcycle && <div><dt>Motorcycle</dt><dd>{money(fare.motorcycleFare)}</dd></div>}<div><dt>Passenger discounts</dt><dd>−{money(fare.discount)}</dd></div><div><dt>PPA fee</dt><dd>{money(fare.ppa)}</dd></div><div className="ggo-total"><dt>Total to pay</dt><dd>{money(fare.total)}</dd></div></dl><small>{fare.discount ? 'Passenger discounts · ID approved by staff' : 'Regular fare · No discount applied'}</small></Panel>;
 }
 export function ClientBook() {
     const c = useClient(); const d = c.draft;
+    const [bikeQuestionOpen, setBikeQuestionOpen] = useState(false);
     const change = patch => c.setDraft({ ...d, ...patch });
     const people = (index, patch) => change({ people: d.people.map((p, i) => i === index ? { ...p, ...patch } : p) });
     const count = number => { if (number < 1 || number > (d.motorcycle ? 3 : 10)) return; change({ people: number < d.people.length ? d.people.slice(0, number) : [...d.people, { id: createId(), name: '', age: '', gender: '', category: 'Regular' }] }); };
     const takeID = person => { if (!c.preview) return; const issue = personIssue(person); if (issue) return c.setError(issue); c.setPhoto(null); c.setPhotoPerson(person); c.setPhotoReturn('book-trip'); c.go('id-photo'); };
+    const chooseMotorcycle = motorcycleType => {
+        change({ motorcycle: true, motorcycleType, people: d.people.slice(0, 3) });
+        setBikeQuestionOpen(false);
+    };
     const submit = () => {
+        if (d.motorcycle && !d.motorcycleType) { setBikeQuestionOpen(true); return; }
         const current = c.schedules.map(normalizeSchedule).find(t => t.id === d.trip.id && t.date === d.trip.date) || d.trip;
         const latest = { ...d, trip: current }; const issue = bookingIssue(latest, c.operations.requests, c.preview);
         if (issue) { c.setError(issue); document.getElementById('ggo-passenger-details')?.scrollIntoView({ behavior: 'smooth' }); return; }
@@ -131,7 +153,42 @@ export function ClientBook() {
     };
     if (!d) return <main className="ggo-page"><Header title="Book ticket" description="Choose a departure to begin." /><Button onClick={() => c.go('schedule')}>View schedules</Button></main>;
     const fare = fareFor(d, c.operations, c.preview); const eligible = d.people.filter(p => discountCategory(p) !== 'Regular');
-    return <main className="ggo-page ggo-has-footer"><Header title="Book ticket" description="Review your crossing and passenger details." /><Progress step={1} /><BookingTicket draft={d} fare={fare} /><Panel><h3>Vehicle</h3><Choices label="Vehicle" options={['No motorcycle', 'Motorcycle']} value={d.motorcycle ? 'Motorcycle' : 'No motorcycle'} onChange={value => change({ motorcycle: value === 'Motorcycle', people: value === 'Motorcycle' ? d.people.slice(0, 3) : d.people })} />{d.motorcycle && <Field label="Plate number" value={d.plateNumber} onChange={e => change({ plateNumber: e.target.value })} placeholder="ABC 1234" />}</Panel><Panel><div className="ggo-quantity"><span>How many are travelling?</span><button aria-label="Remove passenger" disabled={d.people.length === 1} onClick={() => count(d.people.length - 1)}>−</button><strong>{d.people.length}</strong><button aria-label="Add passenger" disabled={d.people.length === (d.motorcycle ? 3 : 10)} onClick={() => count(d.people.length + 1)}>+</button></div><small>{d.motorcycle ? 'Motorcycle · Maximum 3 passengers' : 'No motorcycle · Maximum 10 passengers'}</small></Panel><div id="ggo-passenger-details" className="ggo-passenger-details"><h2>Passenger details</h2>{d.people.map((p, i) => <Panel key={p.id}><div className="ggo-panel-heading"><h3>Passenger {i + 1}{i === 0 ? ' · Buyer' : ''}</h3>{i === 0 && <Link to={c.href('edit-profile')}>Edit profile</Link>}</div>{i === 0 ? <><strong>{p.name}</strong><p>{p.age === '' ? 'Age needed' : `Age ${p.age}`} · {p.gender || 'Gender needed'}</p><small>Saved profile · Used automatically for Passenger 1.</small></> : <><Field label={`Passenger ${i + 1} name`} value={p.name} onChange={e => people(i, { name: e.target.value })} required /><div className="ggo-two"><Field label={`Passenger ${i + 1} age`} type="number" inputMode="numeric" min="0" max="120" step="1" value={p.age} onChange={e => people(i, { age: e.target.value })} required /><Gender value={p.gender} onChange={e => people(i, { gender: e.target.value })} /></div></>}<h3>Passenger category</h3><Choices label={`Passenger ${i + 1} category`} options={['Regular', 'Student', 'PWD']} value={p.category} onChange={value => people(i, { category: value })} />{Number(p.age) >= 60 && <small>Age 60+ · Senior eligibility requires staff approval.</small>}{discountCategory(p) !== 'Regular' && <div className="ggo-id-request"><small>{requestFor(c.operations.requests, p)?.status === 'approved' ? 'ID approved · Passenger discount available' : requestFor(c.operations.requests, p)?.status === 'pending' ? 'ID submitted · Awaiting staff review' : requestFor(c.operations.requests, p)?.status === 'requested' ? 'Staff requested a clearer photo' : 'ID photo required for a discount'}</small>{c.preview ? <Button secondary onClick={() => requestFor(c.operations.requests, p)?.status === 'pending' || requestFor(c.operations.requests, p)?.status === 'approved' ? c.go('id-status') : takeID(p)}>{['pending', 'approved'].includes(requestFor(c.operations.requests, p)?.status) ? 'Check review status' : 'Take ID photo'}</Button> : <small>Discount review is not available yet.</small>}</div>}</Panel>)}</div>{eligible.length > 0 && <Panel><label className="ggo-check"><input type="checkbox" checked={d.regularFare} onChange={e => change({ regularFare: e.target.checked })} />Continue at regular fare</label><small>Choose this to travel while an ID review is pending.</small></Panel>}<Footer helper="Scroll for passenger details and discounts"><Button onClick={submit}>Continue · {money(fare.total)}</Button></Footer></main>;
+    return <main className="ggo-page ggo-book-page">
+        <header className="ggo-header ggo-book-header">
+            <div className="ggo-book-toolbar"><Link aria-label="Back to departures" to={c.href('schedule')}><span className="ggo-book-back-art"><Art file="43307.svg" /></span></Link><NotificationBell compact /></div>
+            <h1>Book ticket</h1><p>Review your crossing and passenger details.</p>
+        </header>
+        <Progress step={1} />
+        <BookingTicket draft={d} fare={fare} />
+        <div className="ggo-book-details" role="region" aria-label="Booking details" tabIndex={0}>
+            <Panel className="ggo-book-vehicle"><h3>Vehicle</h3>
+                <Choices label="Vehicle" options={['No motorcycle', 'Motorcycle']} value={d.motorcycle ? 'Motorcycle' : 'No motorcycle'} onChange={value => value === 'Motorcycle' ? setBikeQuestionOpen(true) : change({ motorcycle: false, motorcycleType: '', plateNumber: '' })} />
+                {d.motorcycle && <small>Motorcycle type: {d.motorcycleType === 'big-bike' ? 'Big bike' : d.motorcycleType === 'standard' ? 'Standard motorcycle' : 'Select motorcycle type'}</small>}
+            </Panel>
+            <Panel className="ggo-book-count"><div className="ggo-quantity"><span>How many are travelling?</span><div className="ggo-book-count-controls"><button type="button" aria-label="Remove passenger" disabled={d.people.length === 1} onClick={() => count(d.people.length - 1)}>−</button><strong aria-live="polite">{d.people.length}</strong><button type="button" aria-label="Add passenger" disabled={d.people.length === (d.motorcycle ? 3 : 10)} onClick={() => count(d.people.length + 1)}>+</button></div></div><small>{d.motorcycle ? `${d.motorcycleType === 'big-bike' ? 'Big bike' : 'Motorcycle'} · Maximum 3 passengers` : 'No motorcycle · Maximum 10 passengers'}</small></Panel>
+            <div id="ggo-passenger-details" className="ggo-passenger-details">
+                {d.people.map((p, i) => <Panel key={p.id} className={i === 0 ? 'ggo-book-buyer' : ''}>
+                    <div className="ggo-panel-heading"><h3>Passenger {i + 1}</h3>{i === 0 && <Link to={c.href('edit-profile')}>Edit profile</Link>}</div>
+                    {i === 0 ? <><strong className="ggo-book-identity">{p.name}</strong><p>{p.age === '' ? 'Age needed' : `Age ${p.age}`} · {p.gender || 'Gender needed'}</p><small>Age and category come from registration. Your ID approval is reused for discounts.</small><p>{discountCategory(p)} · Saved from registration</p></> : <>
+                        <Field label={`Passenger ${i + 1} name`} value={p.name} onChange={e => people(i, { name: e.target.value })} required />
+                        <div className="ggo-two"><Field label={`Passenger ${i + 1} age`} type="number" inputMode="numeric" min="0" max="120" step="1" value={p.age} onChange={e => people(i, { age: e.target.value })} required /><Gender value={p.gender} onChange={e => people(i, { gender: e.target.value })} /></div>
+                        <h3>Passenger category</h3><Choices label={`Passenger ${i + 1} category`} options={['Regular', 'Student', 'PWD']} value={p.category} onChange={value => people(i, { category: value })} />
+                    </>}
+                    {Number(p.age) >= 60 && <small>Age 60+ · Senior eligibility requires staff approval.</small>}
+                    {discountCategory(p) !== 'Regular' && <div className="ggo-id-request"><small>{requestFor(c.operations.requests, p)?.status === 'approved' ? 'ID approved · Passenger discount available' : requestFor(c.operations.requests, p)?.status === 'pending' ? 'ID submitted · Awaiting staff review' : requestFor(c.operations.requests, p)?.status === 'requested' ? 'Staff requested a clearer photo' : 'ID photo required for a discount'}</small>{c.preview ? <Button secondary onClick={() => requestFor(c.operations.requests, p)?.status === 'pending' || requestFor(c.operations.requests, p)?.status === 'approved' ? c.go('id-status') : takeID(p)}>{['pending', 'approved'].includes(requestFor(c.operations.requests, p)?.status) ? 'Check review status' : 'Take ID photo'}</Button> : <small>Discount review is not available yet.</small>}</div>}
+                </Panel>)}
+            </div>
+            {d.motorcycle && <Panel><h3>Motorcycle details</h3><Field label="Plate number" value={d.plateNumber} onChange={e => change({ plateNumber: e.target.value })} placeholder="ABC 1234" required /></Panel>}
+            {eligible.length > 0 && <Panel><label className="ggo-check"><input type="checkbox" checked={d.regularFare} onChange={e => change({ regularFare: e.target.checked })} />Continue at regular fare</label><small>Choose this to travel while an ID review is pending.</small></Panel>}
+            <p className="ggo-book-policy">Passenger 1 uses your profile. Ages 60+, Student and PWD need ID approval for a passenger discount. Your total includes the configured passenger fare{d.motorcycle ? ', motorcycle charge' : ''} and PPA fee.</p>
+        </div>
+        <Footer helper="Scroll for passenger details and discounts"><Button onClick={submit}>Continue · {money(fare.total)}</Button></Footer>
+        {bikeQuestionOpen && <MobileDialog className="ggo-bike-dialog" title="Is your motorcycle a big bike?" onClose={() => setBikeQuestionOpen(false)}>
+            <div className="ggo-bike-question"><h2>Is your motorcycle a big bike?</h2><p>Choose the type of motorcycle you are bringing.</p></div>
+            <div className="ggo-bike-answers"><Button onClick={() => chooseMotorcycle('big-bike')}>Yes, big bike</Button><Button secondary onClick={() => chooseMotorcycle('standard')}>No, standard</Button></div>
+            <small>Up to 3 passengers, including you.</small>
+        </MobileDialog>}
+    </main>;
 }
 export function ClientPayment() {
     const c = useClient(); const d = c.draft; const [method, setMethod] = useState(c.preview ? 'GCash' : 'Maya'); const [receipt, setReceipt] = useState(null); const [submitting, setSubmitting] = useState(false); const reference = useRef(`GG-${createId().slice(0, 12).toUpperCase()}`); const inFlight = useRef(false);
@@ -141,7 +198,7 @@ export function ClientPayment() {
         const current = c.schedules.map(normalizeSchedule).find(t => t.id === d.trip.id && t.date === d.trip.date) || d.trip;
         const issue = bookingIssue({ ...d, trip: current }, c.operations.requests, c.preview); if (issue) throw new Error(issue);
         const [origin, destination] = d.trip.route.split(' → ');
-        const b = { bookingReference: reference.current, userId: c.user.id || c.user._id, origin, destination, date: d.trip.date, time: d.trip.departureTime, arrivalTime: d.trip.arrivalTime, ferryId: d.trip.id, ferryName: d.trip.vesselName, vesselName: d.trip.vesselName, passengerName: d.people[0].name, passengerAge: Number(d.people[0].age), passengerGender: d.people[0].gender, passengers: d.people.length, passengerDetails: d.people.map(p => ({ ...p, age: Number(p.age) })), accompanyingPassengers: d.people.slice(1).map(p => p.name), vehicleType: d.motorcycle ? 'Motorcycle' : 'No Motorcycle', plateNumber: d.motorcycle ? d.plateNumber : '', passengerFare: fare.passengerFare, motorcycleFare: fare.motorcycleFare, ppaFee: fare.ppa, requiredAmount: fare.total, fareSnapshot: fare, paymentMethod: method };
+        const b = { bookingReference: reference.current, userId: c.user.id || c.user._id, origin, destination, date: d.trip.date, time: d.trip.departureTime, arrivalTime: d.trip.arrivalTime, ferryId: d.trip.id, ferryName: d.trip.vesselName, vesselName: d.trip.vesselName, passengerName: d.people[0].name, passengerAge: Number(d.people[0].age), passengerGender: d.people[0].gender, passengers: d.people.length, passengerDetails: d.people.map(p => ({ ...p, age: Number(p.age) })), accompanyingPassengers: d.people.slice(1).map(p => p.name), vehicleType: d.motorcycle ? 'Motorcycle' : 'No Motorcycle', motorcycleType: d.motorcycle ? d.motorcycleType || 'standard' : '', plateNumber: d.motorcycle ? d.plateNumber : '', passengerFare: fare.passengerFare, motorcycleFare: fare.motorcycleFare, ppaFee: fare.ppa, requiredAmount: fare.total, fareSnapshot: fare, paymentMethod: method };
         let saved;
         if (c.preview) {
             await new Promise(resolve => setTimeout(resolve, 650));

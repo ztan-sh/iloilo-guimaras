@@ -3,3 +3,4 @@ export const assetSizes = {"07b60.svg":{"w":388,"h":85},"e217b.svg":{"w":18,"h":
 Object.assign(assetSizes, {"e21d4.svg": {"w": 354.0, "h": 144.0}, "9d2f0.svg": {"w": 24.0, "h": 24.0}, "b5f10.svg": {"w": 370.0, "h": 16.0}, "8a938.svg": {"w": 354.0, "h": 118.0}, "51753.svg": {"w": 64.0, "h": 64.0}, "5b85f.svg": {"w": 64.0, "h": 64.0}});
 Object.assign(assetSizes, {"schedule-back.svg": {"w":24,"h":24}, "schedule-repeat.png": {"w":24,"h":20}, "schedule-car.png": {"w":7,"h":6}, "schedule-bell.png": {"w":8,"h":8}});
 Object.assign(assetSizes, {"dashboard-card-orange.svg": {"w":354,"h":258}, "dashboard-card-white.svg": {"w":354,"h":258}, "dashboard-chevron-white.svg": {"w":7,"h":4.31667}, "dashboard-chevron-muted.svg": {"w":7,"h":4.31667}});
+Object.assign(assetSizes, {"dashboard-card-gold.svg": {"w":354,"h":258}, "dashboard-card-brown.svg": {"w":354,"h":258}, "nav-tickets.svg": {"w":24,"h":24}, "nav-payments.svg": {"w":24,"h":24}, "nav-profile.svg": {"w":24,"h":24}});

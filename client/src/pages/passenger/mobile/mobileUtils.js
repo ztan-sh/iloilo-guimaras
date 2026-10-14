@@ -7,7 +7,7 @@ export const paymentState = booking => booking.paymentStatus === 'VERIFIED' ? 'P
 export const canIssueTicket = booking => Boolean(booking?.bookingReference && booking.paymentStatus === 'VERIFIED' && booking.status === 'CONFIRMED' && booking.boardingStatus !== 'REJECTED');
 export const accountPerson = user => ({ id: user.id || user._id, name: user.fullName || '', age: user.age ?? '', gender: user.gender || '', category: user.category || 'Regular', savedProfile: true });
 export const requestFor = (requests, person) => requests.findLast(r => r.identity === passengerIdentity(person));
-export const rideLabel = draft => draft.motorcycle ? 'Motorcycle' : draft.people.length > 1 ? 'Companion' : 'Solo';
+export const rideLabel = draft => draft.motorcycle ? draft.motorcycleType === 'big-bike' ? 'Big bike' : 'Motorcycle' : draft.people.length > 1 ? 'Companion' : 'Solo';
 export function departureCountdown(trip, now = Date.now()) {
     const match = String(trip.departureTime || '').match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
     if (!match || !trip.date) return null;
@@ -24,6 +24,7 @@ export function bookingIssue(draft, requests = [], preview = false) {
     if (!draft.people.length || draft.people.length > (draft.motorcycle ? 3 : 10)) return 'Choose up to 10 passengers, or 3 with a motorcycle.';
     const personError = draft.people.map(personIssue).find(Boolean); if (personError) return personError;
     if (draft.motorcycle && !draft.plateNumber?.trim()) return 'Enter your motorcycle plate number.';
+    if (draft.motorcycle && draft.motorcycleType && !['standard', 'big-bike'].includes(draft.motorcycleType)) return 'Choose a standard motorcycle or big bike.';
     if (draft.trip.bookingClosed || draft.trip.manualClosed) return 'This departure is closed. Choose another trip.';
     if (draft.people.length > draft.trip.passengerRemaining) return 'There are not enough passenger spaces on this departure.';
     if (draft.motorcycle && draft.trip.motorcycleRemaining < 1) return 'Online motorcycle spaces are full. Choose another departure or travel without a motorcycle.';

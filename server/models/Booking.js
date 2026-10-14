@@ -220,6 +220,12 @@ const bookingSchema = new mongoose.Schema(
             required: true
         },
 
+        motorcycleType: {
+            type: String,
+            enum: ["", "standard", "big-bike"],
+            default: ""
+        },
+
         plateNumber: {
             type: String,
             default: ""

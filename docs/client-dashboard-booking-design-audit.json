@@ -1,0 +1,7 @@
+{
+  "findings": [],
+  "overall_correctness": "patch is correct",
+  "overall_explanation": "No supported integration-drift findings in this structural sample of the three requested mobile frames. Vessel cards retain their Client / Vessel card sources and intentional color overrides; the big-bike dialog reuses Client / Booking primary action and bound spacing, surface, typography and scrim variables. This sample does not certify hidden companion states, every descendant, or external published libraries and Code Connect mappings.",
+  "overall_confidence_score": 0.88
+}
+
