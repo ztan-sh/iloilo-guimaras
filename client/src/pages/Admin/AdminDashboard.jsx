@@ -1863,10 +1863,10 @@ const AdminDashboard = () => {
 
             await Promise.all([loadAllPaymentLists(), loadStatistics()]);
             showNotification(
-                data.emailSent === false
-                    ? "Booking cancelled. In-app notification was created, but email delivery is not configured or failed."
-                    : "Booking cancelled. The passenger notification was created and email was submitted.",
-                "success"
+                data.notificationCreated === false
+                    ? "Booking cancelled, but no linked passenger account was found for an in-app notification."
+                    : "Booking cancelled and the passenger in-app notification was created. Email is not configured by this endpoint.",
+                data.notificationCreated === false ? "warning" : "success"
             );
         } catch (error) {
             console.error("Cancel booking error:", error);

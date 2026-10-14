@@ -20,9 +20,6 @@ const staffAuthRoutes =
 const adminStaffRoutes =
     require("./routes/adminStaffRoutes");
 
-const notificationRoutes =
-    require("./routes/notificationRoutes");
-
 
 dotenv.config();
 
@@ -200,6 +197,14 @@ app.use(
 
 
 // ===============================
+// PASSENGER NOTIFICATIONS
+// ===============================
+// Passenger-authenticated routes. Each account can only read/update
+// notifications whose userId matches the verified JWT user.
+const notificationRoutes = require("./routes/notificationRoutes");
+app.use("/api/notifications", notificationRoutes);
+
+// ===============================
 // PAYMENT
 // ===============================
 
@@ -248,10 +253,6 @@ app.use(
     ferryClosureRoutes
 );
 
-app.use(
-    "/api/notifications",
-    notificationRoutes
-);
 
 // ===============================
 // STAFF

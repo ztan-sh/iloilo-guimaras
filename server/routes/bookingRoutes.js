@@ -12,17 +12,27 @@ const Booking =
     require("../models/Booking");
 
 const {
+
     getAllBookings,
+
     getPendingPayments,
+
     getVerifiedPayments,
+
     getBookingById,
+
     getBookingByReference,
+
     setFerryBookingStatus,
+
     verifyPayment,
+
     rejectPayment,
-    cancelBooking,
+
     getBookingStatistics,
+
     getBookingCapacity
+
 } = require("../controllers/bookingController");
 
 
@@ -68,12 +78,6 @@ router.get(
             });
         }
     }
-);
-
-router.put(
-    "/:id/cancel",
-    adminAuth,
-    cancelBooking
 );
 
 
@@ -275,6 +279,52 @@ router.put(
     adminAuth,
     setFerryBookingStatus
 );
+
+// =====================================================
+// ADMIN CANCEL BOOKING + CREATE PASSENGER NOTIFICATION
+// =====================================================
+// This is an in-app notification only. Email delivery is not claimed.
+router.put("/:id/cancel", adminAuth, async (req, res) => {
+    try {
+        const reason = typeof req.body?.reason === "string" ? req.body.reason.trim() : "";
+        if (!reason) return res.status(400).json({ message: "A cancellation reason is required." });
+        if (reason.length > 1000) return res.status(400).json({ message: "The cancellation reason must be 1,000 characters or fewer." });
+
+        const booking = await Booking.findById(req.params.id);
+        if (!booking) return res.status(404).json({ message: "Booking not found." });
+        if (booking.status === "CANCELLED") return res.status(409).json({ message: "This booking is already cancelled." });
+
+        booking.status = "CANCELLED";
+        // Keep the reason on the record where the schema supports it; notification is the source of passenger-facing reason.
+        await booking.save();
+
+        let notificationCreated = false;
+        if (booking.userId) {
+            const Notification = require("../models/Notification");
+            await Notification.create({
+                userId: booking.userId,
+                type: "booking_cancelled",
+                title: "Booking cancelled by the terminal",
+                message: `Booking ${booking.bookingReference} was cancelled. Reason: ${reason}`,
+                bookingId: booking._id,
+                bookingReference: booking.bookingReference
+            });
+            notificationCreated = true;
+        }
+
+        return res.json({
+            message: notificationCreated
+                ? "Booking cancelled and passenger in-app notification created."
+                : "Booking cancelled. No linked passenger account was found, so an in-app notification could not be delivered.",
+            notificationCreated,
+            emailSent: false,
+            booking: { id: booking._id, bookingReference: booking.bookingReference, status: booking.status }
+        });
+    } catch (error) {
+        console.error("Cancel booking error:", error);
+        return res.status(500).json({ message: "Unable to cancel booking." });
+    }
+});
 
 // =====================================================
 // ADMIN SINGLE BOOKING

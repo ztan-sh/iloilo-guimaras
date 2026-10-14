@@ -544,3 +544,36 @@
     padding-right: 10px;
 }
 
+
+/* GuimarasGo mobile screen frame */
+.ggo-page.ggo-auth {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding:
+        max(48px, env(safe-area-inset-top))
+        24px
+        max(32px, env(safe-area-inset-bottom));
+    border-radius: 30px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+/* Keep the mint-colored outer frame visible */
+.ggo-auth {
+    background: #e6f3f1;
+}
+
+/* Prevent child elements from expanding outside the frame */
+.ggo-page.ggo-auth > * {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Rounded frame on mobile screens */
+@media (max-width: 600px) {
+    .ggo-page.ggo-auth {
+        border-radius: 30px;
+    }
+}

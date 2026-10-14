@@ -31,7 +31,7 @@ const localAdminPreview = import.meta.env.VITE_ADMIN_PREVIEW === "true"
 const localClientPreview = import.meta.env.VITE_CLIENT_PREVIEW === "true"
     && previewHost;
 const mobilePages = {
-    login: <ClientLogin />, register: <ClientRegister />, dashboard: <ClientDashboard />, schedule: <ClientSchedule />,
+login: <ClientLoginEntry />, register: <ClientRegister />, dashboard: <ClientDashboard />, schedule: <ClientSchedule />,
     'book-trip': <ClientBook />, payment: <ClientPayment />, 'maya-payment': <ClientPayment />, confirmation: <ClientConfirmation />,
     bookings: <ClientHistory tickets />, history: <ClientHistory />, 'boarding-pass': <ClientPass />, profile: <ClientProfile />,
     'edit-profile': <ClientEditProfile />, language: <ClientLanguage />, notifications: <ClientNotifications />,
@@ -39,6 +39,15 @@ const mobilePages = {
     'id-photo': <ClientID />, 'id-review': <ClientID />, 'id-required': <ClientID />, 'id-status': <ClientID />,
     'id-approved': <ClientID />, 'id-attention': <ClientID />
 };
+
+function ClientLoginEntry() {
+    const hasSeenSplash =
+        sessionStorage.getItem("ggo-splash-seen") === "true";
+
+    return hasSeenSplash
+        ? <ClientLogin />
+        : <Navigate to="/splash" replace />;
+}
 
 function App() {
     return (

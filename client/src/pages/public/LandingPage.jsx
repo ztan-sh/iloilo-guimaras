@@ -133,6 +133,11 @@ const LandingPage = () => {
         navigate("/login");
     };
 
+const goToAdminLogin = () => {
+    setMobileMenuOpen(false);
+    navigate("/admin-login");
+};
+
     const visibleExperienceCards = [
         experienceCards[experienceIndex % experienceCards.length],
         experienceCards[(experienceIndex + 1) % experienceCards.length],
@@ -1989,6 +1994,36 @@ const LandingPage = () => {
                         height: 132px;
                     }
                 }
+
+                .gg-admin-login-button {
+                    border: 1px solid #063f49;
+                    background: #063f49;
+                    color: #ffffff;
+                    padding: 11px 18px;
+                    border-radius: 999px;
+                    font: inherit;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: background 0.2s ease, transform 0.2s ease;
+                }
+
+                .gg-admin-login-button:hover {
+                    background: #07545f;
+                    transform: translateY(-1px);
+                }
+
+                .gg-admin-login-button:focus-visible {
+                    outline: 3px solid #12b9bf;
+                    outline-offset: 3px;
+                }
+
+                @media (max-width: 480px) {
+                    .gg-admin-login-button {
+                        padding: 9px 12px;
+                        font-size: 12px;
+                    }
+                }
+
             `}</style>
 
             <main className="gg-page">
@@ -2021,6 +2056,16 @@ const LandingPage = () => {
                             >
                                 <FiUser size={18} />
                             </button>
+
+
+                            <button
+                                type="button"
+                                className="gg-admin-login-button"
+                                onClick={goToAdminLogin}
+                            >
+                                Login as Admin
+                            </button>
+
 
                             <button
                                 type="button"
