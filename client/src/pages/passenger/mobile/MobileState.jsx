@@ -98,7 +98,16 @@ export default function MobileApp({ preview = false }) {
         {preview && path === 'confirmation' && ownBookings.some(b => b.bookingReference === confirmationReference) && <aside className="ggo-preview-controls" aria-label="Simulate payment outcome"><span>Preview payment outcome:</span>{['Paid', 'Processing', 'Failed'].map(outcome => <button key={outcome} onClick={() => { const b = ownBookings.find(item => item.bookingReference === confirmationReference); operationsStore.updateBooking(b._id, { paymentStatus: outcome === 'Paid' ? 'VERIFIED' : outcome === 'Failed' ? 'REJECTED' : 'PENDING VERIFICATION', status: outcome === 'Paid' ? 'CONFIRMED' : outcome === 'Failed' ? 'REJECTED' : 'PENDING PAYMENT VERIFICATION', totalPaid: outcome === 'Paid' ? b.requiredAmount : null, ...(outcome === 'Paid' ? { paidAt: new Date().toISOString() } : {}) }); }}>{outcome}</button>)}</aside>}
         <div className={`ggo-mobile-stage ${dark ? 'ggo-dark' : ''}`}><div className={`ggo-mobile-app ${preview ? 'ggo-is-preview' : ''}`}><div className="ggo-mobile-scroll" key={path}>
             {error && <div className="ggo-error" role="alert">{error}<button aria-label="Dismiss error" onClick={() => setError('')}>×</button></div>}
-            {loading && <div className="ggo-load" role="status">Loading your crossings…</div>}
+           
+{loading && (
+    <div className="ggo-loading-overlay" role="status" aria-live="polite">
+        <div className="ggo-loading-dialog">
+            <span className="ggo-loading-spinner" />
+            <p>Loading your crossings...</p>
+        </div>
+    </div>
+)}
+
             <Outlet />
         </div>{navActive && <BottomNav active={navActive} href={href} />}</div></div>
     </div></Context.Provider>;

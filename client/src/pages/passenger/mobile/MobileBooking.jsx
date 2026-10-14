@@ -38,7 +38,44 @@ export function ClientSchedule() {
     const [optionsOpen, setOptionsOpen] = useState(false);
     const [now, setNow] = useState(Date.now);
     useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(timer); }, []);
-    const trips = c.schedules.map(normalizeSchedule).filter(t => t.vesselName === c.vessel && t.route === route);
+    
+const normalizeRoutePart = value =>
+    String(value || '').trim().toLowerCase();
+
+const trips = c.schedules
+    .map(normalizeSchedule)
+    .filter(t => {
+        const vesselMatches =
+            normalizeRoutePart(t.vesselName) ===
+            normalizeRoutePart(c.vessel);
+
+        const expectedOrigin = c.reverse ? 'Guimaras' : 'Iloilo';
+        const expectedDestination = c.reverse ? 'Iloilo' : 'Guimaras';
+
+        const routeParts = String(t.route || '')
+            .replace(/→|->/g, '|')
+            .split('|')
+            .map(normalizeRoutePart);
+
+        const routeMatches =
+            (
+                routeParts.length === 2 &&
+                routeParts[0] === normalizeRoutePart(expectedOrigin) &&
+                routeParts[1] === normalizeRoutePart(expectedDestination)
+            ) ||
+            (
+                normalizeRoutePart(t.origin) === normalizeRoutePart(expectedOrigin) &&
+                normalizeRoutePart(t.destination) === normalizeRoutePart(expectedDestination)
+            );
+
+        return vesselMatches && routeMatches;
+    })
+    .sort((a, b) =>
+        String(a.departureTime || '').localeCompare(
+            String(b.departureTime || '')
+        )
+    );
+
     const next = trips.find(t => !t.bookingClosed && t.passengerRemaining > 0 && departureCountdown(t, now)?.minutes > 0);
     const shortTime = time => {
         const match = formatTime(time).match(/^(\d+):(\d+) (AM|PM)$/);

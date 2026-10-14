@@ -2,6 +2,7 @@
 @import '@fontsource/libre-bodoni/latin-600-italic.css';
 @import '@fontsource/arimo/latin-400.css';
 @import '@fontsource/arimo/latin-700.css';
+@import "@fontsource-variable/geist";
 
 .ggo-mobile-stage { --ggo-ink:#192729; --ggo-muted:#687b7d; --ggo-bg:#fff; --ggo-surface:#f7fafa; --ggo-line:#e8efee; --ggo-aqua:#e6f8f6; --ggo-accent:#fc7511; --ggo-soft:#fff0e5; --ggo-accent-text:#a34e1b; font-family:'Geist Variable',sans-serif; color:var(--ggo-ink); display:flex; justify-content:center; min-height:100dvh; background:#e6efee; }
 .ggo-mobile-app { width:100%; max-width:480px; background:linear-gradient(var(--ggo-aqua),var(--ggo-bg) 290px); min-height:100dvh; position:relative; isolation:isolate; }
@@ -24,15 +25,96 @@
 .ggo-button.ggo-secondary { background:#f4f0e9; color:#252525 !important; }
 .ggo-button.ggo-orange { background:var(--ggo-accent); color:#192729 !important; }
 .ggo-mobile-app button:disabled { opacity:.5; cursor:not-allowed; }
-.ggo-mobile-app :focus-visible { outline:2px solid #00877e; outline-offset:4px; }
-.ggo-button:active:not(:disabled) { transform:scale(.985); }
-.ggo-form { display:flex; flex-direction:column; gap:24px; }
-.ggo-field { display:flex; flex-direction:column; gap:8px; min-width:0; }
-.ggo-field label { font-size:14px; line-height:20px; font-weight:500; }
-.ggo-input { display:flex; gap:12px; align-items:center; border:1px solid var(--ggo-line); background:var(--ggo-bg); min-height:56px; border-radius:24px; padding:0 16px; }
-.ggo-input input,.ggo-input select { border:0; color:var(--ggo-ink); background:transparent; min-height:54px; min-width:0; width:100%; font-size:14px; outline:0; }
-.ggo-input:focus-within { border-color:#079d92; box-shadow:0 0 0 2px #079d9215; }
-.ggo-input input::placeholder { color:var(--ggo-muted); opacity:1; }
+
+.ggo-mobile-app :focus-visible {
+    outline: 2px solid #00877e;
+    outline-offset: 4px;
+}
+
+.ggo-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.ggo-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.ggo-field label {
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+}
+
+.ggo-input {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    border: 1px solid var(--ggo-line);
+    background: var(--ggo-bg);
+    min-height: 56px;
+    border-radius: 24px;
+    padding: 0 16px;
+    box-sizing: border-box;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.ggo-input input,
+.ggo-input select {
+    border: 0;
+    color: var(--ggo-ink);
+    background: transparent;
+    min-height: 54px;
+    min-width: 0;
+    width: 100%;
+    font-size: 14px;
+    outline: none;
+    box-shadow: none;
+    border-radius: 0;
+    box-sizing: border-box;
+}
+
+.ggo-mobile-app .ggo-input input:focus-visible,
+.ggo-mobile-app .ggo-input select:focus-visible {
+    outline: none;
+    outline-offset: 0;
+    box-shadow: none;
+}
+
+.ggo-input:focus-within {
+    border-color: #079d92;
+    box-shadow: 0 0 0 2px #079d9215;
+}
+
+.ggo-input input::placeholder {
+    color: var(--ggo-muted);
+    opacity: 1;
+}
+
+.ggo-input input[type=file] {
+    padding: 15px 0;
+}
+
+.ggo-input button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    width: 44px;
+    flex: none;
+    border: 0;
+    background: transparent;
+    margin-right: -10px;
+}
+
+.ggo-input select {
+    padding-right: 0;
+}
+
 .ggo-input input[type=file] { padding:15px 0; }
 .ggo-input button { display:flex; align-items:center; justify-content:center; height:44px; width:44px; flex:none; border:0; background:transparent; margin-right:-10px; }
 .ggo-input select { padding-right:0; }
@@ -353,3 +435,112 @@
 .ggo-pass-reference { color:var(--ggo-ink) !important; overflow-wrap:anywhere; max-width:100%; }
 @media (max-width:370px) { .ggo-pass-endpoints { grid-template-columns:minmax(0,1fr) 78px minmax(0,1fr); gap:6px; }.ggo-pass-endpoints strong { font-size:19px; }.ggo-pass-endpoints > span { font-size:11px; } }
 @media (min-width:600px) { .ggo-mobile-stage:has(.ggo-is-preview) .ggo-gender-actions { max-width:402px; }.ggo-is-preview .ggo-dialog-fullscreen { max-width:402px; } }
+
+/* Hide native password reveal controls to prevent duplicate eyes */
+.ggo-input input[type="password"]::-ms-reveal,
+.ggo-input input[type="password"]::-ms-clear {
+    display: none;
+}
+
+.ggo-input input::-webkit-credentials-auto-fill-button,
+.ggo-input input::-webkit-caps-lock-indicator {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+
+/* Centered loading popup */
+.ggo-loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(25, 39, 41, 0.25);
+}
+
+.ggo-loading-dialog {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 22px;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+}
+
+.ggo-loading-dialog p {
+    margin: 0;
+    color: #192729;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.ggo-loading-spinner {
+    width: 22px;
+    height: 22px;
+    flex: none;
+    border: 3px solid #dcebea;
+    border-top-color: #07877e;
+    border-radius: 50%;
+    animation: ggo-loading-spin 0.7s linear infinite;
+}
+
+@keyframes ggo-loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.ggo-password-rules {
+    display: grid;
+    gap: 8px;
+    margin-top: -12px;
+    padding-left: 4px;
+}
+
+.ggo-password-rule {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #718083;
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.ggo-password-rule > span:first-child {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 18px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-size: 12px;
+}
+
+.ggo-password-rule.valid {
+    color: #16a34a;
+}
+
+.ggo-password-rule.valid > span:first-child {
+    border-color: #16a34a;
+    background: #dcfce7;
+}
+
+.ggo-phone-input {
+    gap: 10px;
+}
+
+.ggo-phone-prefix {
+    flex: none;
+    color: #192729;
+    font-size: 14px;
+    font-weight: 600;
+    border-right: 1px solid var(--ggo-line);
+    padding-right: 10px;
+}
+
