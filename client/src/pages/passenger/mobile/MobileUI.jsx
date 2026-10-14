@@ -37,14 +37,14 @@ export function Footer({ children, helper }) { return <footer className="ggo-act
 export function Row({ label, icon, children, to, onClick }) { const inner = <><Icon name={icon} /><span>{label}</span>{children || <Icon name="chevron" />}</>; return to ? <Link className="ggo-row" to={to}>{inner}</Link> : <button type="button" className="ggo-row" onClick={onClick}>{inner}</button>; }
 export function Toggle({ value, onChange, label }) { return <button type="button" className={`ggo-toggle ${value ? 'on' : ''}`} role="switch" aria-checked={value} aria-label={label} onClick={onChange}><span /></button>; }
 
-export function MobileDialog({ title, children, onClose, fullscreen = false }) {
+export function MobileDialog({ title, children, onClose, fullscreen = false, className = '' }) {
     const ref = useRef(null); const id = useId();
     useGSAP(() => {
         const dialog = ref.current; dialog.showModal();
         if (!matchMedia('(prefers-reduced-motion: reduce)').matches) gsap.from(dialog, { opacity: 0, y: fullscreen ? 0 : 12, duration: 0.18, clearProps: 'opacity,transform' });
         return () => dialog.close();
     }, { scope: ref });
-    return <dialog ref={ref} className={`ggo-dialog ${fullscreen ? 'ggo-dialog-fullscreen' : ''}`} aria-labelledby={id} onCancel={e => { e.preventDefault(); onClose(); }} onClick={e => { if (!fullscreen && e.target === e.currentTarget) { const r = e.currentTarget.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) onClose(); } }}><span id={id} className="ggo-visually-hidden">{title}</span>{children}</dialog>;
+    return <dialog ref={ref} className={`ggo-dialog ${fullscreen ? 'ggo-dialog-fullscreen' : ''} ${className}`} aria-labelledby={id} onCancel={e => { e.preventDefault(); onClose(); }} onClick={e => { if (!fullscreen && e.target === e.currentTarget) { const r = e.currentTarget.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) onClose(); } }}><span id={id} className="ggo-visually-hidden">{title}</span>{children}</dialog>;
 }
 
 export function GenderPicker({ value, onSave, onCancel }) {

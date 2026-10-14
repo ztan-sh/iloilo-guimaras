@@ -221,6 +221,8 @@ router.post(
 
                 vehicleType,
 
+                motorcycleType,
+
                 plateNumber,
 
                 passengerFare,
@@ -266,6 +268,13 @@ router.post(
 
                     message:
                         "Some required booking information is missing."
+                });
+            }
+
+            if (vehicleType === "Motorcycle" && motorcycleType && !["standard", "big-bike"].includes(motorcycleType)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Choose a standard motorcycle or big bike."
                 });
             }
 
@@ -319,6 +328,8 @@ router.post(
                     passengers,
 
                     vehicleType,
+
+                    motorcycleType: vehicleType === "Motorcycle" ? motorcycleType || "standard" : "",
 
                     plateNumber:
                         plateNumber || "",

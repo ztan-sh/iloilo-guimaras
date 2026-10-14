@@ -1,10 +1,12 @@
 # Client mobile flow
 
-Implemented from the Client section (92:70) of [commission GuimarasGO](https://www.figma.com/design/3wPWM2XOyqMX1dSp4cC3y6/commission-GuimarasGO?node-id=92-70). The mobile design changes the React frontend. The existing Capacitor Android project now supports a separate [testing APK build](android-testing.md) using the sample Client flow. No backend changes or native release build were made in this pass.
+Implemented from the Client section (92:70) of [commission GuimarasGO](https://www.figma.com/design/3wPWM2XOyqMX1dSp4cC3y6/commission-GuimarasGO?node-id=92-70). The mobile design uses the React frontend and existing Capacitor Android project, which also supports a separate [testing APK build](android-testing.md) using the sample Client flow. The [October 14 dashboard and booking update](client-dashboard-booking-update.md) applies the latest three frames and saves the selected motorcycle type through authenticated checkout.
 
 ## Test locally
 
 The default environment now uses the normal authenticated flow. `client/.env` disables Client, Staff and Admin previews and `VITE_TEST_APK`, and points to the API on port 5001. The local Client login is http://localhost:5173/login. MongoDB connectivity, login gating, CORS and disabled preview routes were verified. The previous sample-data preview server was stopped. Both real `.env` files remain ignored by Git; `.env.example` contains no credentials.
+
+To review the updated booking flow, sign in, choose a vessel and departure, then select Motorcycle. Both big-bike answers are functional, and the selected type survives checkout. The production web build and Android web-asset sync include these changes; generating a fresh APK is a separate build step.
 
 For an intentional design preview, use a 402 × 874 browser device viewport for the closest Figma comparison. No backend or login is required for preview screens.
 

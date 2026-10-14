@@ -171,7 +171,7 @@
 .ggo-dashboard-header > p { margin:7px 0 0 6px; }
 .ggo-vessels { display:flex; flex-direction:column; flex:1; min-height:0; overflow-x:clip; overflow-y:auto; padding-bottom:calc(96px + env(safe-area-inset-bottom,0px)); overscroll-behavior-y:contain; scrollbar-width:none; isolation:isolate; }
 .ggo-vessels::-webkit-scrollbar { display:none; }
-.ggo-vessel { width:100%; flex:none; overflow:clip; padding:0; border:0; background:none; position:relative; text-align:left; color:var(--ggo-card-ink); cursor:pointer; }
+.ggo-vessel { width:100%; flex:none; overflow:clip; padding:0; border:0; background:none; position:relative; text-align:left; color:white; cursor:pointer; }
 .ggo-vessel:not(:last-child) { margin-bottom:-12px; }
 .ggo-vessel-orange { color:white; z-index:1; }
 .ggo-vessel-card > div { overflow:clip; }
@@ -180,19 +180,19 @@
 .ggo-vessel-photo img { transform:rotate(178.83deg) scaleY(-1); transition:transform .45s ease; }
 .ggo-vessel:active .ggo-vessel-photo img { transform:rotate(178.83deg) scaleY(-1) scale(1.025); }
 .ggo-vessel-meta { position:absolute; top:16px; left:16px; width:322px; height:32px; display:flex; align-items:center; justify-content:space-between; }
-.ggo-vessel-available,.ggo-vessel-duration { display:flex; align-items:center; justify-content:center; height:32px; border-radius:16px; background:var(--ggo-dashboard-surface); color:var(--ggo-card-muted); font-size:12px; line-height:16px; font-weight:400; }
+.ggo-vessel-available,.ggo-vessel-duration { display:flex; align-items:center; justify-content:center; height:32px; border:1px solid #ffffffb3; border-radius:16px; background:#efefef33; color:white; font-size:12px; line-height:16px; font-weight:400; }
 .ggo-vessel-available { width:92px; }.ggo-vessel-duration { width:88px; }
 .ggo-vessel-orange .ggo-vessel-available,.ggo-vessel-orange .ggo-vessel-duration { background:#ffffff1a; border:1px solid white; color:white; }
 .ggo-vessel-name { position:absolute; left:16px; top:60px; width:140px; height:140px; display:flex; flex-direction:column; justify-content:center; font-size:30px; line-height:32px; font-weight:400; letter-spacing:-.6px; }
-.ggo-vessel-more { position:absolute; top:212px; left:117px; width:120px; height:36px; display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--ggo-card-muted); font-size:14px; line-height:20px; font-weight:500; }
+.ggo-vessel-more { position:absolute; top:212px; left:117px; width:120px; height:36px; display:flex; flex-direction:column; align-items:center; gap:2px; color:white; font-size:14px; line-height:20px; font-weight:500; }
 .ggo-vessel-orange .ggo-vessel-more { color:white; }
 .ggo-vessel-chevron { display:grid; place-items:center; width:14px; height:14px; transform:rotate(180deg); }
 .ggo-dark .ggo-dashboard { background:var(--ggo-surface); }
 @media (hover:hover) { .ggo-vessel:hover .ggo-vessel-photo img { transform:rotate(178.83deg) scaleY(-1) scale(1.035); } }
-.ggo-bottom-nav { position:fixed; bottom:calc(12px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%); width:calc(100% - 24px); max-width:456px; height:85px; z-index:5; isolation:isolate; }
+.ggo-bottom-nav { position:fixed; bottom:max(44px,calc(12px + env(safe-area-inset-bottom,0px))); left:50%; transform:translateX(-50%); width:calc(100% - 14px); max-width:466px; height:87px; z-index:5; isolation:isolate; }
 .ggo-nav-surface { position:absolute; inset:0; background:#17171757; -webkit-backdrop-filter:blur(24px) saturate(150%); backdrop-filter:blur(24px) saturate(150%); pointer-events:none; }
 .ggo-nav-outline { position:absolute; inset:0; pointer-events:none; overflow:visible; stroke:#ffffff59; stroke-width:1; }
-.ggo-nav-items { position:absolute; inset:15px 13px 6px; display:flex; align-items:center; justify-content:space-between; }
+.ggo-nav-items { position:absolute; inset:17px 10px 6px 13px; display:flex; align-items:center; justify-content:space-between; }
 .ggo-nav-wells { position:absolute; inset:0; display:flex; align-items:center; justify-content:space-between; pointer-events:none; }
 .ggo-nav-wells > span { width:64px; height:64px; border-radius:50%; background:#1717173d; border:1px solid #ffffff45; }
 .ggo-nav-glass { position:absolute; left:0; top:calc(50% - 32px); width:64px; height:64px; border-radius:50%; visibility:hidden; overflow:hidden; pointer-events:none; background:var(--ggo-accent); transform-origin:center; will-change:transform; z-index:1; }
@@ -272,20 +272,62 @@
     .ggo-departure-meta { gap:12px; }
     .ggo-departure-next .ggo-tap { min-width:98px; font-size:10px; gap:4px; }
 }
-.ggo-orange-ticket { width:234px; height:309px; margin:0 auto 20px; position:relative; color:white; }
+.ggo-orange-ticket { width:234px; height:309px; max-width:100%; flex:none; margin:0 auto 19px; position:relative; color:white; }
 .ggo-ticket-shape { position:absolute; inset:0; }
-.ggo-ticket-buyer { position:relative; padding:20px 24px 0; text-align:center; height:80px; font-size:12px; line-height:16px; }
-.ggo-ticket-buyer span { display:block; max-width:190px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-.ggo-ticket-buyer small { display:block; color:white; font-size:8px; line-height:11px; }
-.ggo-ticket-body { position:relative; padding:12px 20px; }
-.ggo-ticket-body h2 { font-weight:400; font-size:18px; margin-bottom:10px; }
-.ggo-ticket-route { background:white; color:#192729; border-radius:6px; height:46px; display:flex; align-items:center; justify-content:space-between; padding:5px 12px; font-size:10px; margin-bottom:16px; }
-.ggo-ticket-route > div { position:relative; width:75px; text-align:center; display:flex; flex-direction:column; align-items:center; }
-.ggo-ticket-route > div img { position:absolute; top:15px; left:0; }
-.ggo-ticket-route small { color:#687b7d; font-size:6px; display:block; line-height:12px; }
-.ggo-ticket-body h3 { font-size:12px; line-height:16px; }
-.ggo-ticket-body > small { color:white; font-size:8px; line-height:12px; display:block; text-align:center; }
-.ggo-ticket-total { border-top:2px solid #ffc089; margin-top:10px; padding:6px 10px; display:flex; justify-content:space-between; font-size:10px; }
+.ggo-ticket-buyer { position:absolute; top:20px; left:18px; right:18px; text-align:center; font-size:12px; line-height:16px; }
+.ggo-ticket-buyer span { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.ggo-ticket-buyer small { display:block; color:white; font-family:Arial,sans-serif; font-size:8px; line-height:10px; letter-spacing:-.5px; }
+.ggo-mobile-app .ggo-ticket-vessel { position:absolute; top:91px; left:18px; right:18px; font-family:Arimo,sans-serif; font-weight:400; font-size:17px; line-height:24px; letter-spacing:-.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ggo-ticket-route { position:absolute; top:126px; left:20px; width:193px; height:46px; background:white; color:#192729; border-radius:5px; font-family:Arial,sans-serif; font-size:10px; }
+.ggo-ticket-route-line { position:absolute; left:49px; top:27px; }
+.ggo-ticket-origin,.ggo-ticket-destination { position:absolute; top:7px; display:flex; flex-direction:column; align-items:center; }
+.ggo-ticket-origin { left:12px; }.ggo-ticket-destination { right:12px; }
+.ggo-ticket-route small { color:#525252; font-size:8px; line-height:11px; letter-spacing:-.5px; }
+.ggo-ticket-origin > span,.ggo-ticket-destination > span { font-size:10px; line-height:16px; white-space:nowrap; letter-spacing:-.5px; }
+.ggo-ticket-transit { position:absolute; top:17px; left:73px; width:47px; height:21px; display:flex; flex-direction:column; align-items:center; justify-content:center; border-radius:2px; background:#eff0f3; }
+.ggo-ticket-transit small { font-size:5px; line-height:7px; letter-spacing:-.2px; }
+.ggo-mobile-app .ggo-ticket-fare-heading { position:absolute; top:187.5px; left:18px; font-family:Arial,sans-serif; font-size:12px; line-height:24px; font-weight:400; letter-spacing:-.5px; }
+.ggo-orange-ticket .ggo-ticket-approval,.ggo-orange-ticket .ggo-ticket-passenger-fare { position:absolute; left:26px; width:188px; color:white; font-size:8px; line-height:24px; text-align:center; letter-spacing:-.5px; }
+.ggo-ticket-approval { top:203px; }.ggo-ticket-passenger-fare { top:215px; }
+.ggo-ticket-fare-line { position:absolute; top:241px; left:23px; }
+.ggo-ticket-total { position:absolute; top:245px; left:23px; right:15px; display:flex; justify-content:space-between; gap:8px; font-size:10px; line-height:18px; letter-spacing:-.5px; }
+.ggo-ticket-total strong { font-weight:500; }
+.ggo-orange-ticket .ggo-ticket-fare-status { position:absolute; top:268px; left:23px; width:194px; color:white; font-size:8px; line-height:11px; }
+
+.ggo-page.ggo-book-page { height:100%; min-height:740px; display:flex; flex-direction:column; padding:max(44px,env(safe-area-inset-top,0px)) 24px calc(47px + env(safe-area-inset-bottom,0px)); background:linear-gradient(var(--ggo-aqua),var(--ggo-bg) 290px); }
+.ggo-book-header { flex:none; margin-bottom:21px; }
+.ggo-book-toolbar { height:44px; display:flex; align-items:center; justify-content:space-between; margin-bottom:3px; }
+.ggo-book-toolbar > a:first-child { display:flex; align-items:center; justify-content:center; width:44px; height:44px; }
+.ggo-book-back-art { display:block; width:20px; height:20px; }
+.ggo-book-toolbar .ggo-bell::before { content:''; position:absolute; width:23px; height:23px; border-radius:50%; background:white; box-shadow:0 4px 2px #0004; }
+.ggo-book-toolbar .ggo-unread-dot { top:10px; right:11px; }
+.ggo-book-header h1 { letter-spacing:0; }
+.ggo-book-header > p { margin-top:7px; }
+.ggo-book-page > .ggo-progress { flex:none; height:24px; margin-bottom:27px; }
+.ggo-book-details { flex:1; min-height:0; display:flex; flex-direction:column; gap:16px; overflow-y:auto; overflow-x:clip; overscroll-behavior-y:contain; scrollbar-width:none; }
+.ggo-book-details::-webkit-scrollbar { display:none; }
+.ggo-book-details > * { flex:none; }
+.ggo-book-details .ggo-panel { margin-bottom:0; }
+.ggo-book-vehicle { gap:8px; }
+.ggo-book-vehicle .ggo-choices { gap:12px; }
+.ggo-book-vehicle .ggo-choices button { height:44px; font-size:13px; line-height:18px; font-weight:400; color:var(--ggo-ink); }
+.ggo-book-vehicle .ggo-choices button.selected { color:var(--ggo-accent-text); }
+.ggo-book-count { gap:4px; }
+.ggo-book-count .ggo-quantity { height:40px; justify-content:space-between; gap:12px; }
+.ggo-book-count .ggo-quantity > span { min-width:0; max-width:none; font-size:13px; line-height:18px; }
+.ggo-book-count-controls { display:flex; align-items:center; gap:4px; width:120px; flex:none; }
+.ggo-book-count .ggo-book-count-controls button { width:40px; height:40px; font-size:12px; border-radius:16px; }
+.ggo-book-count .ggo-book-count-controls strong { width:32px; font-size:14px; line-height:20px; font-weight:500; }
+.ggo-book-count > small { min-height:20px; }
+.ggo-book-details .ggo-passenger-details { display:flex; flex-direction:column; gap:12px; }
+.ggo-book-buyer { gap:8px; }
+.ggo-book-buyer .ggo-panel-heading { min-height:20px; }
+.ggo-book-buyer .ggo-panel-heading a { min-height:20px; }
+.ggo-book-identity { font-size:22px; line-height:28px; font-weight:500; overflow-wrap:anywhere; }
+.ggo-book-buyer > p { color:var(--ggo-ink); font-weight:500; }
+.ggo-mobile-app .ggo-book-policy { font-size:12px; line-height:16px; padding-bottom:8px; }
+.ggo-book-page > .ggo-action-footer { position:static; transform:none; flex:none; width:100%; max-width:none; padding:0; margin-top:2px; gap:9px; background:transparent; box-shadow:none; }
+.ggo-book-page > .ggo-action-footer .ggo-button { height:48px; font-size:15px; line-height:22px; }
 .ggo-panel .ggo-field { margin-top:4px; }
 .ggo-quantity { display:flex; align-items:center; gap:4px; font-size:14px; }
 .ggo-quantity > span { flex:1; color:var(--ggo-muted); font-size:12px; }
@@ -361,7 +403,7 @@
 .ggo-preview-controls { padding:8px 24px; color:#fff; background:#172729; display:flex; gap:8px; flex-wrap:wrap; font-size:12px; font-family:'Geist Variable',sans-serif; }.ggo-preview-controls button { border:1px solid #ffffff40; padding:8px 12px; border-radius:16px; background:transparent; color:white; font:inherit; }
 .ggo-dark { --ggo-ink:#e6f8f6; --ggo-muted:#acc3c1; --ggo-bg:#192729; --ggo-surface:#223536; --ggo-line:#395051; --ggo-aqua:#294847; --ggo-soft:#443225; --ggo-accent-text:#ffb57e; background:#102020; }.ggo-dark .ggo-icon { background:#fff; border-radius:5px; }.ggo-dark .ggo-button:not(.ggo-secondary):not(.ggo-orange) { color:#192729 !important; }
 .ggo-splash { position:relative; width:100%; height:100%; overflow:clip; background:linear-gradient(#f97316 58%,#f6bf28); }.ggo-splash-canvas { width:402px; height:874px; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); }.ggo-splash-canvas > img { position:absolute; }.ggo-glow-top { top:-192px; left:-192px; }.ggo-glow-bottom { top:-114px; left:-114px; }.ggo-brand-ring { top:90px; left:90px; }.ggo-splash-particle,.ggo-ocean-waves,.ggo-ocean-waves > div { position:absolute; }.ggo-ocean-waves { inset:0; }.ggo-splash-login { position:absolute; width:402px; height:874px; top:0; left:0; opacity:0; background:linear-gradient(#e6f8f6,#fff 290px); }.ggo-skip-splash { position:absolute; top:16px; right:16px; border:0; border-radius:22px; min-width:44px; min-height:44px; background:#ffffff30; color:#192729; padding:8px 16px; }
-@media (min-width:600px) { .ggo-mobile-app { box-shadow:0 0 60px #1927290c; }.ggo-is-preview { max-width:402px; }.ggo-mobile-stage:has(.ggo-is-preview) .ggo-action-footer { max-width:402px; }.ggo-mobile-stage:has(.ggo-is-preview) .ggo-bottom-nav { max-width:378px; } }
+@media (min-width:600px) { .ggo-mobile-app { box-shadow:0 0 60px #1927290c; }.ggo-is-preview { max-width:402px; }.ggo-mobile-stage:has(.ggo-is-preview) .ggo-action-footer { max-width:402px; }.ggo-mobile-stage:has(.ggo-is-preview) .ggo-bottom-nav { max-width:388px; } }
 @media (max-width:370px) { .ggo-page { padding-left:18px; padding-right:18px; }.ggo-action-footer { padding-left:18px; padding-right:18px; }.ggo-vessel-available,.ggo-vessel-duration { font-size:15px; }.ggo-vessel-more { font-size:16px; }.ggo-quantity > span { max-width:140px; } }
 @media (prefers-reduced-motion:reduce) { .ggo-mobile-app * { transition:none !important; scroll-behavior:auto !important; }.ggo-splash { display:none; } }
 
@@ -372,9 +414,6 @@
 .ggo-profile-person > a > img:first-child { border-radius:50%; }
 .ggo-toolbar > a:first-child > img { border-radius:50%; }
 
-.ggo-ticket-route > div { overflow:clip; height:32px; }
-.ggo-ticket-route > div img { transform:scale(.33); transform-origin:left center; }
-
 .ggo-field-label { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .ggo-field-label a { color:var(--ggo-accent-text); font-size:11px; min-height:20px; display:flex; align-items:center; }
 
@@ -384,6 +423,15 @@
 .ggo-dialog { position:fixed; inset:0; margin:auto; width:calc(100% - 32px); max-width:370px; height:fit-content; max-height:calc(100dvh - 32px); border:0; padding:24px; border-radius:24px; background:var(--ggo-bg); color:var(--ggo-ink); overflow-y:auto; }
 .ggo-dialog[open] { display:flex; flex-direction:column; gap:16px; }
 .ggo-dialog::backdrop { background:#19272970; }
+.ggo-dialog.ggo-bike-dialog { width:calc(100% - 48px); max-width:354px; padding:24px; }
+.ggo-bike-dialog::backdrop { background:#1927297a; }
+.ggo-bike-question { display:flex; flex-direction:column; gap:8px; }
+.ggo-bike-dialog .ggo-bike-question h2 { font-size:26px; line-height:32px; font-weight:600; letter-spacing:0; }
+.ggo-bike-dialog .ggo-bike-question p { color:var(--ggo-muted); font-size:14px; line-height:20px; }
+.ggo-bike-answers { display:flex; gap:12px; }
+.ggo-bike-answers .ggo-button { flex:1; min-width:0; font-size:15px; line-height:22px; padding:12px 8px; }
+.ggo-bike-answers .ggo-secondary { background:var(--ggo-surface); color:var(--ggo-ink) !important; border:1px solid var(--ggo-line); }
+.ggo-bike-dialog > small { color:var(--ggo-muted); font-size:12px; line-height:16px; }
 .ggo-dialog h2 { font-size:26px; line-height:32px; font-weight:600; }
 .ggo-dialog .ggo-payment-detail-reference { color:var(--ggo-ink); font-weight:500; overflow-wrap:anywhere; }
 .ggo-picker-cancel { width:100%; min-height:44px; border:0; background:transparent; color:var(--ggo-ink); font-size:15px; }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { accountPerson, bookingIssue, canIssueTicket, clientEvents, departureCountdown, fareFor, paymentState, previewSchedules, remainingFor, sampleClientBookings } from '../src/pages/passenger/mobile/mobileUtils.js';
+import { accountPerson, bookingIssue, canIssueTicket, clientEvents, departureCountdown, fareFor, paymentState, previewSchedules, remainingFor, rideLabel, sampleClientBookings } from '../src/pages/passenger/mobile/mobileUtils.js';
 import { createOperationsStore, DEFAULT_PRICES, samplePhoto } from '../src/components/operations/operationsStore.js';
 
 const person = { id:'customer',name:'Client Student',age:24,gender:'Female',category:'Student' };
@@ -22,6 +22,17 @@ test('mobile checkout requires matching staff approval and keeps configured fees
  assert.equal(fareFor({...d,regularFare:true},store.getSnapshot(),true).total,255);
  assert.match(bookingIssue(d,store.getSnapshot().requests,false),/not available/);
  assert.equal(fareFor(d,store.getSnapshot(),false).discount,0);
+});
+test('big bike and standard motorcycles keep the configured fare and passenger limit', () => {
+ const store = createOperationsStore();
+ for (const motorcycleType of ['standard', 'big-bike']) {
+  const d = { ...draft(), motorcycleType, people: [{ ...person, category:'Regular' }], regularFare:true };
+  assert.equal(bookingIssue(d, [], false), '');
+  assert.equal(fareFor(d, store.getSnapshot(), false).total, 255);
+  assert.equal(rideLabel(d), motorcycleType === 'big-bike' ? 'Big bike' : 'Motorcycle');
+  assert.match(bookingIssue({ ...d, people:Array.from({ length:4 }, (_, i) => ({ ...d.people[0], id:String(i) })) }), /3 with a motorcycle/);
+ }
+ assert.match(bookingIssue({ ...draft(), motorcycleType:'car', regularFare:true }), /standard motorcycle or big bike/);
 });
 test('pending payments reserve spaces and failed payments release them',()=>{
  const t=previewSchedules('2026-10-11',[])[0];
