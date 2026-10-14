@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
+import Navbar from "../../components/common/Navbar";
 import {
     FiArrowDown,
     FiArrowRight,
@@ -8,11 +9,7 @@ import {
     FiChevronLeft,
     FiChevronRight,
     FiMapPin,
-    FiMenu,
-    FiSearch,
     FiStar,
-    FiUser,
-    FiX,
     
 } from "react-icons/fi";
 
@@ -106,7 +103,6 @@ const howItWorks = [
 
 const LandingPage = () => {
     const navigate = useNavigate();
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [openFaq, setOpenFaq] = useState(0);
     const [experienceIndex, setExperienceIndex] = useState(0);
 
@@ -121,7 +117,6 @@ const LandingPage = () => {
     }, []);
 
     const scrollToSection = (id) => {
-        setMobileMenuOpen(false);
         document.getElementById(id)?.scrollIntoView({
             behavior: "smooth",
             block: "start",
@@ -129,14 +124,8 @@ const LandingPage = () => {
     };
 
     const goToLogin = () => {
-        setMobileMenuOpen(false);
         navigate("/login");
     };
-
-const goToAdminLogin = () => {
-    setMobileMenuOpen(false);
-    navigate("/admin-login");
-};
 
     const visibleExperienceCards = [
         experienceCards[experienceIndex % experienceCards.length],
@@ -268,132 +257,6 @@ const goToAdminLogin = () => {
                     background: rgba(18, 185, 191, 0.16);
                     filter: blur(10px);
                     z-index: -1;
-                }
-
-                .gg-nav {
-                    position: absolute;
-                    z-index: 20;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 92px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    padding: 0 42px;
-                }
-
-                .gg-brand {
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    text-decoration: none;
-                    cursor: pointer;
-                    background: transparent !important;
-                    border: none;
-                    box-shadow: none;
-                    padding: 0;
-                }
-
-                .gg-brand img {
-                    width: 82px;
-                    height: 68px;
-                    object-fit: contain;
-                    display: block;
-                    background: transparent !important;
-                    border: none;
-                    box-shadow: none;
-                }
-
-                .gg-nav-links {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 36px;
-                    margin-left: auto;
-                    margin-right: 30px;
-                }
-
-                .gg-nav-link {
-                    position: relative;
-                    color: rgba(255,255,255,0.92);
-                    background: transparent;
-                    padding: 8px 0;
-                    cursor: pointer;
-                    font-size: 14px;
-                    font-weight: 500;
-                    text-decoration: none;
-                    transition: color .2s ease;
-                }
-
-                .gg-nav-link::after {
-                    content: "";
-                    position: absolute;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    height: 1px;
-                    transform: scaleX(0);
-                    transform-origin: center;
-                    background: var(--gg-orange);
-                    transition: transform .2s ease;
-                }
-
-                .gg-nav-link:hover {
-                    color: #fff;
-                }
-
-                .gg-nav-link:hover::after {
-                    transform: scaleX(1);
-                }
-
-                .gg-nav-actions {
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                }
-
-                .gg-circle-action {
-                    width: 44px;
-                    height: 44px;
-                    border-radius: 50%;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: #fff;
-                    background: rgba(0,0,0,.30);
-                    border: 1px solid rgba(255,255,255,.28);
-                    cursor: pointer;
-                    backdrop-filter: blur(8px);
-                    transition: transform .2s ease, background .2s ease;
-                }
-
-                .gg-circle-action:hover {
-                    transform: translateY(-2px);
-                    background: rgba(18,185,191,.85);
-                }
-
-                .gg-book-now {
-                    height: 44px;
-                    padding: 0 23px;
-                    border-radius: 7px;
-                    background: var(--gg-orange);
-                    color: #fff;
-                    font-size: 13px;
-                    font-weight: 700;
-                    cursor: pointer;
-                    margin-left: 10px;
-                    box-shadow: 0 10px 24px rgba(255,138,31,.20);
-                    transition: transform .2s ease, background .2s ease;
-                }
-
-                .gg-book-now:hover {
-                    transform: translateY(-2px);
-                    background: #ff9c3d;
-                }
-
-                .gg-mobile-toggle {
-                    display: none;
                 }
 
                 .gg-hero-content {
@@ -1551,15 +1414,6 @@ const goToAdminLogin = () => {
                 ========================= */
 
                 @media (max-width: 1100px) {
-                    .gg-nav {
-                        padding: 0 28px;
-                    }
-
-                    .gg-nav-links {
-                        gap: 22px;
-                        margin-right: 16px;
-                    }
-
                     .gg-hero-content,
                     .gg-inner {
                         width: min(100% - 48px, 1100px);
@@ -1588,64 +1442,6 @@ const goToAdminLogin = () => {
                 }
 
                 @media (max-width: 900px) {
-                    .gg-nav {
-                        height: 76px;
-                    }
-
-                    .gg-nav-links,
-                    .gg-nav-actions .gg-circle-action,
-                    .gg-nav-actions .gg-book-now {
-                        display: none;
-                    }
-
-                    .gg-mobile-toggle {
-                        width: 43px;
-                        height: 43px;
-                        display: inline-flex;
-                        align-items: center;
-                        justify-content: center;
-                        border-radius: 50%;
-                        color: #fff;
-                        background: rgba(0,0,0,.30);
-                        border: 1px solid rgba(255,255,255,.30);
-                        cursor: pointer;
-                    }
-
-                    .gg-mobile-menu {
-                        position: absolute;
-                        top: 70px;
-                        left: 18px;
-                        right: 18px;
-                        z-index: 30;
-                        padding: 12px;
-                        border-radius: 16px;
-                        background: rgba(20,25,26,.96);
-                        border: 1px solid rgba(255,255,255,.12);
-                        box-shadow: 0 20px 45px rgba(0,0,0,.25);
-                        backdrop-filter: blur(12px);
-                    }
-
-                    .gg-mobile-menu button {
-                        width: 100%;
-                        padding: 13px 12px;
-                        border-radius: 10px;
-                        background: transparent;
-                        color: #fff;
-                        text-align: left;
-                        cursor: pointer;
-                    }
-
-                    .gg-mobile-menu button:hover {
-                        background: rgba(255,255,255,.08);
-                    }
-
-                    .gg-mobile-menu .mobile-book {
-                        margin-top: 5px;
-                        background: var(--gg-orange);
-                        text-align: center;
-                        font-weight: 700;
-                    }
-
                     .gg-hero {
                         height: auto;
                         min-height: 850px;
@@ -1752,15 +1548,6 @@ const goToAdminLogin = () => {
                     .gg-inner,
                     .gg-hero-content {
                         width: calc(100% - 34px);
-                    }
-
-                    .gg-nav {
-                        padding: 0 17px;
-                    }
-
-                    .gg-brand img {
-                        width: 67px;
-                        height: 55px;
                     }
 
                     .gg-hero {
@@ -1995,35 +1782,6 @@ const goToAdminLogin = () => {
                     }
                 }
 
-                .gg-admin-login-button {
-                    border: 1px solid #063f49;
-                    background: #063f49;
-                    color: #ffffff;
-                    padding: 11px 18px;
-                    border-radius: 999px;
-                    font: inherit;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: background 0.2s ease, transform 0.2s ease;
-                }
-
-                .gg-admin-login-button:hover {
-                    background: #07545f;
-                    transform: translateY(-1px);
-                }
-
-                .gg-admin-login-button:focus-visible {
-                    outline: 3px solid #12b9bf;
-                    outline-offset: 3px;
-                }
-
-                @media (max-width: 480px) {
-                    .gg-admin-login-button {
-                        padding: 9px 12px;
-                        font-size: 12px;
-                    }
-                }
-
             `}</style>
 
             <main className="gg-page">
@@ -2031,81 +1789,7 @@ const goToAdminLogin = () => {
                     HERO
                 ========================= */}
                 <section className="gg-section gg-hero" id="home">
-                    <nav className="gg-nav" aria-label="Main navigation">
-                        <button
-                            type="button"
-                            className="gg-brand"
-                            onClick={() => scrollToSection("home")}
-                            aria-label="Go to GuimarasGo home"
-                        >
-                            <img src="/images/guimarasgo-logo.png" alt="GuimarasGo" />
-                        </button>
-
-                        <div className="gg-nav-links">
-                            <button className="gg-nav-link" onClick={() => scrollToSection("contact")}>
-                                Contact Us
-                            </button>
-                        </div>
-
-                        <div className="gg-nav-actions">
-                            <button
-                                type="button"
-                                className="gg-circle-action"
-                                onClick={goToLogin}
-                                aria-label="Login"
-                            >
-                                <FiUser size={18} />
-                            </button>
-
-
-                            <button
-                                type="button"
-                                className="gg-admin-login-button"
-                                onClick={goToAdminLogin}
-                            >
-                                Login as Admin
-                            </button>
-
-
-                            <button
-                                type="button"
-                                className="gg-circle-action"
-                                onClick={() => scrollToSection("faq")}
-                                aria-label="Search"
-                            >
-                                <FiSearch size={18} />
-                            </button>
-
-                            <button
-                                type="button"
-                                className="gg-book-now"
-                                onClick={goToLogin}
-                            >
-                                Book now
-                            </button>
-                        </div>
-
-                        <button
-                            type="button"
-                            className="gg-mobile-toggle"
-                            onClick={() => setMobileMenuOpen((value) => !value)}
-                            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-                            aria-expanded={mobileMenuOpen}
-                        >
-                            {mobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
-                        </button>
-
-                        {mobileMenuOpen && (
-                            <div className="gg-mobile-menu">
-                                <button onClick={() => scrollToSection("about")}>
-                                    Contact Us
-                                </button>
-                                <button className="mobile-book" onClick={goToLogin}>
-                                    Book now
-                                </button>
-                            </div>
-                        )}
-                    </nav>
+                    <Navbar onSectionSelect={scrollToSection} />
 
                     <div className="gg-hero-content">
                         <div className="gg-hero-copy">

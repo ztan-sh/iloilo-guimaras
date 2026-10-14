@@ -1,0 +1,581 @@
+{
+  "fileKey": "3wPWM2XOyqMX1dSp4cC3y6",
+  "reviewedAt": "2026-10-14",
+  "screenIds": [
+    "663:4823",
+    "627:4680"
+  ],
+  "nodes": [
+    {
+      "id": "663:4823",
+      "name": "Landing / Shared website navigation",
+      "type": "FRAME",
+      "width": 1440,
+      "height": 104,
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 0,
+      "boundVariables": {
+        "paddingLeft": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:163:416"
+        },
+        "paddingTop": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:101"
+        },
+        "paddingRight": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:163:416"
+        },
+        "paddingBottom": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:101"
+        }
+      },
+      "fillBindings": [],
+      "source": null
+    },
+    {
+      "id": "663:4824",
+      "name": "GuimarasGo brand",
+      "type": "FRAME",
+      "width": 284,
+      "height": 56,
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 12,
+      "boundVariables": {
+        "itemSpacing": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:97"
+        }
+      },
+      "fillBindings": [],
+      "source": null
+    },
+    {
+      "id": "663:4831",
+      "name": "GuimarasGo wordmark",
+      "type": "TEXT",
+      "width": 200,
+      "height": 32,
+      "boundVariables": {
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:168:1158"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1
+          },
+          "boundVariables": {
+            "color": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:168:1158"
+            }
+          }
+        }
+      ],
+      "textStyleId": "S:e9f5ab8b11a665b8255e5ef3b70079920b27dcff,",
+      "source": null
+    },
+    {
+      "id": "663:4834",
+      "name": "Overview",
+      "type": "INSTANCE",
+      "width": 112,
+      "height": 44,
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 0,
+      "boundVariables": {
+        "paddingLeft": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:97"
+        },
+        "paddingRight": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:97"
+        },
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        }
+      },
+      "fillBindings": [],
+      "source": {
+        "id": "649:4684",
+        "key": "449f51b4fbdbd0e287d5242f01de28609ffba091",
+        "name": "Treatment=On light",
+        "parentName": "Landing / Navigation link"
+      }
+    },
+    {
+      "id": "663:4835",
+      "name": "FAQs",
+      "type": "INSTANCE",
+      "width": 80,
+      "height": 44,
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 0,
+      "boundVariables": {
+        "paddingLeft": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:97"
+        },
+        "paddingRight": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:97"
+        },
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        }
+      },
+      "fillBindings": [],
+      "source": {
+        "id": "649:4684",
+        "key": "449f51b4fbdbd0e287d5242f01de28609ffba091",
+        "name": "Treatment=On light",
+        "parentName": "Landing / Navigation link"
+      }
+    },
+    {
+      "id": "663:4836",
+      "name": "Get the App",
+      "type": "INSTANCE",
+      "width": 112,
+      "height": 44,
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 0,
+      "boundVariables": {
+        "paddingLeft": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:97"
+        },
+        "paddingRight": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:97"
+        },
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:168:1165"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 1,
+            "g": 0.9254902005195618,
+            "b": 0.8588235378265381
+          },
+          "boundVariables": {
+            "color": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:168:1165"
+            }
+          }
+        }
+      ],
+      "source": {
+        "id": "649:4685",
+        "key": "f969dc6de5bcb71aa0ea98965e23985020983865",
+        "name": "Treatment=Active",
+        "parentName": "Landing / Navigation link"
+      }
+    },
+    {
+      "id": "663:4837",
+      "name": "Staff / Admin sign-in",
+      "type": "INSTANCE",
+      "width": 176,
+      "height": 44,
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 0,
+      "boundVariables": {
+        "paddingLeft": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:97"
+        },
+        "paddingRight": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:97"
+        },
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:168:1161"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.12156862765550613,
+            "b": 0.11372549086809158
+          },
+          "boundVariables": {
+            "color": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:168:1161"
+            }
+          }
+        }
+      ],
+      "source": {
+        "id": "627:4696",
+        "key": "966e1aa6174cf33e734bafb73980246e5192e961",
+        "name": "Landing / Staff and Admin sign-in",
+        "parentName": "landing page"
+      }
+    },
+    {
+      "id": "627:4681",
+      "name": "Staff and Admin portal choices",
+      "type": "FRAME",
+      "width": 320,
+      "height": 288,
+      "layoutMode": "VERTICAL",
+      "itemSpacing": 16,
+      "boundVariables": {
+        "itemSpacing": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:99"
+        },
+        "paddingLeft": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:101"
+        },
+        "paddingTop": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:101"
+        },
+        "paddingRight": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:101"
+        },
+        "paddingBottom": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:101"
+        },
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:175"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:105:164"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 1,
+            "g": 1,
+            "b": 1
+          },
+          "boundVariables": {
+            "color": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:105:164"
+            }
+          }
+        }
+      ],
+      "source": null
+    },
+    {
+      "id": "627:4682",
+      "name": "Portal menu heading",
+      "type": "FRAME",
+      "width": 272,
+      "height": 56,
+      "layoutMode": "VERTICAL",
+      "itemSpacing": 8,
+      "boundVariables": {
+        "itemSpacing": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:96"
+        }
+      },
+      "fillBindings": [],
+      "source": null
+    },
+    {
+      "id": "627:4683",
+      "name": "Portal title",
+      "type": "TEXT",
+      "width": 272,
+      "height": 28,
+      "boundVariables": {
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:168:1161"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 0.12156862765550613,
+            "g": 0.12156862765550613,
+            "b": 0.11372549086809158
+          },
+          "boundVariables": {
+            "color": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:168:1161"
+            }
+          }
+        }
+      ],
+      "textStyleId": "S:31ad1e9bd4d884ed17b677c985dca444dd9637cd,",
+      "source": null
+    },
+    {
+      "id": "627:4684",
+      "name": "Portal guidance",
+      "type": "TEXT",
+      "width": 272,
+      "height": 20,
+      "boundVariables": {
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:168:1162"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 0.43529412150382996,
+            "g": 0.4156862795352936,
+            "b": 0.3843137323856354
+          },
+          "boundVariables": {
+            "color": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:168:1162"
+            }
+          }
+        }
+      ],
+      "textStyleId": "S:07ceeb300d3a51cf8143b97f7379552452b435a6,",
+      "source": null
+    },
+    {
+      "id": "627:4686",
+      "name": "Open Staff sign-in",
+      "type": "INSTANCE",
+      "width": 272,
+      "height": 48,
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 0,
+      "boundVariables": {
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:168:1163"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 0.9764705896377563,
+            "g": 0.45098039507865906,
+            "b": 0.08627451211214066
+          },
+          "boundVariables": {
+            "color": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:168:1163"
+            }
+          }
+        }
+      ],
+      "source": {
+        "id": "168:1175",
+        "key": "6ad41e48e5d653207b43df7a7a16c675ed819d33",
+        "name": "Desktop / Primary button"
+      }
+    },
+    {
+      "id": "627:4688",
+      "name": "Open Admin sign-in",
+      "type": "INSTANCE",
+      "width": 272,
+      "height": 48,
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 0,
+      "boundVariables": {
+        "topLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "topRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "bottomLeftRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "bottomRightRadius": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:105:176"
+        },
+        "fills": [
+          {
+            "type": "VARIABLE_ALIAS",
+            "id": "VariableID:168:1163"
+          }
+        ]
+      },
+      "fillBindings": [
+        {
+          "type": "SOLID",
+          "color": {
+            "r": 0.9764705896377563,
+            "g": 0.45098039507865906,
+            "b": 0.08627451211214066
+          },
+          "boundVariables": {
+            "color": {
+              "type": "VARIABLE_ALIAS",
+              "id": "VariableID:168:1163"
+            }
+          }
+        }
+      ],
+      "source": {
+        "id": "168:1175",
+        "key": "6ad41e48e5d653207b43df7a7a16c675ed819d33",
+        "name": "Desktop / Primary button"
+      }
+    },
+    {
+      "id": "627:4690",
+      "name": "Close portal menu",
+      "type": "INSTANCE",
+      "width": 272,
+      "height": 44,
+      "layoutMode": "HORIZONTAL",
+      "itemSpacing": 4,
+      "boundVariables": {
+        "itemSpacing": {
+          "type": "VARIABLE_ALIAS",
+          "id": "VariableID:92:94"
+        }
+      },
+      "fillBindings": [],
+      "source": {
+        "id": "234:881",
+        "key": "f8d9c9bfe5e190fb62c37a0b4222959756b084f8",
+        "name": "Client / Authentication text action"
+      }
+    }
+  ]
+}
