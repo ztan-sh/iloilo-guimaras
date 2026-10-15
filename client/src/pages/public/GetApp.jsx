@@ -2,8 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import "./GetApp.css";
 
-const ANDROID_APK_URL =
-    "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/GuimarasGo.apk";
+const ANDROID_APK_URL = "/downloads/GuimarasGo.apk";
 const ANDROID_QR_URL = "/QR/guimarasgo-android.png";
 
 const GetApp = () => {
@@ -11,22 +10,6 @@ const GetApp = () => {
 
     return (
         <main className="get-app-page">
-            <div className="get-app-background" />
-
-            <header className="get-app-header">
-                <button
-                    type="button"
-                    className="get-app-back-button"
-                    onClick={() => navigate("/")}
-                >
-                    ← Back
-                </button>
-
-                <div className="get-app-brand">
-                    GuimarasGo
-                </div>
-            </header>
-
             <section className="get-app-card">
                 <div className="get-app-hero">
                     <div className="get-app-logo" aria-hidden="true">

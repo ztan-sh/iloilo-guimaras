@@ -793,6 +793,92 @@
     }
 }
 
+@media (max-width: 760px) {
+    .get-app-page {
+        padding: 20px 16px 36px;
+    }
+
+    .get-app-card {
+        width: 100%;
+    }
+
+    .android-app-card {
+        width: 100%;
+    }
+
+    .apk-details {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .get-app-page {
+        padding: 12px 10px 24px;
+    }
+
+    .get-app-card {
+        padding: 22px 14px;
+        border-radius: 18px;
+    }
+
+    .android-app-card {
+        padding: 16px 14px;
+    }
+
+    .android-card-header {
+        gap: 10px;
+    }
+
+    .apk-details {
+        grid-template-columns: 1fr;
+    }
+
+    .apk-detail {
+        min-height: 52px;
+        border-right: 0;
+        border-bottom: 1px solid var(--app-line);
+    }
+
+    .apk-detail:last-child {
+        border-bottom: 0;
+    }
+
+    .qr-content {
+        gap: 16px;
+        padding: 14px;
+    }
+
+    .qr-wrapper {
+        width: min(180px, 100%);
+        height: auto;
+        aspect-ratio: 1;
+    }
+
+    .device-primary-button {
+        min-height: 48px;
+    }
+}
+
+@media (max-width: 360px) {
+    .get-app-card h1 {
+        font-size: 32px;
+        letter-spacing: -1px;
+    }
+
+    .get-app-device-message {
+        font-size: 14px;
+    }
+
+    .android-card-header h2 {
+        font-size: 17px;
+        overflow-wrap: anywhere;
+    }
+
+    .qr-wrapper {
+        width: min(150px, 100%);
+    }
+}
+
 /* =========================================================
    VERY SMALL PHONES
 ========================================================= */
@@ -829,5 +915,207 @@
     .qr-wrapper {
         width: 145px;
         height: 145px;
+    }
+}
+
+/* GuimarasGo palette and clean page canvas */
+.get-app-page {
+    --app-background: #faf7f2;
+    --app-ink: #1f1f1d;
+    --app-muted: #6f6a62;
+    --app-line: #e4ddd3;
+    --app-accent: #f97316;
+    --app-accent-dark: #9b430c;
+    --app-aqua: #e4f5f2;
+    --app-teal: #079d92;
+
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 24px 20px 48px;
+    background: var(--app-background);
+    color: var(--app-ink);
+}
+
+.get-app-background {
+    display: none;
+}
+
+.get-app-header {
+    width: min(820px, 100%);
+    margin: 0 auto 18px;
+}
+
+.get-app-brand {
+    color: var(--app-ink);
+    text-shadow: none;
+}
+
+.get-app-back-button {
+    border-color: var(--app-line);
+    background: #fff;
+    color: var(--app-ink);
+    box-shadow: none;
+}
+
+.get-app-back-button:hover {
+    border-color: var(--app-accent);
+    background: var(--app-accent);
+    color: #fff;
+}
+
+.get-app-card {
+    width: min(820px, 100%);
+    padding: clamp(24px, 4vw, 40px);
+    border: 1px solid var(--app-line);
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 12px 36px rgba(31, 39, 37, .07);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.get-app-hero {
+    margin-bottom: 28px;
+}
+
+.get-app-logo {
+    background: var(--app-aqua);
+    color: var(--app-teal);
+    box-shadow: none;
+}
+
+.get-app-eyebrow,
+.device-label {
+    color: var(--app-accent-dark);
+}
+
+.get-app-card h1,
+.get-app-device-message,
+.android-app-card h2,
+.qr-copy h3 {
+    color: var(--app-ink);
+}
+
+.get-app-subtitle,
+.device-description,
+.qr-copy > p,
+.quick-step p,
+.installation-note,
+.installation-note span,
+.security-note p {
+    color: var(--app-muted);
+}
+
+.android-app-card {
+    width: min(720px, 100%);
+    padding: clamp(18px, 3vw, 28px);
+    border-color: var(--app-line);
+    border-radius: 20px;
+    box-shadow: none;
+}
+
+.android-icon {
+    background: var(--app-aqua);
+}
+
+.android-status {
+    background: var(--app-aqua);
+    color: #06655e;
+}
+
+.status-dot {
+    background: var(--app-teal);
+}
+
+.device-primary-button {
+    border-radius: 999px;
+    background: var(--app-accent);
+    color: #fff;
+    box-shadow: none;
+}
+
+.device-primary-button:hover {
+    background: #e96810;
+    box-shadow: none;
+}
+
+.apk-details {
+    border-color: var(--app-line);
+    background: var(--app-background);
+}
+
+.apk-detail {
+    border-color: var(--app-line);
+}
+
+.apk-detail span {
+    color: var(--app-muted);
+}
+
+.apk-detail strong {
+    color: var(--app-ink);
+}
+
+.qr-divider {
+    color: var(--app-muted);
+}
+
+.qr-divider::before,
+.qr-divider::after {
+    background: var(--app-line);
+}
+
+.qr-content {
+    border-color: var(--app-line);
+    background: var(--app-aqua);
+}
+
+.qr-wrapper {
+    border-color: var(--app-line);
+    box-shadow: none;
+}
+
+.quick-step span,
+.security-icon {
+    background: var(--app-teal);
+}
+
+.quick-step strong,
+.web-version-button {
+    color: var(--app-accent-dark);
+}
+
+.installation-note {
+    border-color: var(--app-line);
+    background: var(--app-background);
+}
+
+.installation-note-icon {
+    background: var(--app-aqua);
+    color: #06655e;
+}
+
+.installation-note strong,
+.security-note strong {
+    color: var(--app-ink);
+}
+
+.security-note {
+    border-color: #cde8e3;
+    background: var(--app-aqua);
+}
+
+.web-version-button:hover {
+    color: var(--app-accent);
+}
+
+@media (max-width: 520px) {
+    .get-app-page {
+        padding: 16px 12px 28px;
+    }
+
+    .get-app-card {
+        padding: 24px 16px;
+        border-radius: 20px;
     }
 }

@@ -38,6 +38,7 @@ function AdminShell() {
     const navigate = useNavigate();
     const root = useRef(null);
     const [chooseTrip, setChooseTrip] = useState(false);
+    const [confirmLogout, setConfirmLogout] = useState(false);
     const segment = location.pathname.slice(basePath.length + 1).split("/")[0];
     const editing = segment === "trips";
     const current = segment === "discounts" ? ["discounts", "ID-review records", "card", "ID-review records", "Inspect passenger ID submissions and staff review decisions."] : segment === "payment-verification" ? ["payment-verification", "Payment verification", "card", "Payment verification", "Review uploaded receipts and verify or reject pending payments."] : destinations.find(item => item[0] === segment) || destinations[0];
@@ -55,7 +56,7 @@ function AdminShell() {
             <div className="staff-sidebar-bottom">
                 <div className="staff-terminal-info"><strong>{selectedTrip?.route.startsWith("Guimaras") ? "Guimaras" : "Iloilo"} terminal</strong><span>{weekdayDate(date)} {date.slice(0, 4)}</span><span className={`staff-connection ${error ? "has-error" : ""}`}><AdminIcon name="connected" />{error ? "Connection unavailable" : loading ? "Connecting…" : preview ? "Sample workspace" : "Connected"}</span></div>
                 <div className="staff-account"><AdminIcon name="account" /><div><strong>{admin?.name || "Administrator"}</strong><small>Management access</small></div></div>
-                <AdminButton variant="secondary" onClick={logout}>Log out</AdminButton>
+                <AdminButton variant="secondary" onClick={() => setConfirmLogout(true)}>Log out</AdminButton>
             </div>
         </aside>
         <main id="admin-content" className="staff-main" tabIndex={-1}>
@@ -76,6 +77,13 @@ function AdminShell() {
             </Routes>}
             {!preview && <a className="admin-desktop-legacy" href="/admin-dashboard"></a>}
         </main>
+        {confirmLogout && <AdminDialog title="Log out?" onClose={() => setConfirmLogout(false)}>
+            <p>Are you sure you want to log out of the admin workspace?</p>
+            <div className="admin-delete-actions">
+                <AdminButton variant="secondary" onClick={() => setConfirmLogout(false)}>Stay logged in</AdminButton>
+                <AdminButton variant="danger" onClick={logout}>Log out</AdminButton>
+            </div>
+        </AdminDialog>}
         {chooseTrip && <AdminDialog title="Choose a departure" onClose={() => setChooseTrip(false)}>
             <AdminField label="Travel date" type="date" value={date} onChange={e => { if (e.target.value) setDate(e.target.value); }} />
             {loading ? <p role="status">Loading departures…</p> : <div className="staff-trip-options">{schedules.map(trip => <button type="button" className={`staff-trip-option ${selectedTrip?.id === trip.id ? "is-selected" : ""}`} key={trip.id} onClick={() => { setSelectedId(trip.id); setChooseTrip(false); }}><span><strong>{trip.route}</strong><small>{trip.vesselName} · {tripLabel(trip)}</small></span><strong>{formatTime(trip.departureTime)}</strong></button>)}{!schedules.length && <p>No departures on this date. Add one in Schedules.</p>}</div>}
