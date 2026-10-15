@@ -199,6 +199,16 @@ export default function MobileApp({ preview = false }) {
     const [busy, setBusy] = useState(false);
     const [loading, setLoading] = useState(false);
     const [guideOpen, setGuideOpen] = useState(false);
+    const guideUserKey = user.id || user._id || user.email?.toLowerCase();
+
+    useEffect(() => {
+        if (path !== 'dashboard' || !guideUserKey) return;
+
+        const seenKey = `ggo-passenger-guide-seen:${guideUserKey}`;
+        if (localStorage.getItem(seenKey) !== 'true') {
+            setGuideOpen(true);
+        }
+    }, [path, guideUserKey]);
 
     const [photo, setPhoto] = useState(null);
     const [photoPerson, setPhotoPerson] = useState(null);
@@ -578,6 +588,16 @@ export default function MobileApp({ preview = false }) {
         go('login');
     };
 
+    const closeGuide = () => {
+        if (guideUserKey) {
+            localStorage.setItem(
+                `ggo-passenger-guide-seen:${guideUserKey}`,
+                'true'
+            );
+        }
+        setGuideOpen(false);
+    };
+
     const reset = () => {
         operationsStore.reset();
 
@@ -783,7 +803,7 @@ export default function MobileApp({ preview = false }) {
                             <Outlet />
                         </div>
 
-                        {guideOpen && <PassengerGuide onClose={() => setGuideOpen(false)} />}
+                        {guideOpen && <PassengerGuide onClose={closeGuide} />}
 
                         {navActive && (
                             <BottomNav
