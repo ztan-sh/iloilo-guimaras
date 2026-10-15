@@ -67,20 +67,40 @@ export function AdminOverview() {
 }
 
 export function AdminSchedules() {
-    const { schedules, bookings, date, setDate, selectedTrip, setSelectedId, basePath } = useAdminWorkspace();
+    const { schedules, bookings, date, setDate, selectedTrip, setSelectedId, basePath, api, refresh, setNotice } = useAdminWorkspace();
     const navigate = useNavigate();
     const [route, setRoute] = useState("");
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
+    const [confirmTrip, setConfirmTrip] = useState(null);
     const rows = schedules.filter(trip => !route || trip.route === route);
     const trip = rows.find(item => item.id === selectedTrip?.id) || rows[0];
     const page = usePage(rows, 8);
+    const deleteTrip = async () => {
+        if (!confirmTrip || deleting) return;
+        setDeleting(true);
+        setDeleteError("");
+        try {
+            await api.delete(`/bookings/schedules/${confirmTrip.id}`);
+            setConfirmTrip(null);
+            setSelectedId("");
+            setNotice("Trip deleted and removed from passenger schedules.");
+            refresh();
+        } catch (error) {
+            setDeleteError(error.response?.data?.message || error.message || "Unable to delete this trip.");
+        } finally {
+            setDeleting(false);
+        }
+    };
     return <>
         <div className="admin-desktop-schedule-filters">
             <AdminField label="Travel date" icon="routeInput" type="date" value={date} onChange={e => { if (e.target.value) setDate(e.target.value); }} />
             <AdminField label="Route" icon="routeInput" value={route} onChange={e => setRoute(e.target.value)} options={[{ value: "", label: "All routes" }, ...["Iloilo → Guimaras", "Guimaras → Iloilo"].map(value => ({ value, label: value }))]} />
-            <AdminButton onClick={() => navigate(`${basePath}/trips/new`)}>Add trip</AdminButton>
+            <AdminButton onClick={() => navigate(`${basePath}/trips/new`)}><span aria-hidden="true">＋ </span>Add trip</AdminButton>
         </div>
         <AdminPanel>
             <AdminHeading title={weekdayDate(date)} detail={`${countLabel(rows.length, "trip")} · ${route || "both directions"}`} />
+            <AdminNotice error>{deleteError}</AdminNotice>
             <AdminTable label="Ferry schedules" className="admin-desktop-wide-table" columns={columns([["Trip / vessel", 23], ["Route", 23], ["Departure", 13], ["Passengers", 13], ["Motorcycles", 13], ["Status", 15]])} empty={!rows.length && "No trips match this date and route."}>
                 {page.rows.map(item => {
                     const s = tripStatistics(bookings, item);
@@ -94,9 +114,18 @@ export function AdminSchedules() {
                     </tr>;
                 })}
             </AdminTable>
-            <div className="admin-desktop-table-footer"><Pagination page={page}>{countLabel(rows.length, "trip")}</Pagination><AdminButton variant="secondary" disabled={!trip} onClick={() => navigate(`${basePath}/trips/${trip.id}`)}>Edit selected trip</AdminButton></div>
+            <div className="admin-desktop-table-footer"><Pagination page={page}>{countLabel(rows.length, "trip")}</Pagination><div className="admin-desktop-table-actions"><AdminButton variant="danger" disabled={!trip || deleting} onClick={() => { setDeleteError(""); setConfirmTrip({ ...trip, relatedBookings: tripStatistics(bookings, trip).records.length }); }}>{deleting ? "Deleting…" : "Delete selected trip"}</AdminButton><AdminButton variant="secondary" disabled={!trip || deleting} onClick={() => navigate(`${basePath}/trips/${trip.id}`)}>Edit selected trip</AdminButton></div></div>
         </AdminPanel>
         {trip && <div className="staff-trip-tray"><p className="admin-desktop-allocation-note">This trip accommodates {trip.passengerCapacity} passengers and {trip.motorcycleCapacity} motorcycles. Motorcycle slots are allocated {trip.onlineMotorcycleCapacity} online and {trip.walkInMotorcycleCapacity} walk-in.</p></div>}
+        {confirmTrip && <AdminDialog title="Delete this trip?" onClose={() => { if (!deleting) setConfirmTrip(null); }}>
+            <div className="admin-delete-confirm">
+                <p>This departure will be removed from passenger schedules.</p>
+                <AdminNotice error>{deleteError}</AdminNotice>
+                <dl><div><dt>Vessel</dt><dd>{confirmTrip.vesselName}</dd></div><div><dt>Route</dt><dd>{confirmTrip.route}</dd></div><div><dt>Departure</dt><dd>{formatTime(confirmTrip.departureTime)} · {formatTripDate(confirmTrip.date)}</dd></div></dl>
+                {confirmTrip.relatedBookings > 0 && <p className="admin-delete-warning">There {confirmTrip.relatedBookings === 1 ? "is" : "are"} {confirmTrip.relatedBookings} existing booking record{confirmTrip.relatedBookings === 1 ? "" : "s"}. They will remain in the system, but staff will no longer see this trip for boarding.</p>}
+                <div className="admin-delete-actions"><AdminButton variant="secondary" disabled={deleting} onClick={() => setConfirmTrip(null)}>Cancel</AdminButton><AdminButton variant="danger" disabled={deleting} onClick={deleteTrip}>{deleting ? "Deleting…" : "Delete trip"}</AdminButton></div>
+            </div>
+        </AdminDialog>}
     </>;
 }
 

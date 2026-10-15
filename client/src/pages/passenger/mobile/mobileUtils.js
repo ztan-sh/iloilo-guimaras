@@ -18,9 +18,25 @@ export function departureCountdown(trip, now = Date.now()) {
     const minutes = Math.max(0, Math.ceil((departure - now) / 60000));
     return { minutes, value: minutes < 60 ? minutes : minutes < 1440 ? Math.floor(minutes / 60) : Math.floor(minutes / 1440), unit: minutes < 60 ? 'min' : minutes < 1440 ? 'hr' : 'day' };
 }
+export function bookingWindowIssue(trip, motorcycle = false, now = Date.now()) {
+    const match = String(trip?.departureTime || '').match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+    if (!match || !trip?.date) return 'Choose a valid departure time.';
+    let hour = Number(match[1]);
+    if (match[3]) hour = hour % 12 + (match[3].toUpperCase() === 'PM' ? 12 : 0);
+    const departure = Date.parse(`${String(trip.date).slice(0, 10)}T${String(hour).padStart(2, '0')}:${match[2]}:00+08:00`);
+    if (!Number.isFinite(departure)) return 'Choose a valid departure time.';
+    const cutoff = (motorcycle ? 24 : 3) * 60 * 60 * 1000;
+    if (departure <= now) return 'This departure has already left. Choose a future trip.';
+    if (departure - now < cutoff) return motorcycle
+        ? 'Motorcycle bookings must be made at least 1 day before departure (Philippine time).'
+        : 'Passenger bookings must be made at least 3 hours before departure (Philippine time).';
+    return '';
+}
 export const fareFor = (draft, operations, preview, livePrices = null) => quoteRide(preview ? operations.prices[draft.trip.vesselName] || DEFAULT_PRICES : livePrices || DEFAULT_PRICES, draft.people, draft.motorcycle, preview ? operations.requests : [], draft.regularFare, draft.motorcycleType);
 export function bookingIssue(draft, requests = [], preview = false) {
     if (!draft?.trip) return 'Choose a departure first.';
+    const windowIssue = bookingWindowIssue(draft.trip, draft.motorcycle);
+    if (windowIssue) return windowIssue;
     if (!draft.people.length || draft.people.length > (draft.motorcycle ? 3 : 10)) return 'Choose up to 10 passengers, or 3 with a motorcycle.';
     const personError = draft.people.map(personIssue).find(Boolean); if (personError) return personError;
     if (draft.motorcycle && !draft.plateNumber?.trim()) return 'Enter your motorcycle plate number.';

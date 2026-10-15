@@ -36,6 +36,53 @@ const isStrongPassword = (password) => {
 
 
 // ========================================
+// PROFILE PHOTO VALIDATION / FIELD COMPATIBILITY
+// ========================================
+
+const normalizeProfilePicture = (value) => {
+    if (value === undefined) return undefined;
+    if (value === null || value === "") return "";
+
+    if (typeof value !== "string") {
+        throw new Error("Profile photo must be a valid image string.");
+    }
+
+    const photo = value.trim();
+
+    // Allow a hosted image URL/path, or a base64 image data URL.
+    if (/^(https?:\/\/|\/)/i.test(photo)) {
+        if (photo.length > 2048) {
+            throw new Error("Profile photo URL is too long.");
+        }
+        return photo;
+    }
+
+    const match = photo.match(
+        /^data:image\/(png|jpeg|jpg|webp|gif);base64,([A-Za-z0-9+/=\r\n]+)$/i
+    );
+
+    if (!match) {
+        throw new Error("Profile photo must be a supported image.");
+    }
+
+    // Limit decoded image data to 5 MB to avoid oversized MongoDB documents.
+    const encodedData = match[2].replace(/\s/g, "");
+    const decodedBytes = Math.floor(encodedData.length * 3 / 4);
+
+    if (decodedBytes > 5 * 1024 * 1024) {
+        throw new Error("Profile photo must be 5 MB or smaller.");
+    }
+
+    return `data:image/${match[1].toLowerCase()};base64,${encodedData}`;
+};
+
+const profilePhotoFields = (user) => ({
+    profilePicture: user.profilePicture || "",
+    // Keep compatibility with frontend components using profilePhoto.
+    profilePhoto: user.profilePicture || ""
+});
+
+// ========================================
 // REGISTER
 // ========================================
 
@@ -119,7 +166,8 @@ const register = async (req, res) => {
                 id: user._id,
                 fullName: user.fullName,
                 email: user.email,
-                phoneNumber: user.phoneNumber
+                phoneNumber: user.phoneNumber,
+                ...profilePhotoFields(user)
             }
         });
 
@@ -271,6 +319,7 @@ const login = async (req, res) => {
                 email: user.email,
                 phoneNumber:
                     user.phoneNumber,
+                ...profilePhotoFields(user),
                 notificationsEnabled:
                     user.notificationsEnabled === true
             }
@@ -319,6 +368,7 @@ const getMe = async (req, res) => {
                 email: user.email,
                 phoneNumber:
                     user.phoneNumber,
+                ...profilePhotoFields(user),
                 notificationsEnabled:
                     user.notificationsEnabled === true
             }
@@ -354,6 +404,21 @@ const updateProfile = async (req, res) => {
             email,
             phoneNumber
         } = req.body;
+
+        const submittedProfilePicture =
+            req.body?.profilePicture !== undefined
+                ? req.body.profilePicture
+                : req.body?.profilePhoto;
+
+        let normalizedProfilePicture;
+        try {
+            normalizedProfilePicture =
+                normalizeProfilePicture(submittedProfilePicture);
+        } catch (photoError) {
+            return res.status(400).json({
+                message: photoError.message
+            });
+        }
 
         // Validation
         if (
@@ -402,7 +467,10 @@ const updateProfile = async (req, res) => {
                         normalizedEmail,
 
                     phoneNumber:
-                        phoneNumber.trim()
+                        phoneNumber.trim(),
+                    ...(normalizedProfilePicture !== undefined
+                        ? { profilePicture: normalizedProfilePicture }
+                        : {})
                 },
                 {
                     returnDocument: "after",
@@ -434,6 +502,7 @@ const updateProfile = async (req, res) => {
                 email: user.email,
                 phoneNumber:
                     user.phoneNumber,
+                ...profilePhotoFields(user),
                 notificationsEnabled:
                     user.notificationsEnabled === true
             }
@@ -631,6 +700,7 @@ const updateNotificationPreference = async (req, res) => {
                 email: user.email,
                 phoneNumber:
                     user.phoneNumber,
+                ...profilePhotoFields(user),
                 notificationsEnabled:
                     user.notificationsEnabled === true
             }

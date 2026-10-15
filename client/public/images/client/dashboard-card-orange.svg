@@ -1,6 +1,6 @@
 <svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="354" height="258" viewBox="0 0 354 258" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g id="Curved vessel card silhouette" clip-path="url(#clip0_0_190)">
-<path id="Vector" d="M32 0H322C343.333 0 354 10.6667 354 32V206C354 227.333 343.333 238 322 238H216C201 238 194 258 177 258C160 258 153 238 138 238H32C10.6667 238 0 227.333 0 206V32C0 10.6667 10.6667 0 32 0Z" fill="#F97316"/>
+<path id="Vector" d="M32 0H138C153 0 160 20 177 20C194 20 201 0 216 0H322C343.333 0 354 10.6667 354 32V206C354 227.333 343.333 238 322 238H216C201 238 194 258 177 258C160 258 153 238 138 238H32C10.6667 238 0 227.333 0 206V32C0 10.6667 10.6667 0 32 0Z" fill="#F97316"/>
 </g>
 <defs>
 <clipPath id="clip0_0_190">

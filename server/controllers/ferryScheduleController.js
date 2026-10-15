@@ -939,8 +939,10 @@ const deleteSchedule = async (
 ) => {
     try {
         const schedule =
-            await FerrySchedule.findById(
-                req.params.id
+            await FerrySchedule.findOneAndUpdate(
+                { _id: req.params.id },
+                { $set: { active: false } },
+                { new: true }
             );
 
         if (!schedule) {
@@ -951,26 +953,13 @@ const deleteSchedule = async (
             });
         }
 
-        /*
-         * Default schedules are protected.
-         */
-        if (schedule.isDefault) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Default ferry schedules cannot be removed."
-            });
-        }
-
-        await FerrySchedule.deleteOne({
-            _id:
-                schedule._id
-        });
+        // Deactivate defaults and admin-created trips alike. Keep the record
+        // for existing bookings, but remove it from schedule availability.
 
         return res.status(200).json({
             success: true,
             message:
-                "Ferry schedule removed successfully."
+                "Ferry schedule deleted successfully."
         });
 
     } catch (error) {

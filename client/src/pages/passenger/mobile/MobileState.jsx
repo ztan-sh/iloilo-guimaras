@@ -325,7 +325,9 @@ export default function MobileApp({ preview = false }) {
                     {}
                 );
 
-                setUser({ ...value, ...personal });
+                // Keep the authenticated server copy (including the saved photo)
+                // in both React state and browser storage after refresh.
+                saveUser({ ...value, ...personal });
             })
             .catch(e => {
                 if (e.name !== 'AbortError') {
@@ -417,6 +419,23 @@ export default function MobileApp({ preview = false }) {
         loadPassengerData();
 
         return () => controller.abort();
+    }, [preview, date, path, publicPage]);
+
+    useEffect(() => {
+        if (preview || publicPage || !token() || !['dashboard', 'schedule'].includes(path)) return;
+        const refreshSchedules = async () => {
+            try {
+                const response = await request(`/bookings/schedules/available?date=${encodeURIComponent(date)}`);
+                const rows = Array.isArray(response)
+                    ? response
+                    : response.schedules || response.capacities || response.data?.schedules || response.data?.capacities || [];
+                if (Array.isArray(rows)) setSchedules(rows);
+            } catch {
+                // Keep the last good list visible if a background refresh is interrupted.
+            }
+        };
+        const timer = setInterval(refreshSchedules, 30000);
+        return () => clearInterval(timer);
     }, [preview, date, path, publicPage]);
 
     const ownBookings = preview

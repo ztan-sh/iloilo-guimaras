@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useClient } from './MobileState';
 import { Art, ArtworkStage, Button, Choices, Field, Footer, Gender, Header, MobileDialog, NotificationBell, Panel, Progress } from './MobileUI';
-import { accountPerson, bookingIssue, canIssueTicket, departureCountdown, fareFor, money, normalizeSchedule, paymentState, photoIssue, requestFor, rideLabel, todayInManila } from './mobileUtils';
+import { accountPerson, bookingIssue, bookingWindowIssue, canIssueTicket, departureCountdown, fareFor, money, normalizeSchedule, paymentState, photoIssue, requestFor, rideLabel, todayInManila } from './mobileUtils';
 import { discountCategory, operationsStore, personIssue } from '../../../components/operations/operationsStore';
 import { formatTime, matchesTrip } from '../../Staff/staffUtils';
 import { createId } from '../../../utils/createId.js';
@@ -20,94 +20,188 @@ function VesselCard({ vessel, available, treatment, stackOrder, onSelect }) {
         </ArtworkStage>
     </button>;
 }
+
 export function ClientDashboard() {
-    const c = useClient(); const vessels = [...new Set(c.schedules.map(t => t.vesselName))];
-    return <main className="ggo-page ggo-has-nav ggo-dashboard">
-        <header className="ggo-header ggo-dashboard-header">
-            <div className="ggo-dashboard-toolbar"><Link aria-label="Open profile" to={c.href('profile')}><span className="ggo-dashboard-avatar"><Art file="dashboard-avatar.png" /></span></Link><NotificationBell compact /></div>
-            <h1>Hi, {c.user.fullName?.split(' ')[0] || 'traveller'}!</h1><p>Choose a vessel for your next crossing.</p>
-        </header>
-        <div className="ggo-vessels" role="region" aria-label="Available vessels" tabIndex={0}>
-            {vessels.map((vessel, i) => <VesselCard key={vessel} vessel={vessel} stackOrder={vessels.length - i} treatment={/halili/i.test(vessel) ? 'orange' : /felipe/i.test(vessel) ? 'gold' : /lite ferry 22/i.test(vessel) ? 'brown' : ['orange', 'gold', 'brown'][i % 3]} available={c.schedules.some(t => t.vesselName === vessel && !t.bookingClosed && t.passengerRemaining > 0)} onSelect={() => { c.setVessel(vessel); c.go('schedule'); }} />)}
-            {!c.loading && !vessels.length && <Panel><h2>No departures available</h2><p>Choose another travel date to check schedules.</p><Field label="Travel date" type="date" value={c.date} onChange={e => c.setDate(e.target.value)} /><Button onClick={() => c.go('schedule')}>View schedules</Button></Panel>}
-        </div>
-    </main>;
+    const c = useClient();
+    const vessels = [...new Set(c.schedules.map(t => t.vesselName))];
+
+    const [avatarFailed, setAvatarFailed] = useState(false);
+
+    const savedPhoto =
+        c.user?.profilePhoto ||
+        c.user?.profilePicture ||
+        c.user?.profileImage ||
+        c.user?.avatarUrl ||
+        c.user?.photoURL ||
+        c.user?.imageUrl ||
+        c.user?.avatar ||
+        c.user?.photo ||
+        "";
+
+    const apiRoot = (
+        import.meta.env.VITE_API_BASE_URL ||
+        "http://localhost:5000/api"
+    ).replace(/\/api\/?$/, "");
+
+    const profilePhoto = savedPhoto
+        ? /^https?:\/\/|^data:image\//i.test(savedPhoto)
+            ? savedPhoto
+            : `${apiRoot}/${String(savedPhoto).replace(/^\/+/, "")}`
+        : "";
+
+    useEffect(() => {
+        setAvatarFailed(false);
+    }, [profilePhoto]);
+
+    return (
+        <main className="ggo-page ggo-has-nav ggo-dashboard">
+            <header className="ggo-header ggo-dashboard-header">
+                <div className="ggo-dashboard-toolbar">
+                    <Link
+                        aria-label="Open profile"
+                        to={c.href("profile")}
+                        className="ggo-dashboard-profile-link"
+                    >
+                        <span className="ggo-dashboard-avatar">
+                            {profilePhoto && !avatarFailed ? (
+                                <img
+                                    src={profilePhoto}
+                                    alt={`${c.user.fullName || "User"} profile`}
+                                    onError={() => setAvatarFailed(true)}
+                                />
+                            ) : (
+                                <Art
+                                    file="dashboard-avatar.png"
+                                    alt="Default profile avatar"
+                                />
+                            )}
+                        </span>
+                    </Link>
+
+                    <NotificationBell compact />
+                </div>
+
+                <h1>
+                    Hi, {c.user.fullName?.split(" ")[0] || "traveller"}!
+                </h1>
+                <p>Choose a vessel for your next crossing.</p>
+            </header>
+
+            <div
+                className="ggo-vessels"
+                role="region"
+                aria-label="Available vessels"
+                tabIndex={0}
+            >
+                {vessels.map((vessel, i) => (
+                    <VesselCard
+                        key={vessel}
+                        vessel={vessel}
+                        stackOrder={i + 1}
+                        treatment={
+                            /halili/i.test(vessel)
+                                ? "orange"
+                                : /felipe/i.test(vessel)
+                                  ? "gold"
+                                  : /lite ferry 22/i.test(vessel)
+                                    ? "brown"
+                                    : ["orange", "gold", "brown"][i % 3]
+                        }
+                        available={c.schedules.some(
+                            t =>
+                                t.vesselName === vessel &&
+                                !t.bookingClosed &&
+                                t.passengerRemaining > 0
+                        )}
+                        onSelect={() => {
+                            c.setVessel(vessel);
+                            c.go("schedule");
+                        }}
+                    />
+                ))}
+
+                {!c.loading && !vessels.length && (
+                    <Panel>
+                        <h2>No departures available</h2>
+                        <p>Choose another travel date to check schedules.</p>
+                        <Field
+                            label="Travel date"
+                            type="date"
+                            value={c.date}
+                            onChange={e => c.setDate(e.target.value)}
+                        />
+                        <Button onClick={() => c.go("schedule")}>
+                            View schedules
+                        </Button>
+                    </Panel>
+                )}
+            </div>
+        </main>
+    );
 }
+
+
 export function ClientSchedule() {
-    const c = useClient(); const route = c.reverse ? 'Guimaras → Iloilo' : 'Iloilo → Guimaras';
+    const c = useClient();
     const [optionsOpen, setOptionsOpen] = useState(false);
     const [now, setNow] = useState(Date.now);
+    const [selectedRouteKey, setSelectedRouteKey] = useState('');
     useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(timer); }, []);
-    
-const normalizeRoutePart = value =>
-    String(value || '').trim().toLowerCase();
-
-const trips = c.schedules
-    .map(normalizeSchedule)
-    .filter(t => {
-        const vesselMatches =
-            normalizeRoutePart(t.vesselName) ===
-            normalizeRoutePart(c.vessel);
-
-        const expectedOrigin = c.reverse ? 'Guimaras' : 'Iloilo';
-        const expectedDestination = c.reverse ? 'Iloilo' : 'Guimaras';
-
-        const routeParts = String(t.route || '')
-            .replace(/→|->/g, '|')
-            .split('|')
-            .map(normalizeRoutePart);
-
-        const routeMatches =
-            (
-                routeParts.length === 2 &&
-                routeParts[0] === normalizeRoutePart(expectedOrigin) &&
-                routeParts[1] === normalizeRoutePart(expectedDestination)
-            ) ||
-            (
-                normalizeRoutePart(t.origin) === normalizeRoutePart(expectedOrigin) &&
-                normalizeRoutePart(t.destination) === normalizeRoutePart(expectedDestination)
-            );
-
-        return vesselMatches && routeMatches;
-    })
-    .sort((a, b) =>
-        String(a.departureTime || '').localeCompare(
-            String(b.departureTime || '')
-        )
-    );
-
-    const next = trips.find(t => !t.bookingClosed && t.passengerRemaining > 0 && departureCountdown(t, now)?.minutes > 0);
+    const normalizePart = value => String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const vesselTrips = c.schedules.map(normalizeSchedule).filter(t => normalizePart(t.vesselName) === normalizePart(c.vessel));
+    const routeFor = trip => {
+        const parts = String(trip.route || '').split(/\s*(?:→|->|↔)\s*/);
+        const origin = String(trip.origin || parts[0] || '').trim();
+        const destination = String(trip.destination || parts[1] || '').trim();
+        return origin && destination ? { origin, destination, key: `${normalizePart(origin)}|${normalizePart(destination)}`, label: `${origin} → ${destination}` } : null;
+    };
+    const routeOptions = [...new Map(vesselTrips.map(routeFor).filter(Boolean).map(route => [route.key, route])).values()];
+    const activeRoute = routeOptions.find(route => route.key === selectedRouteKey) || routeOptions[c.reverse ? 1 : 0] || routeOptions[0];
+    useEffect(() => { if (activeRoute && activeRoute.key !== selectedRouteKey) setSelectedRouteKey(activeRoute.key); }, [activeRoute?.key, selectedRouteKey]);
+    const trips = vesselTrips.filter(trip => routeFor(trip)?.key === activeRoute?.key).sort((a, b) => String(a.departureTime || '').localeCompare(String(b.departureTime || '')));
+    const next = trips.find(t => !t.bookingClosed && t.passengerRemaining > 0 && !bookingWindowIssue(t, false, now) && departureCountdown(t, now)?.minutes > 0);
     const shortTime = time => {
         const match = formatTime(time).match(/^(\d+):(\d+) (AM|PM)$/);
         if (!match) return formatTime(time);
         return `${Number(match[1]) % 12 + (match[3] === 'PM' ? 12 : 0)}:${match[2]}`;
     };
-    const select = trip => { c.setDraft({ trip, people: [accountPerson(c.user)], motorcycle: false, motorcycleType: '', plateNumber: '', regularFare: false }); c.go('book-trip'); };
+    const select = trip => { const issue = bookingWindowIssue(trip, false, now); if (issue) { c.setError(issue); return; } c.setDraft({ trip, people: [accountPerson(c.user)], motorcycle: false, motorcycleType: '', plateNumber: '', regularFare: false }); c.go('book-trip'); };
+    const changeRoute = () => {
+        if (routeOptions.length < 2) return;
+        const currentIndex = Math.max(0, routeOptions.findIndex(route => route.key === activeRoute?.key));
+        const reverseKey = `${normalizePart(activeRoute.destination)}|${normalizePart(activeRoute.origin)}`;
+        const reverseIndex = routeOptions.findIndex(route => route.key === reverseKey);
+        const nextIndex = reverseIndex >= 0 ? reverseIndex : (currentIndex + 1) % routeOptions.length;
+        setSelectedRouteKey(routeOptions[nextIndex].key);
+        c.setReverse(nextIndex > 0);
+    };
     return <main className="ggo-schedule">
         <header className="ggo-schedule-hero">
             <Art file="a2b02.png" width="428" height="228" />
             <Link className="ggo-schedule-back" aria-label="Back to vessels" to={c.href('dashboard')}><Art file="schedule-back.svg" /></Link>
             <NotificationBell compact />
             <div className="ggo-schedule-intro"><h1>Hello!</h1><button type="button" className="ggo-schedule-vessel" aria-label="Change travel date or vessel" onClick={() => setOptionsOpen(true)}>{c.vessel}</button></div>
-            <div className="ggo-crossing"><strong>{c.reverse ? 'GUIMARAS' : 'ILOILO'}</strong><div className="ggo-crossing-track"><Art file="7eaf1.svg" /><Art file="7f903.svg" /><Art file="3c859.svg" className="ggo-crossing-boat" /><small>25–35 min</small></div><strong>{c.reverse ? 'ILOILO' : 'GUIMARAS'}</strong></div>
+            <div className="ggo-crossing"><strong>{activeRoute?.origin.toUpperCase() || '—'}</strong><div className="ggo-crossing-track"><Art file="7eaf1.svg" /><Art file="7f903.svg" /><Art file="3c859.svg" className="ggo-crossing-boat" /><small>25–35 min</small></div><strong>{activeRoute?.destination.toUpperCase() || '—'}</strong></div>
         </header>
-        <div className="ggo-direction"><strong>{c.reverse ? 'GUIMARAS' : 'ILOILO'}</strong><button type="button" aria-label="Reverse direction" onClick={() => c.setReverse(!c.reverse)}><Art file="schedule-repeat.png" /></button><strong>{c.reverse ? 'ILOILO' : 'GUIMARAS'}</strong></div>
+        <div className="ggo-direction"><strong>{activeRoute?.origin.toUpperCase() || '—'}</strong><button type="button" aria-label="Change route" disabled={routeOptions.length < 2} onClick={changeRoute}><Art file="schedule-repeat.png" /></button><strong>{activeRoute?.destination.toUpperCase() || '—'}</strong></div>
         <div className="ggo-departures">{trips.map(t => {
-            const closed = t.bookingClosed || t.passengerRemaining < 1;
+            const soldOut = t.bookingClosed || t.passengerRemaining < 1;
+            const departed = departureCountdown(t, now)?.minutes === 0;
+            const windowIssue = bookingWindowIssue(t, false, now);
             const countdown = t.id === next?.id ? departureCountdown(t, now) : null;
-            return <button type="button" key={t.id} className={`ggo-departure ${countdown ? 'ggo-departure-next' : ''}`} disabled={closed} onClick={() => select(t)} aria-label={`Select ${formatTime(t.departureTime)} departure, ${t.passengerRemaining} passenger spaces`}>
+            return <button type="button" key={t.id} className={`ggo-departure ${countdown ? 'ggo-departure-next' : ''}`} disabled={soldOut || departed} onClick={() => select(t)} aria-label={`${departed ? 'Departed' : 'Select'} ${formatTime(t.departureTime)} departure, ${t.passengerRemaining} passenger spaces`}>
                 {countdown && <span className="ggo-leaving"><small>LEAVING IN</small><span><strong>{countdown.value}</strong><b>{countdown.unit}</b></span></span>}
                 <span className="ggo-departure-details"><span className="ggo-departure-main">
                     <span><small>Departure on</small><strong title={formatTime(t.departureTime)}>{shortTime(t.departureTime)}</strong></span>
                     <span className="ggo-duration"><small>Travel time</small><b>25–35 MINS</b></span>
                     <span className="ggo-arrival"><small>Arrival</small><strong title={formatTime(t.arrivalTime)}>{shortTime(t.arrivalTime)}</strong></span>
                 </span><span className="ggo-departure-meta">
-                    {closed ? <span className="ggo-seats-left">{t.passengerRemaining} seats left</span> : <span className="ggo-capacity" aria-label={`${t.motorcycleRemaining} motorcycles available online of ${t.motorcycleCapacity} total`}><span><Art file="schedule-car.png" />{t.motorcycleRemaining}/{t.motorcycleCapacity}</span><span>available</span></span>}
-                    <span className="ggo-tap">{closed ? t.passengerRemaining < 1 ? 'Sold out' : 'Closed' : 'Tap to select'}{!closed && <b><Art file="79263.svg" /></b>}</span>
+                    {soldOut ? <span className="ggo-seats-left">{t.passengerRemaining} seats left</span> : <span className="ggo-capacity" aria-label={`${t.motorcycleRemaining} motorcycles available online of ${t.motorcycleCapacity} total`}><span><Art file="schedule-car.png" />{t.motorcycleRemaining}/{t.motorcycleCapacity}</span><span>available</span></span>}
+                    <span className="ggo-tap" title={windowIssue || undefined}>{departed ? 'Departed' : soldOut ? 'Sold out' : windowIssue ? '3-hour cutoff' : 'Tap to select'}{!soldOut && !departed && !windowIssue && <b><Art file="79263.svg" /></b>}</span>
                 </span></span>
             </button>;
         })}{!c.loading && !trips.length && <Panel>No departures for this date and direction.</Panel>}</div>
-        {optionsOpen && <MobileDialog title="Travel options" onClose={() => setOptionsOpen(false)}><h2>Travel options</h2><div className="ggo-schedule-controls"><div><label htmlFor="ggo-schedule-date">Travel date</label><input id="ggo-schedule-date" type="date" value={c.date} min={todayInManila()} onChange={e => c.setDate(e.target.value)} /></div><div><label htmlFor="ggo-schedule-vessel">Vessel</label><select id="ggo-schedule-vessel" value={c.vessel} onChange={e => c.setVessel(e.target.value)}>{[...new Set(c.schedules.map(t => t.vesselName))].map(v => <option key={v}>{v}</option>)}{!c.schedules.length && <option>{c.vessel}</option>}</select></div></div><Button onClick={() => setOptionsOpen(false)}>Done</Button></MobileDialog>}
+        {optionsOpen && <MobileDialog title="Travel options" onClose={() => setOptionsOpen(false)}><h2>Travel options</h2><div className="ggo-schedule-controls"><div><label htmlFor="ggo-schedule-date">Travel date</label><input id="ggo-schedule-date" type="date" value={c.date} min={todayInManila()} onChange={e => c.setDate(e.target.value)} /></div><div><label htmlFor="ggo-schedule-vessel">Vessel</label><select id="ggo-schedule-vessel" value={c.vessel} onChange={e => c.setVessel(e.target.value)}>{[...new Set(c.schedules.map(t => t.vesselName))].map(v => <option key={v}>{v}</option>)}{!c.schedules.some(t => t.vesselName === c.vessel) && <option>{c.vessel}</option>}</select></div><div><label htmlFor="ggo-schedule-route">Route</label><select id="ggo-schedule-route" value={activeRoute?.key || ''} onChange={e => { setSelectedRouteKey(e.target.value); c.setReverse(routeOptions.findIndex(route => route.key === e.target.value) > 0); }}>{routeOptions.map(route => <option key={route.key} value={route.key}>{route.label}</option>)}</select></div></div><Button onClick={() => setOptionsOpen(false)}>Done</Button></MobileDialog>}
     </main>;
 }
 export function BookingTicket({ draft, fare }) {
@@ -143,8 +237,15 @@ export function ClientBook() {
     const count = number => { if (number < 1 || number > (d.motorcycle ? 3 : 10)) return; change({ people: number < d.people.length ? d.people.slice(0, number) : [...d.people, { id: createId(), name: '', age: '', gender: '', category: 'Regular' }] }); };
     const takeID = person => { if (!c.preview) return; const issue = personIssue(person); if (issue) return c.setError(issue); c.setPhoto(null); c.setPhotoPerson(person); c.setPhotoReturn('book-trip'); c.go('id-photo'); };
     const chooseMotorcycle = motorcycleType => {
+        const issue = bookingWindowIssue(d.trip, true);
+        if (issue) { setBikeQuestionOpen(false); c.setError(issue); return; }
         change({ motorcycle: true, motorcycleType, people: d.people.slice(0, 3) });
         setBikeQuestionOpen(false);
+    };
+    const requestMotorcycle = () => {
+        const issue = bookingWindowIssue(d.trip, true);
+        if (issue) { c.setError(issue); return; }
+        setBikeQuestionOpen(true);
     };
     const submit = () => {
         if (d.motorcycle && !d.motorcycleType) { setBikeQuestionOpen(true); return; }
@@ -164,7 +265,7 @@ export function ClientBook() {
         <BookingTicket draft={d} fare={fare} />
         <div className="ggo-book-details" role="region" aria-label="Booking details" tabIndex={0}>
             <Panel className="ggo-book-vehicle"><h3>Vehicle</h3>
-                <Choices label="Vehicle" options={['No motorcycle', 'Motorcycle']} value={d.motorcycle ? 'Motorcycle' : 'No motorcycle'} onChange={value => value === 'Motorcycle' ? setBikeQuestionOpen(true) : change({ motorcycle: false, motorcycleType: '', plateNumber: '' })} />
+                <Choices label="Vehicle" options={['No motorcycle', 'Motorcycle']} value={d.motorcycle ? 'Motorcycle' : 'No motorcycle'} onChange={value => value === 'Motorcycle' ? requestMotorcycle() : change({ motorcycle: false, motorcycleType: '', plateNumber: '' })} />
                 {d.motorcycle && <small>Motorcycle type: {d.motorcycleType === 'big-bike' ? 'Big bike' : d.motorcycleType === 'standard' ? 'Standard motorcycle' : 'Select motorcycle type'}</small>}
             </Panel>
             <Panel className="ggo-book-count"><div className="ggo-quantity"><span>How many are travelling?</span><div className="ggo-book-count-controls"><button type="button" aria-label="Remove passenger" disabled={d.people.length === 1} onClick={() => count(d.people.length - 1)}>−</button><strong aria-live="polite">{d.people.length}</strong><button type="button" aria-label="Add passenger" disabled={d.people.length === (d.motorcycle ? 3 : 10)} onClick={() => count(d.people.length + 1)}>+</button></div></div><small>{d.motorcycle ? `${d.motorcycleType === 'big-bike' ? 'Big bike' : 'Motorcycle'} · Maximum 3 passengers` : 'No motorcycle · Maximum 10 passengers'}</small></Panel>
@@ -173,7 +274,7 @@ export function ClientBook() {
                     <div className="ggo-panel-heading"><h3>Passenger {i + 1}</h3>{i === 0 && <Link to={c.href('edit-profile')}>Edit profile</Link>}</div>
                     {i === 0 ? <><strong className="ggo-book-identity">{p.name}</strong><p>{p.age === '' ? 'Age needed' : `Age ${p.age}`} · {p.gender || 'Gender needed'}</p><small>Age and category come from registration. Your ID approval is reused for discounts.</small><p>{discountCategory(p)} · Saved from registration</p></> : <>
                         <Field label={`Passenger ${i + 1} name`} value={p.name} onChange={e => people(i, { name: e.target.value })} required />
-                        <div className="ggo-two"><Field label={`Passenger ${i + 1} age`} type="number" inputMode="numeric" min="0" max="120" step="1" value={p.age} onChange={e => people(i, { age: e.target.value })} required /><Gender value={p.gender} onChange={e => people(i, { gender: e.target.value })} /></div>
+                        <div className="ggo-two"><Field label={`Passenger ${i + 1} age`} type="text" inputMode="numeric" pattern="[0-9]{1,3}" maxLength={3} min="0" max="120" value={p.age} onChange={e => people(i, { age: e.target.value.replace(/\D/g, '').slice(0, 3) })} required /><Gender value={p.gender} onChange={e => people(i, { gender: e.target.value })} /></div>
                         <h3>Passenger category</h3><Choices label={`Passenger ${i + 1} category`} options={['Regular', 'Student', 'PWD']} value={p.category} onChange={value => people(i, { category: value })} />
                     </>}
                     {Number(p.age) >= 60 && <small>Age 60+ · Senior eligibility requires staff approval.</small>}

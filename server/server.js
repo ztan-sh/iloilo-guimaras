@@ -112,7 +112,8 @@ app.use(
 
 
 app.use(
-    express.json()
+    // A validated profile photo may be sent as a base64 data URL (up to 5 MB).
+    express.json({ limit: "8mb" })
 );
 
 

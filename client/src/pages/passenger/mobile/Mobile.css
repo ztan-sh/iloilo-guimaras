@@ -135,7 +135,7 @@
 .ggo-toolbar input { height:24px; width:100%; border:0; border-radius:16px; background:#ffffffa6; box-shadow:0 1px 16px #0003; font-size:10px; padding:0 10px; color:#192729; }
 .ggo-bell { display:flex; align-items:center; justify-content:center; position:relative; min-height:44px; min-width:44px; }
 .ggo-bell > .ggo-icon { background:white; border-radius:50%; width:28px; height:28px; box-shadow:0 2px 4px #0003; }
-.ggo-bell .ggo-icon img { transform:scale(.55); }
+.ggo-bell .ggo-icon img { width:18px; height:18px; transform:none; }
 .ggo-unread-dot { position:absolute; top:7px; right:9px; }
 .ggo-back { display:flex; align-items:center; width:44px; height:44px; margin:0 0 12px -10px; }
 .ggo-progress { display:flex; gap:12px; list-style:none; margin-bottom:27px; }
@@ -625,3 +625,374 @@
         border-radius: 30px;
     }
 }
+
+/* Dashboard profile photo */
+.ggo-dashboard-profile-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    border-radius: 50%;
+}
+
+.ggo-dashboard-avatar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 50%;
+    background: #d9e4e2;
+    flex: 0 0 40px;
+}
+
+.ggo-dashboard-avatar img {
+    position: static;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 50%;
+}
+
+/* Dashboard notification bell */
+.ggo-dashboard-toolbar .ggo-bell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 44px;
+}
+
+.ggo-dashboard-toolbar .ggo-bell::before {
+    content: "";
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 2px 5px #0003;
+}
+
+.ggo-dashboard-toolbar .ggo-bell > .ggo-icon {
+    position: relative;
+    z-index: 1;
+}
+
+.ggo-dashboard-toolbar .ggo-bell > .ggo-schedule-bell-art {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 22px !important;
+    height: 22px !important;
+    object-fit: contain;
+}
+
+.ggo-dashboard-toolbar .ggo-unread-dot {
+    position: absolute;
+    z-index: 2;
+    top: 5px;
+    right: 5px;
+}
+
+/* Theme-aware form controls */
+.ggo-mobile-app .ggo-input input,
+.ggo-mobile-app .ggo-input select,
+.ggo-mobile-app select,
+.ggo-mobile-app textarea {
+    color: var(--ggo-ink);
+    background-color: var(--ggo-bg);
+    color-scheme: light;
+}
+
+.ggo-mobile-app.ggo-dark .ggo-input input,
+.ggo-mobile-app.ggo-dark .ggo-input select,
+.ggo-mobile-app.ggo-dark select,
+.ggo-mobile-app.ggo-dark textarea,
+.ggo-dark .ggo-input input,
+.ggo-dark .ggo-input select,
+.ggo-dark select,
+.ggo-dark textarea {
+    color: #ffffff;
+    background-color: #192729;
+    color-scheme: dark;
+}
+
+.ggo-mobile-app select option,
+.ggo-mobile-app .ggo-input select option,
+.ggo-dark select option,
+.ggo-dark .ggo-input select option {
+    color: #ffffff;
+    background-color: #192729;
+}
+
+.ggo-mobile-app:not(.ggo-dark) select option,
+.ggo-mobile-app:not(.ggo-dark) .ggo-input select option {
+    color: #192729;
+    background-color: #ffffff;
+}
+
+.ggo-mobile-app input::placeholder,
+.ggo-mobile-app textarea::placeholder {
+    color: var(--ggo-muted);
+    opacity: 1;
+}
+
+.ggo-mobile-app .ggo-field label,
+.ggo-mobile-app .ggo-form,
+.ggo-mobile-app .ggo-page {
+    color: var(--ggo-ink);
+}
+
+/* Profile photo */
+.ggo-account-avatar {
+    display: block;
+    width: 88px;
+    height: 88px;
+    object-fit: cover;
+    border-radius: 50%;
+    background: var(--ggo-surface);
+}
+
+.ggo-edit-profile-photo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0;
+}
+
+.ggo-edit-profile-photo .ggo-edit-profile-avatar {
+    width: 100px;
+    height: 100px;
+    margin: 0;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.ggo-photo-upload {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 10px 18px;
+    border-radius: 22px;
+    background: var(--ggo-soft);
+    color: var(--ggo-accent-text);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ggo-photo-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.ggo-photo-remove {
+    border: 0;
+    background: transparent;
+    color: var(--ggo-ink);
+    text-decoration: underline;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* Age input */
+#ggo-profile-age {
+    color: var(--ggo-ink);
+    background: transparent;
+    width: 100%;
+    min-width: 0;
+}
+
+/* Theme-aware form controls */
+.ggo-mobile-app select,
+.ggo-mobile-app .ggo-input select,
+.ggo-mobile-app input,
+.ggo-mobile-app textarea {
+    color: var(--ggo-ink);
+}
+
+.ggo-mobile-app select {
+    background-color: var(--ggo-bg);
+    color-scheme: light;
+}
+
+.ggo-dark select,
+.ggo-dark .ggo-input select {
+    color: #ffffff;
+    background-color: #192729;
+    color-scheme: dark;
+}
+
+.ggo-dark select option,
+.ggo-dark .ggo-input select option {
+    color: #ffffff;
+    background-color: #192729;
+}
+
+.ggo-mobile-app:not(.ggo-dark) select option,
+.ggo-mobile-app:not(.ggo-dark) .ggo-input select option {
+    color: #192729;
+    background-color: #ffffff;
+}
+
+.ggo-dark .ggo-field label,
+.ggo-dark .ggo-profile-helper,
+.ggo-dark .ggo-page {
+    color: var(--ggo-ink);
+}
+
+/* ==========================================
+   LOGIN PAGE — LIGHT AND DARK MODE
+   ========================================== */
+
+/* Light mode */
+.ggo-mobile-app:not(.ggo-dark) .ggo-login,
+.ggo-mobile-app:not(.ggo-dark) .ggo-login h1,
+.ggo-mobile-app:not(.ggo-dark) .ggo-login h2,
+.ggo-mobile-app:not(.ggo-dark) .ggo-login p,
+.ggo-mobile-app:not(.ggo-dark) .ggo-login label,
+.ggo-mobile-app:not(.ggo-dark) .ggo-login small,
+.ggo-mobile-app:not(.ggo-dark) .ggo-login .ggo-field label {
+    color: #172426;
+}
+
+.ggo-mobile-app:not(.ggo-dark) .ggo-login p,
+.ggo-mobile-app:not(.ggo-dark) .ggo-login small {
+    color: #526467;
+}
+
+.ggo-mobile-app:not(.ggo-dark) .ggo-login a {
+    color: #d95d2a;
+}
+
+.ggo-mobile-app:not(.ggo-dark) .ggo-login input {
+    color: #172426;
+    caret-color: #172426;
+}
+
+.ggo-mobile-app:not(.ggo-dark) .ggo-login input::placeholder {
+    color: #9aa8aa;
+    opacity: 1;
+}
+
+/* Dark mode */
+.ggo-dark .ggo-login,
+.ggo-dark .ggo-login h1,
+.ggo-dark .ggo-login h2,
+.ggo-dark .ggo-login label,
+.ggo-dark .ggo-login .ggo-field label {
+    color: #ffffff;
+}
+
+.ggo-dark .ggo-login p,
+.ggo-dark .ggo-login small {
+    color: #c7d5d6;
+}
+
+.ggo-dark .ggo-login a {
+    color: #ff9a62;
+}
+
+.ggo-dark .ggo-login input {
+    color: #ffffff;
+    caret-color: #ffffff;
+    background-color: #192729;
+}
+
+.ggo-dark .ggo-login input::placeholder {
+    color: #c0cecf;
+    opacity: 1;
+}
+
+/* Preserve readable button text in both themes */
+.ggo-login button {
+    color: #172426;
+}
+
+.ggo-dark .ggo-login button {
+    color: #172426;
+}
+
+/* Keep validation and error messages visible */
+.ggo-login .ggo-error,
+.ggo-login [role="alert"] {
+    color: #c62828;
+}
+
+.ggo-dark .ggo-login .ggo-error,
+.ggo-dark .ggo-login [role="alert"] {
+    color: #ff8a80;
+}
+
+/* Login and authentication text contrast */
+.ggo-mobile-app .ggo-page.ggo-auth {
+    color: var(--ggo-ink);
+}
+
+.ggo-mobile-app .ggo-page.ggo-auth h1,
+.ggo-mobile-app .ggo-page.ggo-auth h2,
+.ggo-mobile-app .ggo-page.ggo-auth h3,
+.ggo-mobile-app .ggo-page.ggo-auth label,
+.ggo-mobile-app .ggo-page.ggo-auth .ggo-field label {
+    color: var(--ggo-ink);
+}
+
+.ggo-mobile-app .ggo-page.ggo-auth p,
+.ggo-mobile-app .ggo-page.ggo-auth small {
+    color: var(--ggo-muted);
+}
+
+.ggo-mobile-app .ggo-page.ggo-auth input:not([type="checkbox"]):not([type="radio"]) {
+    color: var(--ggo-ink);
+    caret-color: var(--ggo-ink);
+}
+
+.ggo-mobile-app .ggo-page.ggo-auth input::placeholder {
+    color: var(--ggo-muted);
+    opacity: 1;
+}
+
+.ggo-mobile-app .ggo-page.ggo-auth a {
+    color: var(--ggo-accent-text);
+}
+
+/* Ensure the selected theme controls native form colors */
+.ggo-mobile-app:not(.ggo-dark) .ggo-page.ggo-auth select {
+    color-scheme: light;
+}
+
+.ggo-dark .ggo-page.ggo-auth select {
+    color-scheme: dark;
+}
+
+/* Keep the authentication card in step with the selected theme. */
+.ggo-dark .ggo-page.ggo-auth {
+    background: var(--ggo-bg);
+}
+
+
+

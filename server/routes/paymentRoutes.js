@@ -1,65 +1,25 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
+const mongoose = require("mongoose");
+const { Readable } = require("stream");
 
 const Booking = require("../models/Booking");
 const VesselPricing = require("../models/VesselPricing");
+const FerrySchedule = require("../models/FerrySchedule");
 const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 // =========================================================
-// UPLOAD DIRECTORY
+// MONGODB GRIDFS STORAGE
 // =========================================================
+// New payment proofs are stored in MongoDB GridFS so they remain available
+// on Render after restarts/redeployments. server.js must serve this bucket
+// at /uploads/payment-proofs/:filename using the same bucket name.
 
-// Keep upload storage aligned with server.js.
-// Configure UPLOAD_DIR=/var/data/uploads on Render when using a persistent disk.
-const uploadRoot = path.resolve(
-    process.env.UPLOAD_DIR || path.join(__dirname, "../uploads")
-);
-
-const uploadDirectory = path.join(
-    uploadRoot,
-    "payment-proofs"
-);
-
-fs.mkdirSync(uploadDirectory, {
-    recursive: true
-});
-
-// =========================================================
-// MULTER STORAGE
-// =========================================================
-
-const storage = multer.diskStorage({
-
-    destination: (req, file, cb) => {
-
-        cb(
-            null,
-            uploadDirectory
-        );
-    },
-
-    filename: (req, file, cb) => {
-
-        const extension =
-            path.extname(
-                file.originalname
-            );
-
-        const uniqueName =
-            `payment-proof-${Date.now()}-${Math.round(
-                Math.random() * 100000
-            )}${extension}`;
-
-        cb(
-            null,
-            uniqueName
-        );
-    }
-});
+const GRIDFS_BUCKET_NAME = "paymentProofs";
+const storage = multer.memoryStorage();
 
 // =========================================================
 // FILE FILTER
@@ -97,14 +57,10 @@ const fileFilter = (req, file, cb) => {
 // =========================================================
 
 const upload = multer({
-
     storage,
-
     limits: {
-        fileSize:
-            5 * 1024 * 1024
+        fileSize: 5 * 1024 * 1024
     },
-
     fileFilter
 });
 
@@ -116,68 +72,71 @@ router.post(
     "/upload-proof",
     upload.single("paymentProof"),
     async (req, res) => {
-
         try {
-
             if (!req.file) {
-
                 return res.status(400).json({
-
                     success: false,
-
-                    message:
-                        "No payment proof was uploaded."
+                    message: "No payment proof was uploaded."
                 });
             }
 
-            const fileUrl =
-                `/uploads/payment-proofs/${req.file.filename}`;
+            if (!mongoose.connection.db) {
+                return res.status(503).json({
+                    success: false,
+                    message: "MongoDB is not connected. Please try again."
+                });
+            }
 
-            console.log(
-                "Payment proof uploaded:",
-                req.file.filename
-            );
+            const { GridFSBucket } = require("mongodb");
+            const bucket = new GridFSBucket(mongoose.connection.db, {
+                bucketName: GRIDFS_BUCKET_NAME
+            });
 
-            return res.status(200).json({
+            const originalExtension = path.extname(req.file.originalname).toLowerCase();
+            const safeExtension = [".jpg", ".jpeg", ".png"].includes(originalExtension)
+                ? originalExtension
+                : (req.file.mimetype === "image/png" ? ".png" : ".jpg");
 
-                success: true,
+            const filename = `payment-proof-${Date.now()}-${Math.round(Math.random() * 1000000000)}${safeExtension}`;
 
-                message:
-                    "Payment proof uploaded successfully.",
-
-                file: {
-
-                    originalName:
-                        req.file.originalname,
-
-                    filename:
-                        req.file.filename,
-
-                    mimetype:
-                        req.file.mimetype,
-
-                    size:
-                        req.file.size,
-
-                    url:
-                        fileUrl
+            const uploadStream = bucket.openUploadStream(filename, {
+                contentType: req.file.mimetype,
+                metadata: {
+                    originalName: req.file.originalname,
+                    contentType: req.file.mimetype,
+                    uploadedAt: new Date()
                 }
             });
 
+            await new Promise((resolve, reject) => {
+                uploadStream.once("error", reject);
+                uploadStream.once("finish", resolve);
+                Readable.from(req.file.buffer).pipe(uploadStream);
+            });
+
+            const fileUrl = `/uploads/payment-proofs/${filename}`;
+
+            console.log("Payment proof saved to MongoDB GridFS:", filename);
+
+            return res.status(200).json({
+                success: true,
+                message: "Payment proof uploaded successfully.",
+                file: {
+                    originalName: req.file.originalname,
+                    filename,
+                    fileName: filename,
+                    mimetype: req.file.mimetype,
+                    fileType: req.file.mimetype,
+                    size: req.file.size,
+                    fileSize: req.file.size,
+                    url: fileUrl
+                }
+            });
         } catch (error) {
-
-            console.error(
-                "Payment proof upload error:",
-                error
-            );
-
+            console.error("Payment proof upload error:", error);
             return res.status(500).json({
-
                 success: false,
-
-                message:
-                    error.message ||
-                    "Unable to upload payment proof."
+                message: error.message || "Unable to upload payment proof."
             });
         }
     }
@@ -282,6 +241,40 @@ router.post(
                 });
             }
 
+            // Validate against the saved trip so a client cannot bypass the
+            // Philippine-time booking window by changing the browser clock.
+            const ferryId = String(req.body.ferryId || "").trim();
+            const schedule = ferryId && mongoose.Types.ObjectId.isValid(ferryId)
+                ? await FerrySchedule.findOne({ _id: ferryId, active: { $ne: false } })
+                : null;
+            if (!schedule || String(schedule.date) !== String(date)) {
+                return res.status(409).json({
+                    success: false,
+                    message: "This departure is no longer available. Please choose a current trip."
+                });
+            }
+            const departure = new Date(`${schedule.date}T${schedule.departureTime}:00+08:00`);
+            const cutoffMs = (vehicleType === "Motorcycle" ? 24 : 3) * 60 * 60 * 1000;
+            const timeUntilDeparture = departure.getTime() - Date.now();
+            if (!Number.isFinite(departure.getTime()) || timeUntilDeparture <= 0) {
+                return res.status(409).json({ success: false, message: "This departure has already left. Choose a future trip." });
+            }
+            if (timeUntilDeparture < cutoffMs) {
+                return res.status(400).json({
+                    success: false,
+                    message: vehicleType === "Motorcycle"
+                        ? "Motorcycle bookings must be made at least 1 day before departure (Philippine time)."
+                        : "Passenger bookings must be made at least 3 hours before departure (Philippine time)."
+                });
+            }
+            // Persist the schedule's canonical route and times, not client edits.
+            req.body.origin = String(schedule.route || "").split(/\s*(?:→|->|↔)\s*/)[0] || origin;
+            req.body.destination = String(schedule.route || "").split(/\s*(?:→|->|↔)\s*/)[1] || destination;
+            req.body.date = schedule.date;
+            req.body.time = schedule.departureTime;
+            req.body.vesselName = schedule.vesselName;
+            req.body.ferryName = schedule.vesselName;
+
             // Calculate the amount on the server from saved pricing. Never trust client totals.
             const vesselName = String(req.body.vesselName || req.body.ferryName || "").trim();
             if (!vesselName || vesselName.length > 120) {
@@ -379,13 +372,23 @@ router.post(
 
                     bookingReference,
 
-                    origin,
+                    origin: req.body.origin,
 
-                    destination,
+                    destination: req.body.destination,
 
-                    date,
+                    date: req.body.date,
 
-                    time,
+                    time: req.body.time,
+
+                    ferryId: String(schedule._id),
+
+                    ferryName: schedule.vesselName,
+
+                    vesselName: schedule.vesselName,
+
+                    departureTime: schedule.departureTime,
+
+                    arrivalTime: schedule.arrivalTime || "",
 
                     passengerName,
 

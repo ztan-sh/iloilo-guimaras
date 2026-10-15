@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 
 export default function useTicketScanner(onDecoded) {
     const resource = useRef(null);
@@ -35,12 +35,29 @@ export default function useTicketScanner(onDecoded) {
             return;
         }
         setStarting(true);
-        const current = { scanner: new Html5Qrcode("staff-qr-reader"), cancelled: false, decoded: false };
+        const current = {
+            scanner: new Html5Qrcode("staff-qr-reader", {
+                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+                useBarCodeDetectorIfSupported: true
+            }),
+            cancelled: false,
+            decoded: false
+        };
         resource.current = current;
         try {
             current.started = current.scanner.start({ facingMode: "environment" }, {
-                fps: 20, aspectRatio: 1,
-                qrbox: (width, height) => { const size = Math.min(350, Math.floor(Math.min(width, height) * 0.75)); return { width: size, height: size }; }
+                fps: 30,
+                videoConstraints: {
+                    facingMode: { ideal: "environment" },
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                qrbox: (width, height) => {
+                    // Leave room for the QR code quiet zone, even when it nearly fills the guide.
+                    // Cropping that border can prevent decoding.
+                    const size = Math.floor(Math.min(width, height) * 0.98);
+                    return { width: size, height: size };
+                }
             }, decoded => {
                 if (current.cancelled || current.decoded) return;
                 current.decoded = true;

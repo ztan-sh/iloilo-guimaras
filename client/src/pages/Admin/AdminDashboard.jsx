@@ -2915,14 +2915,6 @@ const AdminDashboard = () => {
             return;
         }
 
-        if (selectedSchedule._scheduleSource !== "admin") {
-            showNotification(
-                "Default ferry schedules cannot be removed. You can edit them instead.",
-                "error"
-            );
-            return;
-        }
-
         const token =
             localStorage.getItem("adminToken");
 
@@ -3895,18 +3887,16 @@ const AdminDashboard = () => {
                                                     Edit selected trip
                                                 </button>
 
-                                                {selectedSchedule?._scheduleSource ===
-                                                    "admin" && (
-                                                    <button
-                                                        type="button"
-                                                        className="schedule-delete-button"
-                                                        onClick={
-                                                            deleteSelectedSchedule
-                                                        }
-                                                    >
-                                                        Remove
-                                                    </button>
-                                                )}
+                                                <button
+                                                    type="button"
+                                                    className="schedule-delete-button"
+                                                    onClick={
+                                                        deleteSelectedSchedule
+                                                    }
+                                                    disabled={scheduleActionLoading}
+                                                >
+                                                    Remove
+                                                </button>
                                             </div>
                                         </div>
                                     </>

@@ -54,25 +54,521 @@ export function ClientPass() {
         </> : <Panel><h2>No boarding pass available</h2><p>A verified payment and confirmed booking are required.</p><Button onClick={() => c.go('history')}>Payment history</Button></Panel>}
     </main>;
 }
+
 export function ClientProfile() {
-    const c = useClient(); const [saving, setSaving] = useState(false);
-    const toggleNotifications = () => { if (saving) return; setSaving(true); c.run(async () => { const enabled = !c.user.notificationsEnabled; if (!c.preview) await c.request('/auth/notifications', { method: 'PUT', body: { enabled } }); c.saveUser({ ...c.user, notificationsEnabled: enabled }); }).finally(() => setSaving(false)); };
-    return <main className="ggo-page ggo-has-nav"><div className="ggo-profile-heading"><Header title="Profile" toolbar={false} /><button className="ggo-logout" onClick={c.logout}>Log out</button></div><div className="ggo-profile-person"><Link aria-label="Edit profile details" to={c.href('edit-profile')}><Art file="avatar-profile.png" width="88" height="76" /><Art className="ggo-edit-avatar" file="af94a.svg" /></Link><div><h2>{c.user.fullName}</h2><small>{c.user.email}</small></div></div><div className="ggo-profile-stats">{[[c.bookings.filter(canIssueTicket).length, 'Trips'], [c.bookings.length, 'Payments'], [c.bookings.filter(b => canIssueTicket(b) && b.boardingStatus !== 'ON BOARD' && b.date >= todayInManila()).length, 'Active ticket']].map(([n, label]) => <div key={label}><strong>{n}</strong><small>{label}</small></div>)}</div><small className="ggo-section-label">General</small><div className="ggo-rows"><Row icon="pencil" label="Edit profile" to={c.href('edit-profile')} /><Row icon="ticket" label="My tickets" to={c.href('bookings')} /><Row icon="card" label="Payment history" to={c.href('history')} /></div><small className="ggo-section-label">Preferences</small><div className="ggo-rows"><div className="ggo-row"><Icon name="bell" /><span>Notifications</span><Toggle label="Enable notifications" value={c.user.notificationsEnabled === true} onChange={toggleNotifications} /></div><Row icon="language" label="Language" to={c.href('language')}><small>{c.language}</small><Icon name="chevron" /></Row><div className="ggo-row"><Icon name="moon" /><span>Dark mode</span><Toggle label="Dark mode" value={c.dark} onChange={() => c.setDark(!c.dark)} /></div></div></main>;
+    const c = useClient();
+    const [saving, setSaving] = useState(false);
+    const [confirmLogout, setConfirmLogout] = useState(false);
+
+    const toggleNotifications = () => {
+        if (saving) return;
+
+        setSaving(true);
+
+        c.run(async () => {
+            const enabled = !c.user.notificationsEnabled;
+
+            if (!c.preview) {
+                await c.request('/auth/notifications', {
+                    method: 'PUT',
+                    body: { enabled }
+                });
+            }
+
+            c.saveUser({
+                ...c.user,
+                notificationsEnabled: enabled
+            });
+        }).finally(() => setSaving(false));
+    };
+
+    const profilePhoto = c.user.profilePhoto;
+
+    return (
+        <main className="ggo-page ggo-has-nav">
+            <div className="ggo-profile-heading">
+                <Header title="Profile" toolbar={false} />
+
+                <button
+                    className="ggo-logout"
+                    onClick={() => setConfirmLogout(true)}
+                >
+                    Log out
+                </button>
+            </div>
+
+            {confirmLogout && (
+                <MobileDialog
+                    title="Log out?"
+                    onClose={() => setConfirmLogout(false)}
+                    className="ggo-logout-dialog"
+                >
+                    <h2>Log out?</h2>
+                    <p>Are you sure you want to log out of your account?</p>
+                    <Button
+                        orange
+                        onClick={c.logout}
+                    >
+                        Log out
+                    </Button>
+                    <Button
+                        secondary
+                        onClick={() => setConfirmLogout(false)}
+                    >
+                        Cancel
+                    </Button>
+                </MobileDialog>
+            )}
+
+            <div className="ggo-profile-person">
+                <Link
+                    aria-label="Edit profile details"
+                    to={c.href('edit-profile')}
+                >
+                    {profilePhoto ? (
+                        <img
+                            className="ggo-account-avatar"
+                            src={profilePhoto}
+                            alt="Your profile"
+                            width="88"
+                            height="76"
+                        />
+                    ) : (
+                        <Art
+                            file="avatar-profile.png"
+                            width="88"
+                            height="76"
+                        />
+                    )}
+
+                    <Art
+                        className="ggo-edit-avatar"
+                        file="af94a.svg"
+                    />
+                </Link>
+
+                <div>
+                    <h2>{c.user.fullName}</h2>
+                    <small>{c.user.email}</small>
+                </div>
+            </div>
+
+            <div className="ggo-profile-stats">
+                {[
+                    [
+                        c.bookings.filter(canIssueTicket).length,
+                        'Trips'
+                    ],
+                    [
+                        c.bookings.length,
+                        'Payments'
+                    ],
+                    [
+                        c.bookings.filter(
+                            b =>
+                                canIssueTicket(b) &&
+                                b.boardingStatus !== 'ON BOARD' &&
+                                b.date >= todayInManila()
+                        ).length,
+                        'Active ticket'
+                    ]
+                ].map(([n, label]) => (
+                    <div key={label}>
+                        <strong>{n}</strong>
+                        <small>{label}</small>
+                    </div>
+                ))}
+            </div>
+
+            <small className="ggo-section-label">General</small>
+
+            <div className="ggo-rows">
+                <Row
+                    icon="pencil"
+                    label="Edit profile"
+                    to={c.href('edit-profile')}
+                />
+
+                <Row
+                    icon="ticket"
+                    label="My tickets"
+                    to={c.href('bookings')}
+                />
+
+                <Row
+                    icon="card"
+                    label="Payment history"
+                    to={c.href('history')}
+                />
+            </div>
+
+            <small className="ggo-section-label">
+                Preferences
+            </small>
+
+            <div className="ggo-rows">
+                <div className="ggo-row">
+                    <Icon name="bell" />
+                    <span>Notifications</span>
+
+                    <Toggle
+                        label="Enable notifications"
+                        value={
+                            c.user.notificationsEnabled === true
+                        }
+                        onChange={toggleNotifications}
+                    />
+                </div>
+
+                <Row
+                    icon="language"
+                    label="Language"
+                    to={c.href('language')}
+                >
+                    <small>{c.language}</small>
+                    <Icon name="chevron" />
+                </Row>
+
+                <div className="ggo-row">
+                    <Icon name="moon" />
+                    <span>Dark mode</span>
+
+                    <Toggle
+                        label="Dark mode"
+                        value={c.dark}
+                        onChange={() => c.setDark(!c.dark)}
+                    />
+                </div>
+            </div>
+        </main>
+    );
 }
+
 export function ClientEditProfile() {
-    const c = useClient(); const [form, setForm] = useState(c.user); const [currentPassword, setCurrentPassword] = useState(''); const [newPassword, setNewPassword] = useState('');
-    const update = patch => setForm({ ...form, ...patch });
-    const save = e => { e.preventDefault(); c.run(async () => {
-        const issue = personIssue({ name: form.fullName, age: form.age, gender: form.gender, category: form.category }); if (issue) throw new Error(issue);
-        if (newPassword && passwordIssue(newPassword)) throw new Error(passwordIssue(newPassword));
-        if (c.preview) { c.saveUser(form); c.go('profile'); return; }
-        const result = await c.request('/auth/profile', { method: 'PUT', body: { fullName: form.fullName, email: form.email, phoneNumber: form.phoneNumber } });
-        c.saveUser({ ...result.user, age: form.age, gender: form.gender, category: form.category }, result.token);
-        if (newPassword) await c.request('/auth/password', { method: 'PUT', body: { currentPassword, newPassword } });
-        c.go('profile');
-    }); };
-    return <main className="ggo-page ggo-has-footer"><Header title="Edit profile" toolbar={false} back="profile" /><Art className="ggo-edit-profile-avatar" file="avatar-profile.png" width="88" height="76" /><p className="ggo-profile-helper">Used automatically for Passenger 1.{!c.preview && ' Age, gender and category are saved on this device.'}</p><form id="ggo-profile-form" className="ggo-form" onSubmit={save}><Field label="Name" icon="user" value={form.fullName || ''} onChange={e => update({ fullName: e.target.value })} required /><div className="ggo-two"><Field label="Age" icon="user" type="number" inputMode="numeric" min="0" max="120" step="1" value={form.age ?? ''} onChange={e => update({ age: e.target.value })} required /><Gender value={form.gender || ''} onChange={e => update({ gender: e.target.value })} /></div><Choices label="Profile passenger category" options={['Regular', 'Student', 'PWD']} value={form.category || 'Regular'} onChange={value => update({ category: value })} /><Field label="Email" icon="mail" type="email" value={form.email || ''} onChange={e => update({ email: e.target.value })} required />{!c.preview && <Field label="Phone number" type="tel" value={form.phoneNumber || ''} onChange={e => update({ phoneNumber: e.target.value })} required />}<Field label="New password (optional)" icon="lock" type="password" placeholder="Leave empty to keep your password" autoComplete="new-password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />{newPassword && !c.preview && <Field label="Current password" icon="lock" type="password" autoComplete="current-password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} required />}</form><Footer><Button form="ggo-profile-form" type="submit" disabled={c.busy}>{c.busy ? 'Saving…' : 'Save changes'}</Button></Footer></main>;
+    const c = useClient();
+
+    const [form, setForm] = useState({
+        ...c.user,
+        age: String(c.user.age ?? ''),
+        profilePhoto: c.user.profilePhoto || ''
+    });
+
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+
+    const update = patch => {
+        setForm(current => ({
+            ...current,
+            ...patch
+        }));
+    };
+
+    const handlePhotoChange = event => {
+        const file = event.target.files?.[0];
+
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            c.setError('Please select a valid image file.');
+            event.target.value = '';
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            c.setError('Please choose an image smaller than 5 MB.');
+            event.target.value = '';
+            return;
+        }
+
+        c.setError('');
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            if (typeof reader.result === 'string') {
+                update({
+                    profilePhoto: reader.result
+                });
+            }
+        };
+
+        reader.onerror = () => {
+            c.setError('Unable to read this image. Please try again.');
+        };
+
+        reader.readAsDataURL(file);
+    };
+
+    const save = event => {
+        event.preventDefault();
+
+        c.run(async () => {
+            const ageText = String(form.age ?? '');
+
+            if (!/^\d{1,3}$/.test(ageText)) {
+                throw new Error(
+                    'Age must contain one to three digits.'
+                );
+            }
+
+            const age = Number(ageText);
+
+            if (!Number.isInteger(age) || age < 0 || age > 120) {
+                throw new Error(
+                    'Enter an age between 0 and 120.'
+                );
+            }
+
+            const issue = personIssue({
+                name: form.fullName,
+                age,
+                gender: form.gender,
+                category: form.category
+            });
+
+            if (issue) throw new Error(issue);
+
+            if (
+                newPassword &&
+                passwordIssue(newPassword)
+            ) {
+                throw new Error(passwordIssue(newPassword));
+            }
+
+            const updatedProfile = {
+                ...c.user,
+                ...form,
+                age,
+                profilePhoto: form.profilePhoto || ''
+            };
+
+            if (c.preview) {
+                c.saveUser(updatedProfile);
+                c.go('profile');
+                return;
+            }
+
+            const result = await c.request('/auth/profile', {
+                method: 'PUT',
+                body: {
+                    fullName: form.fullName,
+                    email: form.email,
+                    phoneNumber: form.phoneNumber,
+                    profilePhoto: form.profilePhoto || ''
+                }
+            });
+
+            c.saveUser(
+                {
+                    ...result.user,
+                    age,
+                    gender: form.gender,
+                    category: form.category
+                },
+                result.token
+            );
+
+            if (newPassword) {
+                await c.request('/auth/password', {
+                    method: 'PUT',
+                    body: {
+                        currentPassword,
+                        newPassword
+                    }
+                });
+            }
+
+            c.go('profile');
+        });
+    };
+
+    return (
+        <main className="ggo-page ggo-has-footer">
+            <Header
+                title="Edit profile"
+                toolbar={false}
+                back="profile"
+            />
+
+            <div className="ggo-edit-profile-photo">
+                {form.profilePhoto ? (
+                    <img
+                        className="ggo-account-avatar ggo-edit-profile-avatar"
+                        src={form.profilePhoto}
+                        alt="Profile photo preview"
+                        width="100"
+                        height="100"
+                    />
+                ) : (
+                    <Art
+                        className="ggo-edit-profile-avatar"
+                        file="avatar-profile.png"
+                        width="100"
+                        height="100"
+                    />
+                )}
+
+                <label
+                    className="ggo-photo-upload"
+                    htmlFor="ggo-profile-photo"
+                >
+                    {form.profilePhoto
+                        ? 'Change photo'
+                        : 'Add profile photo'}
+                </label>
+
+                <input
+                    id="ggo-profile-photo"
+                    className="ggo-photo-file-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoChange}
+                />
+
+                {form.profilePhoto && (
+                    <button
+                        type="button"
+                        className="ggo-photo-remove"
+                        onClick={() => {
+                            update({ profilePhoto: '' });
+                        }}
+                    >
+                        Remove photo
+                    </button>
+                )}
+            </div>
+
+            <p className="ggo-profile-helper">
+                Your photo is used on your profile.
+                {!c.preview &&
+                    ' Age, gender and category are saved on this device.'}
+            </p>
+
+            <form
+                id="ggo-profile-form"
+                className="ggo-form"
+                onSubmit={save}
+            >
+                <Field
+                    label="Name"
+                    icon="user"
+                    value={form.fullName || ''}
+                    onChange={e =>
+                        update({ fullName: e.target.value })
+                    }
+                    required
+                />
+
+                <div className="ggo-two">
+                    <div className="ggo-field">
+                        <label htmlFor="ggo-profile-age">
+                            Age
+                        </label>
+
+                        <div className="ggo-input">
+                            <Icon name="user" />
+
+                            <input
+                                id="ggo-profile-age"
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]{1,3}"
+                                maxLength={3}
+                                value={form.age ?? ''}
+                                onChange={e => {
+                                    const age = e.target.value
+                                        .replace(/\D/g, '')
+                                        .slice(0, 3);
+
+                                    update({ age });
+                                }}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <Gender
+                        value={form.gender || ''}
+                        onChange={e =>
+                            update({ gender: e.target.value })
+                        }
+                    />
+                </div>
+
+                <Choices
+                    label="Profile passenger category"
+                    options={['Regular', 'Student', 'PWD']}
+                    value={form.category || 'Regular'}
+                    onChange={value =>
+                        update({ category: value })
+                    }
+                />
+
+                <Field
+                    label="Email"
+                    icon="mail"
+                    type="email"
+                    value={form.email || ''}
+                    onChange={e =>
+                        update({ email: e.target.value })
+                    }
+                    required
+                />
+
+                {!c.preview && (
+                    <Field
+                        label="Phone number"
+                        type="tel"
+                        value={form.phoneNumber || ''}
+                        onChange={e =>
+                            update({
+                                phoneNumber: e.target.value
+                            })
+                        }
+                        required
+                    />
+                )}
+
+                <Field
+                    label="New password (optional)"
+                    icon="lock"
+                    type="password"
+                    placeholder="Leave empty to keep your password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={e =>
+                        setNewPassword(e.target.value)
+                    }
+                />
+
+                {newPassword && !c.preview && (
+                    <Field
+                        label="Current password"
+                        icon="lock"
+                        type="password"
+                        autoComplete="current-password"
+                        value={currentPassword}
+                        onChange={e =>
+                            setCurrentPassword(e.target.value)
+                        }
+                        required
+                    />
+                )}
+            </form>
+
+            <Footer>
+                <Button
+                    form="ggo-profile-form"
+                    type="submit"
+                    disabled={c.busy}
+                >
+                    {c.busy ? 'Saving…' : 'Save changes'}
+                </Button>
+            </Footer>
+        </main>
+    );
 }
+
 export function ClientLanguage() {
     const c = useClient(); const [selected, setSelected] = useState(c.language);
     return <main className="ggo-page ggo-has-footer"><Header title="Language" description="Choose your preferred app language." toolbar={false} back="profile" /><div className="ggo-language-choices">{['English', 'Filipino', 'Hiligaynon'].map(value => <button key={value} className={selected === value ? 'selected' : ''} aria-pressed={selected === value} onClick={() => setSelected(value)}>{value}<span className="ggo-radio" /></button>)}</div>{selected !== 'English' && <p className="ggo-language-note">Your preference will be saved. The interface is currently available in English.</p>}<Footer><Button onClick={() => { c.setLanguage(selected); c.go('profile'); }}>Done</Button></Footer></main>;
@@ -84,7 +580,7 @@ export function ClientNotifications() {
 }
 export function ClientAge() {
     const c = useClient(); const [value, setValue] = useState(String(c.registration.age || ''));
-    return <main className="ggo-page ggo-has-footer"><Header title="Passenger age" description="Enter their age. Ages 60 and above require a valid ID photo for staff approval." toolbar={false} /><Field label="Age" type="number" inputMode="numeric" value={value} onChange={e => setValue(e.target.value)} min="0" max="120" step="1" /><small>A passenger discount applies only after staff approval.</small><div className="ggo-age-keypad">{['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0'].map(key => <button key={key} onClick={() => setValue(key === 'Clear' ? '' : (value + key).slice(0, 3))}>{key}</button>)}</div><Footer><Button onClick={() => { if (!value || !Number.isInteger(Number(value)) || Number(value) > 120) return c.setError('Enter an age between 0 and 120.'); c.setRegistration({ ...c.registration, age: Number(value) }); c.go('register'); }}>Done</Button><Button secondary onClick={() => c.go('register')}>Cancel</Button></Footer></main>;
+    return <main className="ggo-page ggo-has-footer"><Header title="Passenger age" description="Enter their age. Ages 60 and above require a valid ID photo for staff approval." toolbar={false} /><Field label="Age" type="text" inputMode="numeric" pattern="[0-9]{1,3}" maxLength={3} value={value} onChange={e => setValue(e.target.value.replace(/\D/g, '').slice(0, 3))} /><small>A passenger discount applies only after staff approval.</small><div className="ggo-age-keypad">{['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0'].map(key => <button key={key} onClick={() => setValue(key === 'Clear' ? '' : (value + key).slice(0, 3))}>{key}</button>)}</div><Footer><Button onClick={() => { if (!value || !Number.isInteger(Number(value)) || Number(value) > 120) return c.setError('Enter an age between 0 and 120.'); c.setRegistration({ ...c.registration, age: Number(value) }); c.go('register'); }}>Done</Button><Button secondary onClick={() => c.go('register')}>Cancel</Button></Footer></main>;
 }
 
 export function ClientGender() {
