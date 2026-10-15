@@ -27,6 +27,18 @@ const userSchema = new mongoose.Schema(
             required: true
         },
 
+        passwordResetTokenHash: {
+            type: String,
+            default: undefined,
+            select: false
+        },
+
+        passwordResetExpiresAt: {
+            type: Date,
+            default: undefined,
+            select: false
+        },
+
         profilePicture: {
             type: String,
             default: ""

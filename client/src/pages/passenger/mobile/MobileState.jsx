@@ -16,6 +16,81 @@ import './Mobile.css';
 
 const Context = createContext(null);
 
+const passengerGuideSteps = [
+    {
+        title: 'Choose a ferry',
+        detail: 'Browse the vessel cards on Home. Tap “Show more” to view that ferry’s trips and schedule.'
+    },
+    {
+        title: 'Pick a departure',
+        detail: 'Choose your travel date and route, then tap an available departure time to continue booking.'
+    },
+    {
+        title: 'Finish your booking',
+        detail: 'Enter passenger details, choose whether you are bringing a motorcycle, then follow the payment steps.'
+    },
+    {
+        title: 'Find your tickets',
+        detail: 'Open Tickets in the bottom menu to see confirmed bookings and boarding passes.'
+    },
+    {
+        title: 'Check payments',
+        detail: 'Open Payments to review whether a payment is processing, paid, or needs attention.'
+    },
+    {
+        title: 'Manage your account',
+        detail: 'Open Profile to update your details, notification preferences, language, and other settings.'
+    },
+    {
+        title: 'See notifications',
+        detail: 'Tap the bell near the top of the screen to read booking, payment, and account updates.'
+    }
+];
+
+function PassengerGuide({ onClose }) {
+    const [step, setStep] = useState(0);
+
+    useEffect(() => {
+        const closeOnEscape = event => {
+            if (event.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', closeOnEscape);
+        return () => window.removeEventListener('keydown', closeOnEscape);
+    }, [onClose]);
+
+    const current = passengerGuideSteps[step];
+    const lastStep = step === passengerGuideSteps.length - 1;
+
+    return (
+        <div className="ggo-guide-overlay">
+            <section className="ggo-guide-card" role="dialog" aria-modal="true" aria-labelledby="ggo-guide-title">
+                <div className="ggo-guide-heading">
+                    <span>QUICK GUIDE · {step + 1} OF {passengerGuideSteps.length}</span>
+                    <button type="button" className="ggo-guide-close" onClick={onClose} aria-label="Close guide">×</button>
+                </div>
+                <div className="ggo-guide-message" key={step}>
+                    <h2 id="ggo-guide-title">{current.title}</h2>
+                    <p>{current.detail}</p>
+                </div>
+                <div className="ggo-guide-progress" aria-label={`Guide step ${step + 1} of ${passengerGuideSteps.length}`}>
+                    {passengerGuideSteps.map((item, index) => (
+                        <span key={item.title} className={index <= step ? 'active' : ''} />
+                    ))}
+                </div>
+                <div className="ggo-guide-actions">
+                    <button type="button" className="ggo-guide-skip" onClick={onClose}>Skip guide</button>
+                    <div>
+                        {step > 0 && <button type="button" className="ggo-guide-back" onClick={() => setStep(value => value - 1)}>Back</button>}
+                        <button type="button" className="ggo-guide-next" onClick={() => lastStep ? onClose() : setStep(value => value + 1)}>
+                            {lastStep ? 'Done' : 'Next'}
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+}
+
 export const useClient = () => useContext(Context);
 
 // Use the local API while running Vite in development, even if a production
@@ -123,6 +198,7 @@ export default function MobileApp({ preview = false }) {
     const [error, setError] = useState('');
     const [busy, setBusy] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [guideOpen, setGuideOpen] = useState(false);
 
     const [photo, setPhoto] = useState(null);
     const [photoPerson, setPhotoPerson] = useState(null);
@@ -349,7 +425,10 @@ export default function MobileApp({ preview = false }) {
      * - { data: { schedules: [...] } }
      */
     useEffect(() => {
-        if (preview || publicPage || !token()) return;
+        if (preview || publicPage || !token()) {
+            setLoading(false);
+            return;
+        }
 
         const controller = new AbortController();
 
@@ -418,7 +497,9 @@ export default function MobileApp({ preview = false }) {
 
         loadPassengerData();
 
-        return () => controller.abort();
+        return () => {
+            controller.abort();
+        };
     }, [preview, date, path, publicPage]);
 
     useEffect(() => {
@@ -561,7 +642,8 @@ export default function MobileApp({ preview = false }) {
         events,
         read,
         markRead,
-        logout
+        logout,
+        openGuide: () => setGuideOpen(true)
     };
 
     if (!preview && !publicPage && !token()) {
@@ -685,7 +767,7 @@ export default function MobileApp({ preview = false }) {
                                 </div>
                             )}
 
-                            {loading && (
+                            {loading && !publicPage && (
                                 <div
                                     className="ggo-loading-overlay"
                                     role="status"
@@ -700,6 +782,8 @@ export default function MobileApp({ preview = false }) {
 
                             <Outlet />
                         </div>
+
+                        {guideOpen && <PassengerGuide onClose={() => setGuideOpen(false)} />}
 
                         {navActive && (
                             <BottomNav

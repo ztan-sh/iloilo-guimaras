@@ -1,46 +1,171 @@
-
 .ggo-splash {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 9999;
     width: 100%;
     height: 100%;
-    height: 100dvh;
+    min-height: 0;
     overflow: hidden;
-    background: #fff;
+    isolation: isolate;
+    border-radius: inherit;
+    background: linear-gradient(180deg, #f97316 0%, #ff8a22 34%, #f4b832 100%);
+    touch-action: none;
 }
 
-.ggo-splash-video {
-    display: block;
+.ggo-mobile-app:has(.ggo-splash),
+.ggo-mobile-app:has(.ggo-page.ggo-auth) {
+    border-radius: clamp(22px, 2.2vw, 32px);
+    overflow: clip;
+}
+
+.ggo-mobile-app:has(.ggo-splash) {
+    background: transparent;
+}
+
+.ggo-splash-waves {
+    position: absolute;
+    inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    object-position: center;
-    background: #fff;
+    pointer-events: none;
 }
 
-.ggo-splash-skip {
+.ggo-splash-entry {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 24px 24px max(76px, calc(env(safe-area-inset-bottom, 0px) + 36px));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 300ms ease, visibility 0s linear 300ms;
+}
+
+.ggo-splash-entry-content {
+    display: grid;
+    justify-items: center;
+    gap: 14px;
+    width: min(100%, 360px);
+    text-align: center;
+    transform: translateY(18px);
+    transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ggo-splash-entry-content p {
+    margin: 0;
+    color: #123e39;
+    font: 600 15px/21px 'Geist Variable', Arial, sans-serif;
+}
+
+.ggo-splash-entry-content button {
+    width: min(100%, 330px);
+    min-height: 54px;
+    border: 1px solid #ffffffb3;
+    border-radius: 28px;
+    background: #172a2b;
+    color: #fff;
+    font: 700 16px/22px 'Geist Variable', Arial, sans-serif;
+    cursor: pointer;
+    box-shadow: 0 8px 24px #143c3633;
+}
+
+.ggo-splash-entry-content button:focus-visible {
+    outline: 3px solid #fff;
+    outline-offset: 4px;
+}
+
+.ggo-splash.is-revealed .ggo-splash-entry {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity 300ms ease 120ms, visibility 0s;
+}
+
+.ggo-splash.is-revealed .ggo-splash-entry-content { transform: translateY(0); }
+
+.ggo-splash.is-logging-in { animation: ggo-splash-leave 220ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+.ggo-splash-curtain {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: transparent;
+    transform: translate3d(0, var(--ggo-splash-drag, 0px), 0);
+    transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+}
+
+.ggo-splash-curtain.is-dragging { transition: none; }
+
+.ggo-splash-logo {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: clamp(170px, 52vw, 270px);
+    max-height: 32vh;
+    object-fit: contain;
+    filter: drop-shadow(0 12px 18px #74341138);
+    transform: translate(-50%, -50%);
+    animation: ggo-splash-logo-float 3.2s ease-in-out infinite;
+}
+
+.ggo-splash-prompt {
     position: absolute;
     right: 20px;
-    bottom: max(24px, env(safe-area-inset-bottom));
-    z-index: 2;
-    padding: 10px 18px;
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    border-radius: 24px;
-    background: rgba(20, 35, 45, 0.72);
-    color: #fff;
-    font: inherit;
-    font-size: 14px;
-    cursor: pointer;
+    bottom: max(30px, calc(env(safe-area-inset-bottom, 0px) + 14px));
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    color: #143f39;
+    font: 600 13px/18px 'Geist Variable', Arial, sans-serif;
+    text-align: center;
+    text-shadow: 0 1px #ffffff66;
 }
 
-.ggo-splash-skip:focus-visible {
-    outline: 3px solid #f5a623;
-    outline-offset: 3px;
+.ggo-splash-arrow {
+    display: block;
+    font: 400 32px/22px Arial, sans-serif;
+    animation: ggo-splash-arrow-bounce 1.2s ease-in-out infinite;
+}
+
+@keyframes ggo-splash-logo-float {
+    0%, 100% { margin-top: 0; }
+    50% { margin-top: -8px; }
+}
+
+@keyframes ggo-splash-arrow-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+@keyframes ggo-splash-leave {
+    to { opacity: 0; transform: translateY(-8px); }
+}
+
+.ggo-login-arrive { width: 100%; min-height: 100%; animation: ggo-login-arrive 320ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes ggo-login-arrive {
+    from { transform: translateY(10px); }
+    to { transform: translateY(0); }
+}
+
+@media (max-height: 620px) {
+    .ggo-splash-logo { width: clamp(130px, 38vh, 210px); }
+    .ggo-splash-prompt { bottom: max(16px, calc(env(safe-area-inset-bottom, 0px) + 8px)); }
+    .ggo-splash-entry { padding-bottom: max(56px, calc(env(safe-area-inset-bottom, 0px) + 20px)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ggo-splash-video {
-        animation: none;
-    }
+    .ggo-splash-curtain,
+    .ggo-splash-entry,
+    .ggo-splash-entry-content { transition-duration: 0.01ms !important; }
+    .ggo-splash.is-logging-in,
+    .ggo-login-arrive { animation-duration: 0.01ms !important; }
+    .ggo-splash-logo,
+    .ggo-splash-arrow { animation: none; }
 }

@@ -6,6 +6,8 @@ const {
     getMe,
     updateProfile,
     changePassword,
+    requestPasswordReset,
+    resetPassword,
     updateNotificationPreference
 } = require("../controllers/authController");
 
@@ -32,6 +34,9 @@ router.post(
     "/login",
     login
 );
+
+router.post("/password-reset/request", requestPasswordReset);
+router.post("/password-reset/confirm", resetPassword);
 
 
 // =========================================================

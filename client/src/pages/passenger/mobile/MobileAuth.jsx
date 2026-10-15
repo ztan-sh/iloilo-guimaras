@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useClient } from './MobileState';
 import {
     Brand,
@@ -462,43 +462,127 @@ export function ClientRegister() {
 export function ClientReset() {
     const c = useClient();
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [complete, setComplete] = useState(false);
+    const [devResetUrl, setDevResetUrl] = useState(() =>
+        sessionStorage.getItem('ggo-dev-password-reset-link') || ''
+    );
+    const [searchParams] = useSearchParams();
+    const resetToken = searchParams.get('token') || '';
+    const resetting = Boolean(resetToken);
     const sent = c.path === 'reset-sent';
+
+    const submitResetRequest = e => {
+        e.preventDefault();
+        c.run(async () => {
+            if (c.preview) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } else {
+                const data = await c.request('/auth/password-reset/request', {
+                    method: 'POST',
+                    body: { email: email.trim() }
+                });
+                const localResetUrl = data.devResetUrl || '';
+                setDevResetUrl(localResetUrl);
+                if (localResetUrl) {
+                    sessionStorage.setItem('ggo-dev-password-reset-link', localResetUrl);
+                } else {
+                    sessionStorage.removeItem('ggo-dev-password-reset-link');
+                }
+            }
+            c.go('reset-sent');
+        });
+    };
+
+    const submitNewPassword = e => {
+        e.preventDefault();
+        if (password !== confirmPassword) {
+            c.setError('The passwords do not match.');
+            return;
+        }
+
+        c.run(async () => {
+            await c.request('/auth/password-reset/confirm', {
+                method: 'POST',
+                body: { token: resetToken, newPassword: password }
+            });
+            sessionStorage.removeItem('ggo-dev-password-reset-link');
+            setDevResetUrl('');
+            setComplete(true);
+        });
+    };
 
     return (
         <main className="ggo-reset-screen">
             <section className="ggo-reset-dialog">
-                {sent && (
+                {(sent || complete) && (
                     <span className="ggo-success-icon">
                         <Icon name="check" />
                     </span>
                 )}
 
                 <h1>
-                    {sent ? 'Check your inbox' : 'Reset your password'}
+                    {complete
+                        ? 'Password updated'
+                        : resetting
+                            ? 'Choose a new password'
+                            : sent
+                                ? 'Check your inbox'
+                                : 'Reset your password'}
                 </h1>
 
                 <p>
-                    {sent
-                        ? 'Preview: the reset-link confirmation is shown. No email was sent.'
-                        : 'Enter your account email and we’ll send a reset link.'}
+                    {complete
+                        ? 'Your password has been changed. You can now log in with your new password.'
+                        : resetting
+                            ? 'Create a new password for your GuimarasGo account.'
+                            : sent
+                                ? devResetUrl
+                                    ? 'Use the local reset link below to choose a new password. It expires in 30 minutes.'
+                                    : 'If an account matches that email, a reset link will arrive shortly. The link expires in 30 minutes.'
+                                : 'Enter your account email and we’ll send a reset link.'}
                 </p>
 
-                {!sent && (
+                {sent && devResetUrl && (
+                    <a className="ggo-reset-dev-link" href={devResetUrl}>
+                        Open local password reset link
+                    </a>
+                )}
+
+                {resetting && !complete && (
+                    <form className="ggo-form" onSubmit={submitNewPassword}>
+                        <Field
+                            label="New password"
+                            type="password"
+                            icon="lock"
+                            placeholder="Enter a new password"
+                            autoComplete="new-password"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            required
+                        />
+                        <Field
+                            label="Confirm new password"
+                            type="password"
+                            icon="lock"
+                            placeholder="Enter the new password again"
+                            autoComplete="new-password"
+                            value={confirmPassword}
+                            onChange={e => setConfirmPassword(e.target.value)}
+                            required
+                        />
+                        <small>Use at least 8 characters with uppercase and lowercase letters, a number, and a symbol.</small>
+                        <Button type="submit" disabled={c.busy}>
+                            {c.busy ? 'Updating…' : 'Change password'}
+                        </Button>
+                    </form>
+                )}
+
+                {!resetting && !sent && !complete && (
                     <form
                         className="ggo-form"
-                        onSubmit={e => {
-                            e.preventDefault();
-
-                            if (c.preview) {
-                                c.run(async () => {
-                                    await new Promise(resolve =>
-                                        setTimeout(resolve, 700)
-                                    );
-
-                                    c.go('reset-sent');
-                                });
-                            }
-                        }}
+                        onSubmit={submitResetRequest}
                     >
                         <Field
                             label="Email"
@@ -510,28 +594,24 @@ export function ClientReset() {
                             required
                         />
 
-                        {!c.preview && (
-                            <p>
-                                Password reset is not available yet.
-                                Contact the terminal for account help.
-                            </p>
-                        )}
-
                         <Button
                             type="submit"
-                            disabled={!c.preview || c.busy}
+                            disabled={c.busy}
                         >
                             {c.busy ? 'Sending…' : 'Send reset link'}
                         </Button>
                     </form>
                 )}
 
-                <Link
-                    className={sent ? 'ggo-button' : 'ggo-text-link'}
-                    to={c.href('login')}
-                >
-                    Back to log in
-                </Link>
+                {(sent || complete) ? (
+                    <Link className="ggo-button" to={c.href('login')}>
+                        Back to log in
+                    </Link>
+                ) : (
+                    <Link className="ggo-text-link" to={c.href('login')}>
+                        Back to log in
+                    </Link>
+                )}
             </section>
         </main>
     );

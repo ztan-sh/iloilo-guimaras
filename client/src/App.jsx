@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 
 import Trips from "./pages/Trips";
 
@@ -41,11 +41,12 @@ login: <ClientLoginEntry />, register: <ClientRegister />, dashboard: <ClientDas
 };
 
 function ClientLoginEntry() {
+    const location = useLocation();
     const hasSeenSplash =
-        sessionStorage.getItem("ggo-splash-seen") === "true";
+        sessionStorage.getItem("ggo-splash-seen-v2") === "true";
 
     return hasSeenSplash
-        ? <ClientLogin />
+        ? <div className={location.state?.welcomeTransition ? "ggo-login-arrive" : undefined}><ClientLogin /></div>
         : <Navigate to="/splash" replace />;
 }
 

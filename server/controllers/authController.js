@@ -1,6 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const User = require("../models/User");
+const { sendPasswordResetEmail } = require("../services/emailService");
 
 // ========================================
 // CREATE TOKEN
@@ -32,6 +34,131 @@ const isStrongPassword = (password) => {
         /\d/.test(password) &&
         /[^A-Za-z0-9]/.test(password)
     );
+};
+
+const requestPasswordReset = async (req, res) => {
+    try {
+        const email = typeof req.body.email === "string"
+            ? req.body.email.trim().toLowerCase()
+            : "";
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return res.status(400).json({ message: "Enter a valid email address." });
+        }
+
+        const emailConfigured = Boolean(
+            process.env.RESEND_API_KEY && process.env.EMAIL_FROM
+        );
+        const clientUrl = (
+            process.env.CLIENT_URL ||
+            (process.env.NODE_ENV === "production"
+                ? "https://iloilo-guimaras.vercel.app"
+                : "http://localhost:5173")
+        ).replace(/\/+$/, "");
+        const isLocalClientUrl = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(clientUrl);
+        const devLinkEnabled =
+            process.env.ENABLE_DEV_PASSWORD_RESET_LINK === "true" &&
+            process.env.NODE_ENV !== "production" &&
+            isLocalClientUrl;
+
+        if (!emailConfigured && !devLinkEnabled) {
+            return res.status(503).json({
+                message: "Password reset email is not configured yet. Please contact the terminal for account help."
+            });
+        }
+
+        const user = await User.findOne({ email });
+        if (user) {
+            const resetToken = crypto.randomBytes(32).toString("hex");
+            const tokenHash = crypto.createHash("sha256").update(resetToken).digest("hex");
+            user.passwordResetTokenHash = tokenHash;
+            user.passwordResetExpiresAt = new Date(Date.now() + 30 * 60 * 1000);
+            await user.save();
+
+            const resetUrl = `${clientUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
+            let emailSent = false;
+
+            if (emailConfigured) {
+                const result = await sendPasswordResetEmail({
+                    to: user.email,
+                    passengerName: user.fullName,
+                    resetUrl
+                });
+                emailSent = result.sent;
+
+                if (!emailSent) {
+                    console.error("Password reset email was not sent:", result.reason);
+                }
+            }
+
+            if (devLinkEnabled && !emailSent) {
+                return res.status(200).json({
+                    message: "A local password reset link is ready.",
+                    devResetUrl: resetUrl
+                });
+            }
+        }
+
+        // Keep the response the same for known and unknown email addresses.
+        return res.status(200).json({
+            message: "If an account matches that email, a password reset link will arrive shortly. The link expires in 30 minutes."
+        });
+    } catch (error) {
+        console.error("Password Reset Request Error:", error);
+        return res.status(500).json({ message: "Unable to process the reset request right now. Please try again." });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body || {};
+        if (typeof token !== "string" || !/^[a-f0-9]{64}$/i.test(token)) {
+            return res.status(400).json({ message: "This reset link is invalid or has expired. Request a new one." });
+        }
+
+        if (typeof newPassword !== "string" || !isStrongPassword(newPassword)) {
+            return res.status(400).json({
+                message: "Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character."
+            });
+        }
+
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        const user = await User.findOne({
+            passwordResetTokenHash: tokenHash,
+            passwordResetExpiresAt: { $gt: new Date() }
+        }).select("+passwordResetTokenHash +passwordResetExpiresAt");
+
+        if (!user) {
+            return res.status(400).json({ message: "This reset link is invalid or has expired. Request a new one." });
+        }
+
+        if (await bcrypt.compare(newPassword, user.password)) {
+            return res.status(400).json({ message: "Choose a password different from your current password." });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        const updated = await User.findOneAndUpdate(
+            {
+                _id: user._id,
+                passwordResetTokenHash: tokenHash,
+                passwordResetExpiresAt: { $gt: new Date() }
+            },
+            {
+                $set: { password: hashedPassword },
+                $unset: { passwordResetTokenHash: 1, passwordResetExpiresAt: 1 }
+            },
+            { new: true }
+        );
+
+        if (!updated) {
+            return res.status(400).json({ message: "This reset link is invalid or has expired. Request a new one." });
+        }
+
+        return res.status(200).json({ message: "Your password has been changed. You can now log in." });
+    } catch (error) {
+        console.error("Password Reset Confirmation Error:", error);
+        return res.status(500).json({ message: "Unable to reset the password right now. Please try again." });
+    }
 };
 
 
@@ -726,6 +853,8 @@ const updateNotificationPreference = async (req, res) => {
 module.exports = {
     register,
     login,
+    requestPasswordReset,
+    resetPassword,
     getMe,
     updateProfile,
     changePassword,

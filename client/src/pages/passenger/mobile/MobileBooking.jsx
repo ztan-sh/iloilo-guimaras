@@ -85,6 +85,13 @@ export function ClientDashboard() {
                     Hi, {c.user.fullName?.split(" ")[0] || "traveller"}!
                 </h1>
                 <p>Choose a vessel for your next crossing.</p>
+                <button
+                    type="button"
+                    className="ggo-guide-trigger"
+                    onClick={c.openGuide}
+                >
+                    How to use this app
+                </button>
             </header>
 
             <div
