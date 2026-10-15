@@ -18,9 +18,20 @@ const Context = createContext(null);
 
 export const useClient = () => useContext(Context);
 
-const API = (
-    import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
-).replace(/\/$/, '');
+// Use the local API while running Vite in development, even if a production
+// VITE_API_BASE_URL is present in the environment. In production, use the
+// configured API URL. Both values may be supplied with or without a trailing /api.
+const normalizeApiBase = value => {
+    const trimmed = String(value || '').trim().replace(/\/+$/, '');
+    if (!trimmed) return 'http://localhost:5000/api';
+    return /\/api$/i.test(trimmed) ? trimmed : `${trimmed}/api`;
+};
+
+const API = normalizeApiBase(
+    import.meta.env.DEV
+        ? (import.meta.env.VITE_LOCAL_API_BASE_URL || 'http://localhost:5000/api')
+        : (import.meta.env.VITE_API_BASE_URL || 'https://iloilo-guimaras.onrender.com/api')
+);
 
 const readJSON = (storage, key, fallback = null) => {
     try {

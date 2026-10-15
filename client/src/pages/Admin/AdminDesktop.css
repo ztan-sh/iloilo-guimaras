@@ -81,3 +81,153 @@
     .admin-desktop-schedule-filters { grid-template-columns: minmax(0, 1fr); }
     .admin-desktop-trip-status { width: auto; }
 }
+/* Schedule editor three-dot menu */
+.admin-schedule-editor-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    position: relative;
+}
+
+.admin-schedule-menu {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.admin-schedule-menu-trigger {
+    display: inline-grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #e8ded3;
+    border-radius: 12px;
+    background: #fff;
+    color: #1f2937;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.admin-schedule-menu-trigger:hover,
+.admin-schedule-menu-trigger:focus-visible {
+    background: #f8f4ef;
+    outline: 2px solid #0d9488;
+    outline-offset: 2px;
+}
+
+.admin-schedule-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    min-width: 190px;
+    padding: 6px;
+    border: 1px solid #eee4da;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.admin-schedule-menu-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #dc2626;
+    text-align: left;
+    cursor: pointer;
+}
+
+.admin-schedule-menu-dropdown button:hover,
+.admin-schedule-menu-dropdown button:focus-visible {
+    background: #fef2f2;
+    outline: none;
+}
+.admin-desktop .staff-input-wrap select { min-width: 0; width: 100%; height: 100%; border: 0; outline: none; padding: 0; background: transparent; color: var(--staff-ink); font-weight: 400; border-radius: 0; }
+.admin-desktop .staff-input-wrap select:focus-visible { outline: none; }
+.admin-desktop .staff-sidebar nav { gap: 6px; }
+.admin-desktop .staff-sidebar { min-height: 0; }
+.admin-desktop .staff-sidebar-bottom { gap: 16px; }
+.admin-desktop .staff-trip { min-height: 92px; }
+.admin-desktop-overview-panels > .staff-panel-tray { align-self: stretch; }
+.admin-desktop-overview-panels .staff-panel { min-height: 412px; }
+.admin-desktop-overview-panels .staff-panel > p { font-size: 13px; line-height: 18px; }
+.admin-desktop-status-sold-out, .admin-desktop-status-closed { background: var(--staff-surface); color: var(--staff-muted); }
+.admin-desktop-status-processing { background: #e59a25; color: var(--staff-ink); }
+.admin-desktop-status-failed, .admin-desktop-status-rejected { background: #ffecdb; color: var(--staff-ink); }
+.admin-desktop-trip-status { width: 180px; flex-shrink: 0; display: flex; justify-content: center; }
+.admin-desktop-schedule-filters { display: grid; grid-template-columns: minmax(0, 328px) minmax(0, 328px) 1fr; gap: 16px; align-items: end; }
+.admin-desktop-schedule-filters > .staff-button { width: 180px; justify-self: end; align-self: start; }
+.admin-desktop-table th:first-child, .admin-desktop-table th:last-child { width: auto; }
+.admin-desktop .admin-desktop-table tbody tr:first-child { background: transparent; }
+.admin-desktop .admin-desktop-table tbody tr[data-selected="true"], .admin-desktop .admin-desktop-table tbody tr:first-child:not([data-selected]) { background: var(--staff-background); }
+.admin-desktop-table td { height: 68px; padding: 12px 12px 12px 0; }
+.admin-desktop-table th { padding-right: 12px; }
+.admin-desktop-table .staff-status { min-width: 100px; }
+.admin-desktop-wide-table { min-width: 880px; }
+.admin-desktop-ticket-table { min-width: 540px; }
+.admin-desktop-row-button { display: block; width: 100%; border: 0; border-radius: 6px; padding: 0; text-align: left; color: inherit; background: transparent; cursor: pointer; }
+.admin-desktop-row-button:hover strong { color: var(--staff-paid); }
+.admin-desktop .admin-desktop-table tbody tr:has(.admin-desktop-row-button):hover { background: var(--staff-aqua); }
+.admin-desktop-table-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.admin-desktop-table-footer > .staff-button { width: 196px; }
+.admin-desktop-table-footer > .admin-desktop-table-footer { flex: 1; }
+.admin-desktop-pagination { display: flex; flex-shrink: 0; gap: 8px; }
+.admin-desktop-pagination button { border: 0; border-radius: 12px; background: var(--staff-surface); color: var(--staff-ink); padding: 6px 10px; cursor: pointer; }
+.admin-desktop-pagination button:hover:not(:disabled) { background: var(--staff-aqua); }
+.admin-desktop-pagination button:disabled { opacity: .45; cursor: default; }
+.admin-desktop-allocation-note { padding: 20px; border-radius: var(--staff-radius); background: var(--staff-aqua); color: var(--staff-ink) !important; font-size: 13px; line-height: 18px; }
+.admin-desktop-editor-actions { display: flex; gap: 16px; }
+.admin-desktop-editor-actions > .staff-button:first-child { width: 200px; }
+.admin-desktop-editor-actions > .staff-button:last-child { width: 160px; }
+.admin-desktop-capacity-summary { display: flex; flex-direction: column; gap: 16px; padding: 16px; border-radius: var(--staff-radius-small); background: var(--staff-aqua); }
+.admin-desktop-payment-note { display: flex; flex-direction: column; gap: 4px; padding: 16px; border-radius: var(--staff-radius-small); background: #ffecdb; }
+.admin-desktop-payment-note p, .admin-desktop-payment-note small { color: var(--staff-accent-text); font-size: 13px; line-height: 18px; }
+.admin-desktop-payment-note small { font-size: 12px; line-height: 16px; }
+.admin-desktop .staff-metric > strong { font-size: clamp(24px, 2.5vw, 36px); }
+.admin-desktop .staff-dialog p { color: var(--staff-muted); }
+.admin-desktop-notice { position: relative; }
+.admin-desktop-notice .staff-notice { padding-right: 44px; }
+.admin-desktop-notice > button { position: absolute; right: 12px; top: 8px; border: 0; background: transparent; font-size: 22px; color: var(--staff-paid); cursor: pointer; }
+.admin-desktop-legacy { align-self: flex-start; font-size: 12px; line-height: 18px; color: var(--staff-accent-text); text-underline-offset: 3px; }
+@media (min-width: 761px) {
+    .admin-desktop .staff-sidebar { overflow: hidden; }
+    .admin-desktop .staff-sidebar > :not(nav) { flex-shrink: 0; }
+    .admin-desktop .staff-sidebar nav { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .admin-desktop .staff-nav-item { flex-shrink: 0; }
+    .admin-desktop .staff-nav-item:focus-visible { outline-offset: -3px; }
+}
+@media (min-width: 761px) and (max-height: 850px) {
+    .admin-desktop .staff-sidebar, .admin-desktop .staff-sidebar-bottom { gap: 16px; }
+    .admin-desktop .staff-workspace-label, .admin-desktop .staff-terminal-info { display: none; }
+}
+@media (max-width: 1250px) {
+    .admin-desktop-trip-status { width: 140px; }
+    .admin-desktop-schedule-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 150px; }
+    .admin-desktop-schedule-filters > .staff-button { width: 150px; }
+}
+@media (max-width: 1080px) {
+    .admin-desktop-overview-panels .staff-panel { min-height: 0; }
+    .admin-desktop .staff-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .admin-desktop .staff-metrics-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+    .admin-desktop .staff-sidebar { min-height: 0; }
+    .admin-desktop .staff-sidebar nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .admin-desktop .staff-metrics-three { grid-template-columns: minmax(0, 1fr); }
+    .admin-desktop-schedule-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .admin-desktop-schedule-filters > .staff-button { grid-column: 1 / -1; justify-self: start; }
+    .admin-desktop .staff-nav-item { font-size: 12px; line-height: 16px; }
+    .admin-desktop-table-footer { flex-wrap: wrap; }
+    .admin-desktop-editor-actions > .staff-button { width: auto !important; flex: 1; }
+}
+@media (max-width: 430px) {
+    .admin-desktop .staff-sidebar nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .admin-desktop-schedule-filters { grid-template-columns: minmax(0, 1fr); }
+    .admin-desktop-trip-status { width: auto; }
+}

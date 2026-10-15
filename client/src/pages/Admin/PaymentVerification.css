@@ -928,3 +928,125 @@
 
     border-radius: 10px;
 }
+
+/* Route is rendered inside the admin workspace content column. Keep the
+   verification page aligned with that column rather than creating a second
+   oversized page canvas. */
+.payment-page {
+    width: 100%;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 24px 24px 40px;
+}
+
+.payment-card-selected {
+    border-color: #f58220;
+    box-shadow: 0 0 0 3px rgba(245, 130, 32, 0.12), 0 8px 24px rgba(25, 35, 45, 0.06);
+    scroll-margin-top: 24px;
+}
+
+.payment-page img {
+    max-width: 100%;
+}
+
+@media (max-width: 900px) {
+    .payment-page { padding: 20px 16px 32px; }
+}
+
+@media (max-width: 650px) {
+    .payment-page { padding: 16px 12px 28px; }
+}
+
+
+/* =========================================================
+   VERTICAL PAGE LAYOUT OVERRIDE
+   Keeps the header, summary, toolbar and payment list in one
+   full-width column inside the existing admin content area.
+========================================================= */
+.payment-page {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 0;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 24px clamp(16px, 2.2vw, 32px) 40px !important;
+    box-sizing: border-box !important;
+    grid-column: 1 / -1 !important;
+    float: none !important;
+}
+
+.payment-page > .payment-page-header,
+.payment-page > .payment-error,
+.payment-page > .payment-toolbar,
+.payment-page > .empty-payment-card,
+.payment-page > .payment-loading-card,
+.payment-page > .payment-list {
+    display: flex;
+    position: relative;
+    float: none;
+    width: 100% !important;
+    min-width: 0;
+    max-width: none !important;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+}
+
+.payment-page > .payment-page-header {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin: 0 0 24px;
+}
+
+.payment-page > .payment-error {
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.payment-page > .payment-toolbar {
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 20px;
+}
+
+.payment-page > .payment-list {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 20px;
+}
+
+.payment-page .payment-card {
+    display: block;
+    width: 100% !important;
+    min-width: 0;
+    max-width: none !important;
+    margin: 0;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+}
+
+@media (max-width: 650px) {
+    .payment-page {
+        padding: 16px 12px 28px !important;
+    }
+
+    .payment-page > .payment-page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+    }
+
+    .payment-page > .payment-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+    }
+
+    .payment-page .pending-summary {
+        align-self: flex-start;
+    }
+}

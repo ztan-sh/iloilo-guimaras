@@ -211,7 +211,7 @@ export function AdminPayments() {
         </AdminPanel>
         {payment && <AdminDialog title="Payment details" onClose={close}>
             <div className="staff-form-stack"><AdminStatus>{paymentState(payment)}</AdminStatus><AdminDetail label="Reference">{paymentReference(payment)}</AdminDetail><AdminDetail label="Customer">{payment.passengerName}</AdminDetail><AdminDetail label="Amount & method">{money(paymentAmount(payment))} · {payment.paymentMethod}</AdminDetail><AdminDetail label="Ticket">{isPaid(payment) ? payment.bookingReference : "Awaiting successful payment"}</AdminDetail><AdminDetail label="Ride">{payment.vesselName || payment.ferryName} · {payment.origin} → {payment.destination} · {payment.date} · {formatTime(payment.time)}</AdminDetail><AdminDetail label="Recorded at">{formatTimestamp(paymentTime(payment), true)}</AdminDetail>
-                {!preview && paymentState(payment) === "Processing" && <a className="admin-desktop-legacy" href="/admin-dashboard">Open payment verification</a>}
+                {!preview && paymentState(payment) === "Processing" && <a className="admin-desktop-legacy" href={`/admin/payment-verification?payment=${encodeURIComponent(payment._id || payment.id || payment.paymentId || "")}`}>Open payment verification</a>}
                 <AdminButton variant="secondary" onClick={close}>Close details</AdminButton></div>
         </AdminDialog>}
     </>;

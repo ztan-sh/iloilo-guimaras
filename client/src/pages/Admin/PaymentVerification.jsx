@@ -1,10 +1,16 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./PaymentVerification.css";
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Accept either an API origin or a base URL ending in /api. This component
+// appends /api to its requests, so normalize to the server origin here.
+const configuredApi = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const API_BASE_URL = configuredApi.replace(/\/+$/, "").replace(/\/api$/i, "");
 
 const PaymentVerification = ({ onPendingCountChange }) => {
     const [payments, setPayments] = useState([]);
+    const [searchParams] = useSearchParams();
+    const selectedPaymentId = searchParams.get("payment");
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState("");
@@ -137,7 +143,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
             url;
     }
 
-    return `${API_BASE_URL}${url}`;
+    return `${API_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
 };
 
     /* =========================================================
@@ -299,9 +305,15 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                 ? data.bookings
                 : [];
 
-        setPayments(
-            paymentList
-        );
+        const selectedFirst = selectedPaymentId
+            ? [...paymentList].sort((a, b) => {
+                const aMatch = String(getPaymentId(a)) === selectedPaymentId;
+                const bMatch = String(getPaymentId(b)) === selectedPaymentId;
+                return Number(bMatch) - Number(aMatch);
+            })
+            : paymentList;
+
+        setPayments(selectedFirst);
 
         if (onPendingCountChange) {
 
@@ -340,7 +352,8 @@ const PaymentVerification = ({ onPendingCountChange }) => {
 
 }, [
     token,
-    onPendingCountChange
+    onPendingCountChange,
+    selectedPaymentId
 ]);
     /* =========================================================
        INITIAL LOAD
@@ -410,10 +423,12 @@ const PaymentVerification = ({ onPendingCountChange }) => {
             setProcessing(true);
             setError("");
 
+            
             const endpoint =
                 action === "verify"
-                    ? `${API_BASE_URL}/api/admin/payments/${paymentId}/verify`
-                    : `${API_BASE_URL}/api/admin/payments/${paymentId}/reject`;
+                    ? `${API_BASE_URL}/api/bookings/${paymentId}/verify`
+                    : `${API_BASE_URL}/api/bookings/${paymentId}/reject`;
+
 
             const response = await fetch(
                 endpoint,
@@ -958,7 +973,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
 
                             return (
                                 <article
-                                    className="payment-card"
+                                    className={`payment-card ${selectedPaymentId && String(paymentId) === selectedPaymentId ? "payment-card-selected" : ""}`}
                                     key={paymentId}
                                 >
 

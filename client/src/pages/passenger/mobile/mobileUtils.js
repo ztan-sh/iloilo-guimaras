@@ -18,7 +18,7 @@ export function departureCountdown(trip, now = Date.now()) {
     const minutes = Math.max(0, Math.ceil((departure - now) / 60000));
     return { minutes, value: minutes < 60 ? minutes : minutes < 1440 ? Math.floor(minutes / 60) : Math.floor(minutes / 1440), unit: minutes < 60 ? 'min' : minutes < 1440 ? 'hr' : 'day' };
 }
-export const fareFor = (draft, operations, preview) => quoteRide(preview ? operations.prices[draft.trip.vesselName] || DEFAULT_PRICES : DEFAULT_PRICES, draft.people, draft.motorcycle, preview ? operations.requests : [], draft.regularFare);
+export const fareFor = (draft, operations, preview, livePrices = null) => quoteRide(preview ? operations.prices[draft.trip.vesselName] || DEFAULT_PRICES : livePrices || DEFAULT_PRICES, draft.people, draft.motorcycle, preview ? operations.requests : [], draft.regularFare, draft.motorcycleType);
 export function bookingIssue(draft, requests = [], preview = false) {
     if (!draft?.trip) return 'Choose a departure first.';
     if (!draft.people.length || draft.people.length > (draft.motorcycle ? 3 : 10)) return 'Choose up to 10 passengers, or 3 with a motorcycle.';

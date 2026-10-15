@@ -6,6 +6,7 @@ import { AdminBrand, AdminButton, AdminDialog, AdminField, AdminIcon, AdminNotic
 import { formatTime, formatTripDate, tripLabel, weekdayDate } from "./adminUtils";
 import { AdminBoarding, AdminOverview, AdminPassengers, AdminPayments, AdminRecords, AdminSchedules, AdminTickets, AdminTripEditor } from "./AdminScreens";
 import AdminPricing from "./AdminPricing";
+import PaymentVerification from "./PaymentVerification";
 import BookingDetails from "../../components/operations/BookingDetails";
 import OperationsNotifications from "../../components/operations/OperationsNotifications";
 import StaffDiscounts from "../Staff/StaffDiscounts";
@@ -39,7 +40,7 @@ function AdminShell() {
     const [chooseTrip, setChooseTrip] = useState(false);
     const segment = location.pathname.slice(basePath.length + 1).split("/")[0];
     const editing = segment === "trips";
-    const current = segment === "discounts" ? ["discounts", "ID-review records", "card", "ID-review records", "Inspect passenger ID submissions and staff review decisions."] : destinations.find(item => item[0] === segment) || destinations[0];
+    const current = segment === "discounts" ? ["discounts", "ID-review records", "card", "ID-review records", "Inspect passenger ID submissions and staff review decisions."] : segment === "payment-verification" ? ["payment-verification", "Payment verification", "card", "Payment verification", "Review uploaded receipts and verify or reject pending payments."] : destinations.find(item => item[0] === segment) || destinations[0];
     useAdminMotion(root, `${location.pathname}-${loading}`);
     const logout = () => {
         if (!preview) for (const storage of [localStorage, sessionStorage]) { storage.removeItem("adminToken"); storage.removeItem("adminData"); }
@@ -67,13 +68,13 @@ function AdminShell() {
                 <Route path="trips/:tripId" element={<AdminTripEditor />} /><Route path="tickets" element={<AdminTickets />} />
                 <Route path="passengers" element={<AdminPassengers />} /><Route path="payments" element={<AdminPayments />} />
                 <Route path="boarding" element={<AdminBoarding />} /><Route path="records" element={<AdminRecords />} />
-                <Route path="pricing" element={<AdminPricing />} />
+                <Route path="pricing" element={<AdminPricing />} /><Route path="payment-verification" element={<PaymentVerification />} />
                 <Route path="bookings" element={<BookingDetails role="admin" preview={preview} basePath={basePath} bookings={state.bookings} trip={selectedTrip} onSelectRelatedTrip={booking => { const related = schedules.find(item => matchesTrip(booking, item)); if (related) setSelectedId(related.id); }} />} />
                 <Route path="notifications" element={<OperationsNotifications role="admin" preview={preview} basePath={basePath} bookings={state.bookings} />} />
                 <Route path="discounts" element={<StaffDiscounts preview={preview} trip={selectedTrip} readOnly />} />
                 <Route path="*" element={<Navigate to={`${basePath}/overview`} replace />} />
             </Routes>}
-            {!preview && <a className="admin-desktop-legacy" href="/admin-dashboard">More admin tools</a>}
+            {!preview && <a className="admin-desktop-legacy" href="/admin-dashboard"></a>}
         </main>
         {chooseTrip && <AdminDialog title="Choose a departure" onClose={() => setChooseTrip(false)}>
             <AdminField label="Travel date" type="date" value={date} onChange={e => { if (e.target.value) setDate(e.target.value); }} />

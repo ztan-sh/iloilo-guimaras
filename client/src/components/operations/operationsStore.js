@@ -1,21 +1,22 @@
 import { createId } from "../../utils/createId.js";
 
-export const VESSELS = ["MV Halili", "Felipe III", "Lite Ferry 22"];
-export const DEFAULT_PRICES = Object.freeze({ solo: 40, motorcycle: 190, companion: 80, student: 20, pwd: 20, senior: 20, ppa: 65 });
+export const VESSELS = ["MV Halili", "MV FastCraft", "MV Felipe", "Felipe III", "Lite Ferry 22"];
+export const DEFAULT_PRICES = Object.freeze({ solo: 35, motorcycle: 285, smallBikeStamp: 5, bigBike: 353, bigBikeStamp: 7, companion: 70, student: 20, pwd: 20, senior: 20, ppa: 65 });
 const round = value => Math.round((value + Number.EPSILON) * 100) / 100;
 export const passengerIdentity = person => JSON.stringify([person.id, person.name?.trim(), Number(person.age), person.gender, person.category]);
 export const discountCategory = person => Number(person.age) >= 60 ? "Senior" : ["Student", "PWD"].includes(person.category) ? person.category : "Regular";
 export function pricingIssue(prices) {
     if (Object.values(prices).some(value => value == null || value === "" || !Number.isFinite(Number(value)))) return "Enter valid amounts and percentages.";
     if (Object.values(prices).some(value => Math.abs(Number(value) * 100 - Math.round(Number(value) * 100)) > 0.000001)) return "Use at most two decimal places for fares and percentages.";
-    if (prices.solo <= 0 || prices.motorcycle < prices.solo || prices.ppa < 0) return "Solo fare must be positive. Motorcycle fare must include at least the solo fare.";
+    if (prices.solo <= 0 || prices.motorcycle < prices.solo || Number(prices.bigBike) < 0 || prices.ppa < 0) return "Solo fare must be positive. Motorcycle fare must include at least the solo fare.";
     if (round(prices.companion) !== round(prices.solo * 2)) return "The companion fare must equal two solo passenger fares.";
     if ([prices.student, prices.pwd, prices.senior].some(value => value < 0 || value > 100)) return "Discount percentages must be between 0 and 100.";
     return "";
 }
-export function quoteRide(prices, passengers, motorcycle, requests = [], regularFare = false) {
+export function quoteRide(prices, passengers, motorcycle, requests = [], regularFare = false, motorcycleType = "standard") {
     const passengerFare = round(passengers.length * prices.solo);
-    const motorcycleFare = motorcycle ? round(prices.motorcycle - prices.solo) : 0;
+    const motorcycleFare = motorcycle ? round(motorcycleType === "big-bike" ? Number(prices.bigBike ?? 353) : Number(prices.motorcycle ?? 285)) : 0;
+    const stampFee = motorcycle ? round(motorcycleType === "big-bike" ? Number(prices.bigBikeStamp ?? 7) : Number(prices.smallBikeStamp ?? 5)) : 0;
     const discounts = passengers.map(person => {
         const category = discountCategory(person);
         const approval = requests.find(request => request.passenger.id === person.id && request.identity === passengerIdentity(person) && request.status === "approved" && request.photo);
@@ -23,7 +24,7 @@ export function quoteRide(prices, passengers, motorcycle, requests = [], regular
         return { id: person.id, category, percent, amount: round(prices.solo * percent / 100) };
     });
     const discount = round(discounts.reduce((sum, item) => sum + item.amount, 0));
-    return { passengerFare, motorcycleFare, discounts, discount, ppa: prices.ppa, total: round(passengerFare + motorcycleFare - discount + prices.ppa) };
+    return { passengerFare, motorcycleFare, stampFee, discounts, discount, ppa: prices.ppa, total: round(passengerFare + motorcycleFare + stampFee - discount + prices.ppa) };
 }
 export const personIssue = person => !person.name?.trim() || person.age == null || person.age === "" || !Number.isInteger(Number(person.age)) || Number(person.age) < 0 || Number(person.age) > 120 || !person.gender ? "Enter every passenger’s name, age and gender." : person.category === "Senior" && Number(person.age) < 60 ? "Senior eligibility begins at age 60." : "";
 export const samplePhoto = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="360" viewBox="0 0 600 360"><rect width="600" height="360" rx="24" fill="#e4f5f2"/><text x="40" y="60" font-family="Arial" font-size="22" fill="#06655e">PREVIEW SAMPLE — NOT REAL IDENTIFICATION</text><rect x="40" y="90" width="140" height="190" rx="16" fill="#079d92"/><circle cx="110" cy="150" r="30" fill="#fff"/><path d="M60 250a50 50 0 0 1 100 0" fill="#fff"/><g font-family="Arial" fill="#1f1f1d"><text x="210" y="135" font-size="26">Sarah Fukiko</text><text x="210" y="180" font-size="22">Student · Age 24</text><text x="210" y="225" font-size="18">Sample valid student ID</text><text x="40" y="325" font-size="18">For testing the approval flow only</text></g></svg>');

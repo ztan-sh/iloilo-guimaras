@@ -343,14 +343,17 @@ const MayaPayment = () => {
         );
 
     const passengerFare =
-        passengers * 40;
+        passengers * 35;
 
-    const motorcycleFare =
+    const isMotorcycle =
         String(normalizedTrip.vehicleType || '')
             .trim()
-            .toLowerCase() === 'motorcycle'
-            ? 150
-            : 0;
+            .toLowerCase() === 'motorcycle';
+    const motorcycleFare = isMotorcycle
+        ? String(normalizedTrip.motorcycleType || '').trim().toLowerCase() === 'big-bike'
+            ? 360
+            : 155
+        : 0;
 
     const ppaFee =
         65;

@@ -4,12 +4,16 @@ dns.setServers([
     "8.8.8.8",
     "1.1.1.1"
 ]);
+const pricingRoutes = require("./routes/pricingRoutes");
+
 
 
 const express = require("express");
+const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 
 const connectDB =
     require("./config/database");
@@ -116,15 +120,69 @@ app.use(
 // UPLOADS
 // ===============================
 
+// =====================================================
+// PAYMENT PROOF FILE SERVING
+// Existing local uploads remain available as a fallback.
+// New uploads are stored in MongoDB GridFS so they persist
+// across Render restarts and redeployments.
+// =====================================================
+
+const LOCAL_UPLOAD_DIR = path.join(__dirname, "uploads");
+
 app.use(
     "/uploads",
-    express.static(
-        path.join(
-            __dirname,
-            "uploads"
-        )
-    )
+    express.static(LOCAL_UPLOAD_DIR, {
+        fallthrough: true,
+        index: false
+    })
 );
+
+// Keep the existing /uploads/payment-proofs/<filename> URL
+// so the current admin receipt links can continue to work.
+// If the file is not on disk, look it up in MongoDB GridFS.
+app.get("/uploads/payment-proofs/:filename", async (req, res, next) => {
+    try {
+        const filename = path.basename(req.params.filename || "");
+
+        if (!filename || filename !== req.params.filename) {
+            return res.status(400).send("Invalid payment proof filename.");
+        }
+
+        if (!mongoose.connection.db) {
+            return res.status(503).send("Payment proof storage is not ready.");
+        }
+
+        const { GridFSBucket } = require("mongodb");
+        const bucket = new GridFSBucket(mongoose.connection.db, {
+            bucketName: "paymentProofs"
+        });
+
+        const files = await bucket.find({ filename }).toArray();
+        if (!files.length) {
+            return res.status(404).send("Payment proof not found.");
+        }
+
+        const file = files[files.length - 1];
+        res.set("Content-Type", file.metadata?.contentType || "application/octet-stream");
+        res.set("Content-Disposition", `inline; filename="${filename}"`);
+        res.set("Cache-Control", "private, max-age=300");
+
+        const downloadStream = bucket.openDownloadStream(file._id);
+        downloadStream.on("error", (error) => {
+            if (!res.headersSent) {
+                next(error);
+            } else {
+                res.destroy(error);
+            }
+        });
+        downloadStream.pipe(res);
+    } catch (error) {
+        console.error("Payment proof retrieval error:", error);
+        if (!res.headersSent) {
+            res.status(500).send("Unable to retrieve payment proof.");
+        }
+    }
+});
 
 
 // ===============================
@@ -253,6 +311,7 @@ app.use(
     ferryClosureRoutes
 );
 
+app.use("/api/pricing", pricingRoutes);
 
 // ===============================
 // STAFF

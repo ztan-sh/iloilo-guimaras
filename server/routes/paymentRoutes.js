@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 
 const Booking = require("../models/Booking");
+const VesselPricing = require("../models/VesselPricing");
 const protect = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -12,17 +13,20 @@ const router = express.Router();
 // UPLOAD DIRECTORY
 // =========================================================
 
-const uploadDirectory = path.join(
-    __dirname,
-    "../uploads/payment-proofs"
+// Keep upload storage aligned with server.js.
+// Configure UPLOAD_DIR=/var/data/uploads on Render when using a persistent disk.
+const uploadRoot = path.resolve(
+    process.env.UPLOAD_DIR || path.join(__dirname, "../uploads")
 );
 
-// Create directory automatically
-if (!fs.existsSync(uploadDirectory)) {
-    fs.mkdirSync(uploadDirectory, {
-        recursive: true
-    });
-}
+const uploadDirectory = path.join(
+    uploadRoot,
+    "payment-proofs"
+);
+
+fs.mkdirSync(uploadDirectory, {
+    recursive: true
+});
 
 // =========================================================
 // MULTER STORAGE
@@ -278,6 +282,70 @@ router.post(
                 });
             }
 
+            // Calculate the amount on the server from saved pricing. Never trust client totals.
+            const vesselName = String(req.body.vesselName || req.body.ferryName || "").trim();
+            if (!vesselName || vesselName.length > 120) {
+                return res.status(400).json({ success: false, message: "A valid vessel name is required." });
+            }
+
+            const DEFAULT_VESSEL_PRICES = {
+                solo: 35,
+                motorcycle: 285,
+                smallBikeStamp: 5,
+                bigBike: 353,
+                bigBikeStamp: 7,
+                companion: 70,
+                student: 20,
+                pwd: 20,
+                senior: 20,
+                ppa: 65
+            };
+
+            // New schedule vessels should remain bookable even before an admin
+            // has customized their fares. Seed a default record so the vessel
+            // also appears in the admin pricing list for later editing.
+            let pricing = await VesselPricing.findOne({
+                vesselName: { $regex: `^${vesselName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" }
+            }).lean();
+
+            if (!pricing) {
+                try {
+                    const created = await VesselPricing.findOneAndUpdate(
+                        { vesselName },
+                        { $setOnInsert: { vesselName, ...DEFAULT_VESSEL_PRICES } },
+                        { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+                    );
+                    pricing = created?.toObject ? created.toObject() : created;
+                } catch (seedError) {
+                    // A concurrent booking may seed the same vessel first.
+                    pricing = await VesselPricing.findOne({ vesselName }).lean();
+                    if (!pricing) throw seedError;
+                }
+            }
+
+            const configured = { ...DEFAULT_VESSEL_PRICES, ...(pricing || {}) };
+            const passengerCount = Math.max(1, Math.min(10, Number(passengers) || 1));
+            if (vehicleType === "Motorcycle" && !["standard", "big-bike"].includes(motorcycleType || "standard")) {
+                return res.status(400).json({ success: false, message: "Choose a standard motorcycle or big bike." });
+            }
+            if (vehicleType === "Motorcycle" && motorcycleType === "big-bike" && passengerCount > 3) {
+                return res.status(400).json({ success: false, message: "Big-bike bookings are limited to 3 passengers." });
+            }
+            const serverPassengerFare = Math.round(passengerCount * Number(configured.solo) * 100) / 100;
+            const serverMotorcycleFare = vehicleType !== "Motorcycle" ? 0 : motorcycleType === "big-bike"
+                ? Number(configured.bigBike)
+                : Number(configured.motorcycle);
+            const serverStampFee = vehicleType !== "Motorcycle" ? 0 : motorcycleType === "big-bike"
+                ? Number(configured.bigBikeStamp) : Number(configured.smallBikeStamp);
+            const serverPpaFee = Number(configured.ppa);
+            const serverRequiredAmount = Math.round((serverPassengerFare + serverMotorcycleFare + serverStampFee + serverPpaFee) * 100) / 100;
+            // Persist server-calculated values, not the amounts supplied by the browser.
+            req.body.passengerFare = serverPassengerFare;
+            req.body.motorcycleFare = serverMotorcycleFare;
+            req.body.stampFee = serverStampFee;
+            req.body.ppaFee = serverPpaFee;
+            req.body.requiredAmount = serverRequiredAmount;
+
             // =================================================
             // CHECK DUPLICATE BOOKING REFERENCE
             // =================================================
@@ -334,13 +402,15 @@ router.post(
                     plateNumber:
                         plateNumber || "",
 
-                    passengerFare,
+                    passengerFare: req.body.passengerFare,
 
-                    motorcycleFare,
+                    motorcycleFare: req.body.motorcycleFare,
 
-                    ppaFee,
+                    stampFee: req.body.stampFee,
 
-                    requiredAmount,
+                    ppaFee: req.body.ppaFee,
+
+                    requiredAmount: req.body.requiredAmount,
 
                     totalPaid:
                         null,
