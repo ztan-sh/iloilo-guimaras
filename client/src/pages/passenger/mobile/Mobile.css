@@ -5,7 +5,7 @@
 @import "@fontsource-variable/geist";
 
 .ggo-mobile-stage { --ggo-ink:#192729; --ggo-muted:#687b7d; --ggo-bg:#fff; --ggo-surface:#f7fafa; --ggo-line:#e8efee; --ggo-aqua:#e6f8f6; --ggo-accent:#fc7511; --ggo-soft:#fff0e5; --ggo-accent-text:#a34e1b; font-family:'Geist Variable',sans-serif; color:var(--ggo-ink); display:flex; justify-content:center; min-height:100dvh; background:#e6efee; }
-.ggo-mobile-app { width:100%; max-width:480px; background:linear-gradient(var(--ggo-aqua),var(--ggo-bg) 290px); min-height:100dvh; position:relative; isolation:isolate; border-radius:clamp(22px,2.2vw,32px); overflow:clip; }
+.ggo-mobile-app { width:100%; max-width:480px; background:linear-gradient(var(--ggo-aqua),var(--ggo-bg) 290px); min-height:100dvh; position:relative; isolation:isolate; border-radius:0; overflow:clip; }
 .ggo-mobile-scroll { height:100dvh; overflow-y:auto; overflow-x:clip; overscroll-behavior-y:contain; scrollbar-width:none; }
 .ggo-mobile-scroll::-webkit-scrollbar { display:none; }
 .ggo-mobile-app button,.ggo-mobile-app input,.ggo-mobile-app select { font:inherit; }
@@ -410,6 +410,55 @@
 @media (min-width:600px) { .ggo-mobile-app { box-shadow:0 0 60px #1927290c; }.ggo-is-preview { max-width:402px; }.ggo-mobile-stage:has(.ggo-is-preview) .ggo-action-footer { max-width:402px; }.ggo-mobile-stage:has(.ggo-is-preview) .ggo-bottom-nav { max-width:388px; } }
 @media (max-width:370px) { .ggo-page { padding-left:18px; padding-right:18px; }.ggo-action-footer { padding-left:18px; padding-right:18px; }.ggo-vessel-available,.ggo-vessel-duration { font-size:15px; }.ggo-vessel-more { font-size:16px; }.ggo-quantity > span { max-width:140px; } }
 @media (prefers-reduced-motion:reduce) { .ggo-mobile-app * { transition:none !important; scroll-behavior:auto !important; } }
+
+/* Keep passenger pages readable on short phone screens. */
+.ggo-mobile-app .ggo-book-page { height:auto; min-height:100%; }
+.ggo-mobile-app .ggo-book-details { flex:none; min-height:auto; overflow:visible; }
+
+/* Keep the notification glyph itself visible without a white badge behind it. */
+.ggo-mobile-app .ggo-bell > .ggo-icon,
+.ggo-mobile-app .ggo-dashboard-toolbar .ggo-bell > .ggo-icon {
+    position:relative;
+    z-index:1;
+    width:24px;
+    height:24px;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+}
+.ggo-mobile-app .ggo-bell > .ggo-icon img {
+    display:block;
+    width:20px;
+    height:20px;
+    filter:brightness(0) invert(1);
+}
+.ggo-mobile-app .ggo-dashboard-toolbar .ggo-bell::before,
+.ggo-mobile-app .ggo-schedule-hero > .ggo-bell::before,
+.ggo-mobile-app .ggo-book-toolbar .ggo-bell::before {
+    content:none;
+}
+
+.ggo-toolbar-profile { display:flex; align-items:center; justify-content:center; flex:none; width:44px; height:44px; }
+.ggo-toolbar-avatar { display:block; width:36px; height:36px; overflow:hidden; border-radius:50%; background:transparent; }
+.ggo-toolbar-avatar > img { display:block; width:100%; height:100%; object-fit:cover; border-radius:50%; }
+
+.ggo-schedule-vessel { display:inline-flex; align-items:center; width:auto; margin-top:6px; padding:6px 13px; min-height:32px; border:1px solid #ffffffb3; border-radius:18px; background:#fc7511; color:#fff; font:600 13px/18px 'Geist Variable',Arial,sans-serif !important; letter-spacing:0; box-shadow:0 3px 10px #0003; }
+.ggo-schedule-vessel-name { margin:2px 0 0; color:#fff !important; font:400 14px/18px 'Arimo',Arial,sans-serif !important; letter-spacing:-.3px; }
+.ggo-schedule-book-action { position:fixed; z-index:4; left:50%; bottom:0; transform:translateX(-50%); width:100%; max-width:480px; padding:14px 24px calc(16px + env(safe-area-inset-bottom,0px)); background:linear-gradient(transparent,var(--ggo-bg) 24%); }
+.ggo-schedule-book-action .ggo-button { width:100%; }
+.ggo-schedule .ggo-departures { padding-bottom:calc(104px + env(safe-area-inset-bottom,0px)); }
+.ggo-mobile-app .ggo-departure:disabled { opacity:1; }
+.ggo-mobile-app .ggo-departure small { color:var(--ggo-muted); font-size:11px; line-height:14px; }
+.ggo-mobile-app .ggo-departure .ggo-duration small { color:var(--ggo-muted); font-size:10px; }
+.ggo-mobile-app .ggo-departure .ggo-duration b { font-size:10px; line-height:14px; }
+.ggo-mobile-app .ggo-departure .ggo-capacity > span { min-height:18px; font-size:9px; line-height:11px; }
+.ggo-mobile-app .ggo-departure .ggo-tap,
+.ggo-mobile-app .ggo-departure .ggo-seats-left { font-size:13px; line-height:18px; }
+.ggo-schedule-controls input,.ggo-schedule-controls select { box-sizing:border-box; font-size:14px; -webkit-text-fill-color:var(--ggo-ink); opacity:1; }
+@media (max-width:380px) {
+    .ggo-schedule-controls { grid-template-columns:minmax(0,1fr); }
+    .ggo-schedule-controls input,.ggo-schedule-controls select { min-height:46px; }
+}
 
 .ggo-client-root { height:100dvh; display:flex; flex-direction:column; overflow:clip; }
 .ggo-client-root .ggo-mobile-stage { min-height:0; flex:1; overflow:clip; }

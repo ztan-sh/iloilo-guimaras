@@ -10,8 +10,8 @@ android {
         applicationId "com.guimarasgo.ticketing"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode clientPreview ? previewBuildNumber : 7
-        versionName "1.4.2"
+        versionCode clientPreview ? previewBuildNumber : 8
+        versionName "1.4.3"
         manifestPlaceholders = [appIcon: '@mipmap/ic_launcher', appRoundIcon: '@mipmap/ic_launcher_round']
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

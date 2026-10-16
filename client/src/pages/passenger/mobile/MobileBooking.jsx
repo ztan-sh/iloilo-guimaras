@@ -187,7 +187,7 @@ export function ClientSchedule() {
             <Art file="a2b02.png" width="428" height="228" />
             <Link className="ggo-schedule-back" aria-label="Back to vessels" to={c.href('dashboard')}><Art file="schedule-back.svg" /></Link>
             <NotificationBell compact />
-            <div className="ggo-schedule-intro"><h1>Hello!</h1><button type="button" className="ggo-schedule-vessel" aria-label="Change travel date or vessel" onClick={() => setOptionsOpen(true)}>{c.vessel}</button></div>
+            <div className="ggo-schedule-intro"><h1>Hello!</h1><p className="ggo-schedule-vessel-name">{c.vessel}</p></div>
             <div className="ggo-crossing"><strong>{activeRoute?.origin.toUpperCase() || '—'}</strong><div className="ggo-crossing-track"><Art file="7eaf1.svg" /><Art file="7f903.svg" /><Art file="3c859.svg" className="ggo-crossing-boat" /><small>25–35 min</small></div><strong>{activeRoute?.destination.toUpperCase() || '—'}</strong></div>
         </header>
         <div className="ggo-direction"><strong>{activeRoute?.origin.toUpperCase() || '—'}</strong><button type="button" aria-label="Change route" disabled={routeOptions.length < 2} onClick={changeRoute}><Art file="schedule-repeat.png" /></button><strong>{activeRoute?.destination.toUpperCase() || '—'}</strong></div>
@@ -208,6 +208,7 @@ export function ClientSchedule() {
                 </span></span>
             </button>;
         })}{!c.loading && !trips.length && <Panel>No departures for this date and direction.</Panel>}</div>
+        <div className="ggo-schedule-book-action"><Button orange onClick={() => setOptionsOpen(true)}>Book a Trip</Button></div>
         {optionsOpen && <MobileDialog title="Travel options" onClose={() => setOptionsOpen(false)}><h2>Travel options</h2><div className="ggo-schedule-controls"><div><label htmlFor="ggo-schedule-date">Travel date</label><input id="ggo-schedule-date" type="date" value={c.date} min={todayInManila()} onChange={e => c.setDate(e.target.value)} /></div><div><label htmlFor="ggo-schedule-vessel">Vessel</label><select id="ggo-schedule-vessel" value={c.vessel} onChange={e => c.setVessel(e.target.value)}>{[...new Set(c.schedules.map(t => t.vesselName))].map(v => <option key={v}>{v}</option>)}{!c.schedules.some(t => t.vesselName === c.vessel) && <option>{c.vessel}</option>}</select></div><div><label htmlFor="ggo-schedule-route">Route</label><select id="ggo-schedule-route" value={activeRoute?.key || ''} onChange={e => { setSelectedRouteKey(e.target.value); c.setReverse(routeOptions.findIndex(route => route.key === e.target.value) > 0); }}>{routeOptions.map(route => <option key={route.key} value={route.key}>{route.label}</option>)}</select></div></div><Button onClick={() => setOptionsOpen(false)}>Done</Button></MobileDialog>}
     </main>;
 }

@@ -14,7 +14,7 @@
 
 .ggo-mobile-app:has(.ggo-splash),
 .ggo-mobile-app:has(.ggo-page.ggo-auth) {
-    border-radius: clamp(22px, 2.2vw, 32px);
+    border-radius: 0;
     overflow: clip;
 }
 

@@ -1,4 +1,4 @@
-import React, { useId, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
@@ -26,9 +26,18 @@ export function Gender({ value, onChange }) {
 export function Choices({ options, value, onChange, label }) { return <div className="ggo-choices" role="group" aria-label={label}>{options.map(option => <button type="button" key={option} aria-pressed={value === option} className={value === option ? 'selected' : ''} onClick={() => onChange(option)}>{option}</button>)}</div>; }
 export function Panel({ children, className = '', as: Tag = 'section', ...props }) { return <Tag className={`ggo-panel ${className}`} {...props}>{children}</Tag>; }
 export function NotificationBell({ compact = false }) { const c = useClient(); return <Link className={`ggo-bell ${compact ? 'ggo-bell-compact' : ''}`} aria-label="Notifications" to={c.href('notifications')}><Icon name="bell" />{c.events.some(e => !c.read.includes(e.id)) && <Art file="1f53b.svg" className="ggo-unread-dot" />}</Link>; }
+export function ProfileAvatar() {
+    const c = useClient();
+    const [failed, setFailed] = useState(false);
+    const savedPhoto = c.user?.profilePhoto || c.user?.profilePicture || c.user?.profileImage || c.user?.avatarUrl || c.user?.photoURL || c.user?.imageUrl || c.user?.avatar || c.user?.photo || '';
+    const apiRoot = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+    const photo = savedPhoto ? (/^https?:\/\/|^data:image\//i.test(savedPhoto) ? savedPhoto : `${apiRoot}/${String(savedPhoto).replace(/^\/+/, '')}`) : '';
+    useEffect(() => setFailed(false), [photo]);
+    return <Link aria-label="Open profile" className="ggo-toolbar-profile" to={c.href('profile')}><span className="ggo-toolbar-avatar">{photo && !failed ? <img src={photo} alt={`${c.user?.fullName || 'Your'} profile`} onError={() => setFailed(true)} /> : <Art file="avatar-sarah.png" alt="Profile" />}</span></Link>;
+}
 export function Header({ title, description, toolbar = true, back }) {
-    const c = useClient(); const [search, setSearch] = useState('');
-    return <header className="ggo-header">{toolbar && <div className="ggo-toolbar"><Link aria-label="Open profile" to={c.href('profile')}><Art file="avatar-sarah.png" width="33" height="27" /></Link><form onSubmit={e => { e.preventDefault(); const found = c.schedules.find(t => t.vesselName.toLowerCase().includes(search.trim().toLowerCase())); if (found) { c.setVessel(found.vesselName); c.go('schedule'); } else c.setError('No vessel matches your search.'); }}><input aria-label="Search vessels" placeholder="Search" value={search} onChange={e => setSearch(e.target.value)} /></form><NotificationBell /></div>}
+    const c = useClient();
+    return <header className="ggo-header">{toolbar && <div className="ggo-toolbar"><ProfileAvatar /><NotificationBell /></div>}
         {back && <Link className="ggo-back" aria-label="Back" to={c.href(back)}><Icon name="back" /></Link>}<h1>{title}</h1>{description && <p>{description}</p>}
     </header>;
 }
