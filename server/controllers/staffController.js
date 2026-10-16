@@ -2,11 +2,20 @@ const mongoose = require("mongoose");
 const Booking = require("../models/Booking");
 const FerrySchedule = require("../models/FerrySchedule");
 const { manilaDate, belongsToTrip } = require("../utils/staffTrip");
+const { recordActivity } = require("../utils/activityAudit");
 
 const getBookingByReferenceForStaff = async (req, res) => {
     try {
         const booking = await Booking.findOne({ bookingReference: String(req.params.bookingReference || "").trim() });
-        if (!booking) return res.status(404).json({ success: false, message: "Ticket not found. Check the booking reference and try again." });
+        if (!booking) {
+            await recordActivity({ req, actorRole: "staff", actorId: req.staff.staffId, actorName: req.staff.name, actorEmail: req.staff.email,
+                action: "Ticket lookup unsuccessful", summary: `${req.staff.name} looked up an unrecognized ticket reference`, entityType: "ticket", subject: String(req.params.bookingReference || "").trim() });
+            return res.status(404).json({ success: false, message: "Ticket not found. Check the booking reference and try again." });
+        }
+        await recordActivity({ req, actorRole: "staff", actorId: req.staff.staffId, actorName: req.staff.name, actorEmail: req.staff.email,
+            action: "Scanned ticket", summary: `${req.staff.name} scanned ${booking.bookingReference} for ${booking.passengerName}`,
+            entityType: "ticket", entityId: booking._id, subject: booking.bookingReference,
+            details: { passengerName: booking.passengerName, vesselName: booking.vesselName || booking.ferryName || "", route: `${booking.origin || ""} → ${booking.destination || ""}`, date: booking.date || "", departureTime: booking.departureTime || booking.time || "" } });
         res.json({ success: true, booking });
     } catch (error) {
         console.error("Staff ticket lookup error:", error);
@@ -49,6 +58,11 @@ const verifyBoarding = async (req, res) => {
         if (!await validateSelectedTrip(req, res, booking)) return;
         const updated = await Booking.findOneAndUpdate({ _id: booking._id, paymentStatus: "VERIFIED", status: "CONFIRMED", boardingStatus: "NOT BOARDED" }, { $set: { boardingStatus: "ON BOARD", boardedAt: new Date(), boardedByName: req.staff.name || "Terminal staff" } }, { new: true, runValidators: true });
         if (!updated) return res.status(409).json({ success: false, message: "This ticket was updated by another staff member. Scan it again.", booking: await Booking.findById(booking._id) });
+        req.auditLogged = true;
+        await recordActivity({ req, actorRole: "staff", actorId: req.staff.staffId, actorName: req.staff.name, actorEmail: req.staff.email,
+            action: "Boarded passenger", summary: `${req.staff.name} boarded ${updated.passengerName} on ticket ${updated.bookingReference}`,
+            entityType: "ticket", entityId: updated._id, subject: updated.bookingReference,
+            details: { passengerName: updated.passengerName, vesselName: updated.vesselName || updated.ferryName || "", route: `${updated.origin || ""} → ${updated.destination || ""}`, date: updated.date || "", departureTime: updated.departureTime || updated.time || "" } });
         res.json({ success: true, message: "Passenger marked as boarded successfully.", booking: updated });
     } catch (error) {
         console.error("Verify boarding error:", error);
@@ -64,6 +78,11 @@ const timeOutBooking = async (req, res) => {
         if (!await validateSelectedTrip(req, res, booking)) return;
         const updated = await Booking.findOneAndUpdate({ _id: booking._id, paymentStatus: "VERIFIED", status: "CONFIRMED", boardingStatus: "ON BOARD", timedOutAt: null }, { $set: { timedOutAt: new Date() } }, { new: true, runValidators: true });
         if (!updated) return res.status(409).json({ success: false, message: "Arrival was already recorded or this ticket was updated. Scan it again.", booking: await Booking.findById(booking._id) });
+        req.auditLogged = true;
+        await recordActivity({ req, actorRole: "staff", actorId: req.staff.staffId, actorName: req.staff.name, actorEmail: req.staff.email,
+            action: "Confirmed passenger arrival", summary: `${req.staff.name} confirmed arrival for ${updated.passengerName} on ticket ${updated.bookingReference}`,
+            entityType: "ticket", entityId: updated._id, subject: updated.bookingReference,
+            details: { passengerName: updated.passengerName, vesselName: updated.vesselName || updated.ferryName || "", date: updated.date || "" } });
         res.json({ success: true, message: "Passenger arrival and time out confirmed successfully.", booking: updated });
     } catch (error) {
         console.error("Time out booking error:", error);
@@ -79,6 +98,11 @@ const rejectBoarding = async (req, res) => {
         if (!booking) return;
         const updated = await Booking.findOneAndUpdate({ _id: booking._id, boardingStatus: { $nin: ["ON BOARD", "REJECTED"] } }, { $set: { boardingStatus: "REJECTED", status: "CANCELLED", rejectionReason: reason.trim(), rejectedAt: new Date() } }, { new: true, runValidators: true });
         if (!updated) return res.status(409).json({ success: false, message: "This ticket has already been boarded or rejected.", booking: await Booking.findById(booking._id) });
+        req.auditLogged = true;
+        await recordActivity({ req, actorRole: "staff", actorId: req.staff.staffId, actorName: req.staff.name, actorEmail: req.staff.email,
+            action: "Rejected ticket for boarding", summary: `${req.staff.name} rejected ${updated.passengerName} on ticket ${updated.bookingReference}`,
+            entityType: "ticket", entityId: updated._id, subject: updated.bookingReference,
+            details: { passengerName: updated.passengerName, reason: reason.trim(), vesselName: updated.vesselName || updated.ferryName || "", date: updated.date || "" } });
         res.json({ success: true, message: "Passenger boarding has been rejected.", booking: updated });
     } catch (error) {
         console.error("Reject boarding error:", error);

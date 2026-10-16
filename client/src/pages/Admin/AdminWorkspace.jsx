@@ -6,6 +6,8 @@ import { AdminBrand, AdminButton, AdminDialog, AdminField, AdminIcon, AdminNotic
 import { formatTime, formatTripDate, tripLabel, weekdayDate } from "./adminUtils";
 import { AdminBoarding, AdminOverview, AdminPassengers, AdminPayments, AdminRecords, AdminSchedules, AdminTickets, AdminTripEditor } from "./AdminScreens";
 import AdminPricing from "./AdminPricing";
+import AdminStaff from "./AdminStaff";
+import AdminActivityLogs from "./AdminActivityLogs";
 import PaymentVerification from "./PaymentVerification";
 import BookingDetails from "../../components/operations/BookingDetails";
 import OperationsNotifications from "../../components/operations/OperationsNotifications";
@@ -26,7 +28,9 @@ const destinations = [
     ["boarding", "Boarding records", "check", "Boarding records", "Monitor validated tickets and boarded passengers for each departure."],
     ["records", "System records", "lock", "System records", "Review schedule updates, payment events and ticket verification activity."],
     ["bookings", "Booking details", "user", "Booking passenger details", "Check the ride, passengers, individual IDs and confirmed payment."],
-    ["notifications", "Notifications", "bell", "Notifications", "Monitor new bookings, staff ID decisions and pricing updates."]
+    ["notifications", "Notifications", "bell", "Notifications", "Monitor new bookings, staff ID decisions and pricing updates."],
+    ["staff", "Staff accounts", "account", "Staff accounts", "Create staff login credentials and activate or deactivate staff access."],
+    ["activity", "Activity logs", "check", "Activity logs", "Review staff and administrator activity in separate audit trails."]
 ];
 
 function AdminShell() {
@@ -73,6 +77,8 @@ function AdminShell() {
                 <Route path="bookings" element={<BookingDetails role="admin" preview={preview} basePath={basePath} bookings={state.bookings} trip={selectedTrip} onSelectRelatedTrip={booking => { const related = schedules.find(item => matchesTrip(booking, item)); if (related) setSelectedId(related.id); }} />} />
                 <Route path="notifications" element={<OperationsNotifications role="admin" preview={preview} basePath={basePath} bookings={state.bookings} />} />
                 <Route path="discounts" element={<StaffDiscounts preview={preview} trip={selectedTrip} readOnly />} />
+                <Route path="staff" element={<AdminStaff />} />
+                <Route path="activity" element={<AdminActivityLogs />} />
                 <Route path="*" element={<Navigate to={`${basePath}/overview`} replace />} />
             </Routes>}
             {!preview && <a className="admin-desktop-legacy" href="/admin-dashboard"></a>}

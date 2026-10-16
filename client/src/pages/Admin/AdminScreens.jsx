@@ -102,7 +102,7 @@ export function AdminSchedules() {
     const [resetOpen, setResetOpen] = useState(false);
     const [resetSaving, setResetSaving] = useState(false);
     const [resetError, setResetError] = useState("");
-    const [bulkForm, setBulkForm] = useState({ vesselName: "", origin: "Iloilo", startTime: "03:30", interval: "60" });
+    const [bulkForm, setBulkForm] = useState({ vesselName: "", startDate: date, endDate: date, origin: "Iloilo", startTime: "03:30", interval: "60" });
     const [closureSaving, setClosureSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState("");
@@ -121,32 +121,48 @@ export function AdminSchedules() {
         const interval = Number(bulkForm.interval);
         const [startHour, startMinute] = bulkForm.startTime.split(":").map(Number);
         const firstDeparture = startHour * 60 + startMinute;
+        if (!bulkForm.startDate || !bulkForm.endDate || bulkForm.endDate < bulkForm.startDate) { setBulkError("Choose an end date that is the same as or later than the start date."); return; }
         if (!vesselName || firstDeparture < 210 || firstDeparture > 1170 || firstDeparture % 30 !== 0 || interval < 30 || interval > 360 || interval % 30 !== 0) { setBulkError("Choose a first departure between 3:30 AM and 7:30 PM and an interval in 30-minute increments."); return; }
         setBulkSaving(true); setBulkError("");
         let created = 0; let skipped = 0;
         try {
             const ferrySchedules = schedules.filter(item => item.vesselName.trim().toLowerCase() === vesselName.toLowerCase());
             const ferryTemplate = ferrySchedules[0];
-            const occupied = new Set(ferrySchedules.map(item => item.departureTime));
             const originFirst = bulkForm.origin;
             const minutesToTime = minutes => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
             const departures = [];
             for (let departure = firstDeparture; departure <= 1170; departure += interval) departures.push(departure);
             if (departures.at(-1) !== 1170) departures.push(1170);
-            for (let index = 0; index < departures.length; index += 1) {
-                const departure = departures[index];
-                const departureTime = minutesToTime(departure);
-                if (occupied.has(departureTime)) { skipped += 1; continue; }
-                const origin = index % 2 === 0 ? originFirst : (originFirst === "Iloilo" ? "Guimaras" : "Iloilo");
-                const destinationPort = origin === "Iloilo" ? "Guimaras" : "Iloilo";
-                const arrivalTime = minutesToTime(departure + 30);
-                try { await api.post("/bookings/schedules", { vesselName, route: `${origin} → ${destinationPort}`, date, departureTime, arrivalTime,
-                    passengerCapacity: ferryTemplate?.passengerCapacity, motorcycleCapacity: ferryTemplate?.motorcycleCapacity,
-                    walkInMotorcycleCapacity: ferryTemplate?.walkInMotorcycleCapacity }); created += 1; }
-                catch (error) { if (error.response?.status === 409) skipped += 1; else throw error; }
+            const dates = [];
+            const cursor = new Date(`${bulkForm.startDate}T00:00:00.000Z`);
+            const lastDate = new Date(`${bulkForm.endDate}T00:00:00.000Z`);
+            while (cursor <= lastDate) {
+                dates.push(cursor.toISOString().slice(0, 10));
+                cursor.setUTCDate(cursor.getUTCDate() + 1);
             }
+            if (dates.length * departures.length > 2500) {
+                setBulkError("This range creates more than 2,500 trips. Choose a shorter date range.");
+                setBulkSaving(false);
+                return;
+            }
+            const trips = [];
+            for (const scheduleDate of dates) {
+                for (let index = 0; index < departures.length; index += 1) {
+                    const departure = departures[index];
+                    const departureTime = minutesToTime(departure);
+                    const origin = index % 2 === 0 ? originFirst : (originFirst === "Iloilo" ? "Guimaras" : "Iloilo");
+                    const destinationPort = origin === "Iloilo" ? "Guimaras" : "Iloilo";
+                    const arrivalTime = minutesToTime(departure + 30);
+                    trips.push({ vesselName, route: `${origin} → ${destinationPort}`, date: scheduleDate, departureTime, arrivalTime,
+                        passengerCapacity: ferryTemplate?.passengerCapacity, motorcycleCapacity: ferryTemplate?.motorcycleCapacity,
+                        walkInMotorcycleCapacity: ferryTemplate?.walkInMotorcycleCapacity });
+                }
+            }
+            const { data } = await api.post("/bookings/schedules/bulk", { trips });
+            created = data.created || 0;
+            skipped = data.skipped || 0;
             setBulkOpen(false);
-            setNotice(`${created} trips generated for ${vesselName}${skipped ? `; ${skipped} existing departures skipped` : ""}.`);
+            setNotice(`${created} trips generated for ${vesselName} across ${dates.length} day${dates.length === 1 ? "" : "s"}${skipped ? `; ${skipped} existing departures skipped` : ""}.`);
             refresh();
         } catch (error) {
             setBulkError(error.response?.data?.message || error.message || `Created ${created} trips before the schedule stopped. Refresh and try again.`);
@@ -202,7 +218,7 @@ export function AdminSchedules() {
         <div className="admin-desktop-schedule-filters">
             <AdminField label="Travel date" icon="routeInput" type="date" value={date} onChange={e => { if (e.target.value) setDate(e.target.value); }} />
             <AdminField label="Route" icon="routeInput" value={route} onChange={e => setRoute(e.target.value)} options={[{ value: "", label: "All routes" }, ...["Iloilo → Guimaras", "Guimaras → Iloilo"].map(value => ({ value, label: value }))]} />
-            <div className="admin-schedule-actions"><AdminButton variant="secondary" onClick={() => { setResetError(""); setResetOpen(true); }}>Reset day trips</AdminButton><AdminButton variant="secondary" onClick={() => { setBulkForm(current => ({ ...current, vesselName: current.vesselName || availableVessels[0] || "" })); setBulkError(""); setBulkOpen(true); }}>Generate day schedule</AdminButton><AdminButton onClick={() => navigate(`${basePath}/trips/new`)}><span aria-hidden="true">＋ </span>Add trip</AdminButton></div>
+            <div className="admin-schedule-actions"><AdminButton variant="secondary" onClick={() => { setResetError(""); setResetOpen(true); }}>Reset day trips</AdminButton><AdminButton variant="secondary" onClick={() => { setBulkForm(current => ({ ...current, vesselName: current.vesselName || availableVessels[0] || "", startDate: date, endDate: date })); setBulkError(""); setBulkOpen(true); }}>Generate schedule range</AdminButton><AdminButton onClick={() => navigate(`${basePath}/trips/new`)}><span aria-hidden="true">＋ </span>Add trip</AdminButton></div>
         </div>
         <AdminPanel>
             <AdminHeading title={weekdayDate(date)} detail={`${countLabel(rows.length, "trip")} · ${route || "both directions"}`} />
@@ -239,12 +255,13 @@ export function AdminSchedules() {
                 <div className="admin-desktop-editor-actions"><AdminButton variant="danger" disabled={resetSaving} onClick={resetDaySchedule}>{resetSaving ? "Resetting…" : "Reset all trips"}</AdminButton><AdminButton variant="secondary" disabled={resetSaving} onClick={() => setResetOpen(false)}>Cancel</AdminButton></div>
             </div>
         </AdminDialog>}
-        {bulkOpen && <AdminDialog title="Generate a ferry day schedule" onClose={() => { if (!bulkSaving) setBulkOpen(false); }}>
+        {bulkOpen && <AdminDialog title="Generate ferry schedules" onClose={() => { if (!bulkSaving) setBulkOpen(false); }}>
             <form className="staff-form-stack" onSubmit={generateDaySchedule}>
-                <p>Generate alternating trips from your chosen first departure through 7:30 PM. Each trip arrives 30 minutes after departure. Existing departures for this vessel will be skipped.</p>
+                <p>Generate alternating trips for this vessel on every date in the range. Each day starts from the selected port, and trips run through 7:30 PM. Each trip arrives 30 minutes after departure. Existing departures for this vessel will be skipped.</p>
                 <AdminNotice error>{bulkError}</AdminNotice>
                 <AdminField label="Vessel" icon="ticketInput" value={availableVessels.includes(bulkForm.vesselName) ? bulkForm.vesselName : "__custom__"} onChange={event => setBulkForm(current => ({ ...current, vesselName: event.target.value === "__custom__" ? "" : event.target.value }))} options={[...availableVessels.map(value => ({ value, label: value })), { value: "__custom__", label: "Add another vessel…" }]} disabled={bulkSaving} />
                 {!availableVessels.includes(bulkForm.vesselName) && <AdminField label="New vessel name" icon="ticketInput" placeholder="Enter vessel name" value={bulkForm.vesselName} onChange={updateBulkForm("vesselName")} required disabled={bulkSaving} maxLength={100} />}
+                <div className="staff-details-grid"><AdminField label="Start date" icon="routeInput" type="date" value={bulkForm.startDate} onChange={event => setBulkForm(current => ({ ...current, startDate: event.target.value, endDate: current.endDate < event.target.value ? event.target.value : current.endDate }))} required disabled={bulkSaving} /><AdminField label="Generate through" icon="routeInput" type="date" min={bulkForm.startDate} value={bulkForm.endDate} onChange={updateBulkForm("endDate")} required disabled={bulkSaving} /></div>
                 <div className="staff-details-grid"><AdminField label="First departure starts from" icon="routeInput" options={locations} value={bulkForm.origin} onChange={updateBulkForm("origin")} disabled={bulkSaving} /><AdminField label="First departure time" icon="routeInput" type="time" min="03:30" max="19:30" step="1800" value={bulkForm.startTime} onChange={updateBulkForm("startTime")} required disabled={bulkSaving} /><AdminField label="Departure interval (minutes)" icon="routeInput" type="number" min="30" max="360" step="30" value={bulkForm.interval} onChange={updateBulkForm("interval")} required disabled={bulkSaving} /></div>
                 <p>After each crossing, the next trip departs in the opposite direction. The selected start port determines the ferry’s first direction for this date.</p>
                 <div className="admin-desktop-editor-actions"><AdminButton type="submit" disabled={bulkSaving}>{bulkSaving ? "Generating…" : "Generate trips"}</AdminButton><AdminButton variant="secondary" disabled={bulkSaving} onClick={() => setBulkOpen(false)}>Cancel</AdminButton></div>
@@ -346,19 +363,31 @@ export function AdminPayments() {
     const { statistics: s, selectedTrip: trip, basePath, preview, bookings } = useAdminWorkspace();
     const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
+    const [scope, setScope] = useState("trip");
     const payment = bookings.find(b => b._id === params.get("payment"));
-    const page = usePage(s.records, 8);
+    const rows = scope === "all" ? bookings : s.records;
+    const revenue = rows.filter(isPaid).reduce((total, booking) => total + paymentAmount(booking), 0);
+    const processing = rows.filter(booking => paymentState(booking) === "Processing").length;
+    const failed = rows.filter(booking => paymentState(booking) === "Failed").length;
+    const page = usePage(rows, 8);
     const close = () => setParams({}, { replace: true });
     return <>
         <div className="staff-metrics staff-metrics-three">
-            <AdminMetric label="Successful collections" value={money(s.revenue)} detail={`${tripLabel(trip)} · paid sales only`} />
-            <AdminMetric label="Processing attempts" value={s.records.filter(b => paymentState(b) === "Processing").length} detail="Payment awaiting confirmation" />
-            <AdminMetric label="Failed attempts" value={s.records.filter(b => paymentState(b) === "Failed").length} detail="Payment rejected" />
+            <AdminMetric label="Successful collections" value={money(revenue)} detail={`${scope === "all" ? "All trips" : tripLabel(trip)} · paid sales only`} />
+            <AdminMetric label="Processing attempts" value={processing} detail="Payment awaiting confirmation" />
+            <AdminMetric label="Failed attempts" value={failed} detail="Payment rejected" />
         </div>
-        <AdminPanel><AdminHeading title="Transactions" detail={`Selected trip · ${tripLabel(trip)}`}><AdminButton variant="secondary" onClick={() => navigate(`${basePath}/tickets`)}>Ticket records</AdminButton></AdminHeading>
-            <AdminTable label="Payment transactions" className="admin-desktop-wide-table" columns={columns([["Reference / customer", 26], ["Ticket", 19], ["Method", 16], ["Amount", 13], ["Time", 13], ["Status", 13]])} empty={!s.records.length && "No payment records for this trip."}>
+        <AdminPanel><AdminHeading title="Transactions" detail={scope === "all" ? "All passenger payment attempts across all trips" : `Selected trip · ${tripLabel(trip)}`}>
+            <div className="staff-actions">
+                <AdminButton variant={scope === "trip" ? undefined : "secondary"} onClick={() => setScope("trip")}>Selected trip</AdminButton>
+                <AdminButton variant={scope === "all" ? undefined : "secondary"} onClick={() => setScope("all")}>All payments</AdminButton>
+                {!preview && <AdminButton variant="secondary" onClick={() => navigate(`${basePath}/payment-verification`)}>Review pending payments</AdminButton>}
+                <AdminButton variant="secondary" onClick={() => navigate(`${basePath}/tickets`)}>Ticket records</AdminButton>
+            </div>
+        </AdminHeading>
+            <AdminTable label="Payment transactions" className="admin-desktop-wide-table" columns={columns([["Reference / customer", 22], ["Ticket", 14], ["Trip", 20], ["Method", 13], ["Amount", 11], ["Time", 10], ["Status", 10]])} empty={!rows.length && (scope === "all" ? "No payment records have been submitted yet." : "No payment records for this trip. Choose All payments to view bookings from other trips.")}>
                 {page.rows.map(b => <tr key={b._id} data-selected={b._id === payment?._id}><td><button type="button" className="admin-desktop-row-button" aria-label={`View payment ${paymentReference(b)}`} onClick={() => setParams({ payment: b._id })}><strong>{paymentReference(b)} · {b.passengerName}</strong><small>{sourceLabel(b)}{!isPaid(b) ? " attempt" : ""}</small></button></td>
-                    <AdminCell label={isPaid(b) ? b.bookingReference : "Not valid for boarding"} detail={isPaid(b) ? "" : paymentState(b) === "Failed" ? "Payment unsuccessful" : "Awaiting confirmation"} /><AdminCell label={b.paymentMethod || "—"} /><AdminCell label={money(paymentAmount(b))} /><AdminCell label={formatTimestamp(paymentTime(b))} /><td><AdminStatus>{paymentState(b)}</AdminStatus></td></tr>)}
+                    <AdminCell label={isPaid(b) ? b.bookingReference : "Not valid for boarding"} detail={isPaid(b) ? "" : paymentState(b) === "Failed" ? "Payment unsuccessful" : "Awaiting confirmation"} /><AdminCell label={`${b.vesselName || b.ferryName || "Ferry"} · ${b.origin || "?"} → ${b.destination || "?"}`} detail={`${b.date || ""} · ${formatTime(b.time || b.departureTime)}`} /><AdminCell label={b.paymentMethod || "—"} /><AdminCell label={money(paymentAmount(b))} /><AdminCell label={formatTimestamp(paymentTime(b))} /><td><AdminStatus>{paymentState(b)}</AdminStatus></td></tr>)}
             </AdminTable>{page.total > page.size && <Pagination page={page} />}
             <div className="admin-desktop-payment-note"><p>A valid online ticket requires successful payment.</p><small>Processing and failed payments are excluded from paid-ticket and boarding totals.</small></div>
         </AdminPanel>

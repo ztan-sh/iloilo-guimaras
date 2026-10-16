@@ -102,3 +102,12 @@
     .operations-vessels > .staff-button { flex-basis: 100%; }
 }
 @media print { .operations-preview-actions { display: none; } }
+.operations-audit-panel { min-width: 0; }
+.operations-audit-scroll { max-width: 100%; overflow: auto; }
+.operations-audit-table { min-width: 760px; }
+.operations-audit-table td { vertical-align: top; }
+.operations-audit-table td small { display: block; margin-top: 4px; color: var(--staff-muted, #667); line-height: 1.4; }
+.operations-audit-tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.operations-audit-tabs button { border: 1px solid rgba(15, 48, 46, .16); border-radius: 999px; padding: 10px 16px; color: inherit; background: #f5f1ea; cursor: pointer; }
+.operations-audit-tabs button.is-selected { color: #fff; border-color: #079f95; background: #079f95; }
+@media (max-width: 760px) { .operations-audit-panel .staff-section-heading { align-items: flex-start; flex-direction: column; } }

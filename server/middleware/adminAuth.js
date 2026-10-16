@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { attachMutationAudit } = require("../utils/activityAudit");
 
 const adminAuth = (req, res, next) => {
 
@@ -34,6 +35,7 @@ const adminAuth = (req, res, next) => {
         }
 
         req.admin = decoded;
+        attachMutationAudit(req, res, "admin", decoded);
 
         next();
 

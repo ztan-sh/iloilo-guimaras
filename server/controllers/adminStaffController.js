@@ -156,6 +156,13 @@ const createStaff = async (req, res) => {
 
     } catch (error) {
 
+        if (error.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: "A staff account with this email already exists."
+            });
+        }
+
         console.error(
             "Create staff error:",
             error

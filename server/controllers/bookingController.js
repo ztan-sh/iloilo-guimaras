@@ -2,6 +2,7 @@ const Booking = require("../models/Booking");
 const FerryClosure = require("../models/FerryClosure");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const { recordActivity } = require("../utils/activityAudit");
 
 const {
     sendCancellationEmail
@@ -1359,6 +1360,30 @@ const verifyPayment = async (req, res) => {
 
         await booking.save();
 
+        req.auditLogged = true;
+        const admin = req.admin || {};
+        await recordActivity({
+            req,
+            actorRole: "admin",
+            actorId: admin.id,
+            actorName: admin.fullName || "Administrator",
+            actorEmail: admin.email,
+            action: "Approved payment",
+            summary: `${admin.fullName || "Administrator"} approved payment ${booking.bookingReference} for ${booking.passengerName}`,
+            entityType: "payment",
+            entityId: booking._id,
+            subject: booking.bookingReference,
+            details: {
+                passengerName: booking.passengerName,
+                amount: booking.requiredAmount,
+                paymentMethod: booking.paymentMethod || "",
+                vesselName: booking.vesselName || booking.ferryName || "",
+                route: `${booking.origin || ""} → ${booking.destination || ""}`,
+                date: booking.date || "",
+                departureTime: booking.departureTime || booking.time || ""
+            }
+        });
+
 
         return res.status(200).json({
 
@@ -1457,6 +1482,32 @@ const rejectPayment = async (req, res) => {
 
 
         await booking.save();
+
+        req.auditLogged = true;
+        const admin = req.admin || {};
+        const reason = String(req.body?.reason || "").trim();
+        await recordActivity({
+            req,
+            actorRole: "admin",
+            actorId: admin.id,
+            actorName: admin.fullName || "Administrator",
+            actorEmail: admin.email,
+            action: "Rejected payment",
+            summary: `${admin.fullName || "Administrator"} rejected payment ${booking.bookingReference} for ${booking.passengerName}${reason ? `: ${reason}` : ""}`,
+            entityType: "payment",
+            entityId: booking._id,
+            subject: booking.bookingReference,
+            details: {
+                passengerName: booking.passengerName,
+                amount: booking.requiredAmount,
+                paymentMethod: booking.paymentMethod || "",
+                vesselName: booking.vesselName || booking.ferryName || "",
+                route: `${booking.origin || ""} → ${booking.destination || ""}`,
+                date: booking.date || "",
+                departureTime: booking.departureTime || booking.time || "",
+                ...(reason ? { reason } : {})
+            }
+        });
 
 
         return res.status(200).json({

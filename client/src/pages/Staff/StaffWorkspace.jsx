@@ -8,6 +8,7 @@ import StaffAssisted from "./StaffAssisted";
 import StaffDiscounts from "./StaffDiscounts";
 import BookingDetails from "../../components/operations/BookingDetails";
 import OperationsNotifications from "../../components/operations/OperationsNotifications";
+import StaffActivity from "./StaffActivity";
 import { useOperations } from "../../components/operations/useOperations";
 import { formatTime, formatTimestamp, formatTripDate, hasMotorcycle, matchesTrip, passengerCount, sourceLabel, todayInManila } from "./staffUtils";
 import "./Staff.css";
@@ -20,7 +21,8 @@ const navigation = [
     { path: "assisted", label: "Assisted booking", icon: "card" },
     { path: "manifest", label: "Boarding manifest", icon: "user" },
     { path: "bookings", label: "Booking details", icon: "user" },
-    { path: "notifications", label: "Notifications", icon: "bell" }
+    { path: "notifications", label: "Notifications", icon: "bell" },
+    { path: "activity", label: "Activity logs", icon: "check" }
 ];
 const headings = {
     overview: { title: "Terminal overview", subtitle: "Verify paid tickets and keep an eye on capacity before boarding." },
@@ -30,7 +32,8 @@ const headings = {
     assisted: { title: "Assisted ticket booking", subtitle: "Follow the client flow: review each passenger’s ID, then confirm payment." },
     discounts: { title: "Discount approvals", subtitle: "Review passenger IDs before Student, PWD or Senior discounts apply." },
     bookings: { title: "Booking passenger details", subtitle: "Check the ride, passengers, individual IDs and confirmed payment." },
-    notifications: { title: "Notifications", subtitle: "Open booking updates and ID requests that need attention." }
+    notifications: { title: "Notifications", subtitle: "Open booking updates and ID requests that need attention." },
+    activity: { title: "Activity logs", subtitle: "Review the sign-ins and ticket actions recorded for your account." }
 };
 
 export default function StaffWorkspace() {
@@ -116,8 +119,8 @@ export default function StaffWorkspace() {
             <header className="staff-page-header"><div><span className="staff-eyebrow">Terminal operations</span><h1>{heading.title}</h1><p>{heading.subtitle}</p></div><button className="staff-header-date" onClick={() => setTripPicker(true)} aria-label="Choose trip date"><strong>{formatTripDate(date)}</strong><span>Iloilo ⇄ Guimaras</span></button></header>
             <StaffNotice error>{error}</StaffNotice>
             {error && <StaffButton variant="secondary" className="staff-retry" onClick={refresh}>Retry connection</StaffButton>}
-            {trip && !["discounts", "bookings", "notifications"].includes(active) && <div className="staff-trip-tray"><div className="staff-trip"><div className="staff-trip-route"><h2>{trip.route}</h2><p>{trip.vesselName} · {formatTripDate(trip.date, true)}</p></div><div className="staff-trip-time"><span>Departure</span><strong>{formatTime(trip.departureTime)}</strong></div><div className="staff-trip-time"><span>Arrival</span><strong>{formatTime(trip.arrivalTime)}</strong></div><StaffButton variant="secondary" onClick={() => setTripPicker(true)}>View trip</StaffButton></div></div>}
-            {loading ? <div className="staff-loading" role="status">Loading terminal trips…</div> : active === "discounts" ? <StaffDiscounts preview={preview} trip={trip} onHeading={setDiscountHeading} /> : active === "bookings" ? <BookingDetails role="staff" preview={preview} basePath={basePath} bookings={data?.bookings || []} trip={trip} api={api} onRefresh={refresh} /> : active === "notifications" ? <OperationsNotifications role="staff" preview={preview} basePath={basePath} bookings={data?.bookings || []} /> : !trip ? <StaffPanel><h2>No trips for this date</h2><p>{error ? "Retry the connection to load your terminal workspace." : "Scheduled departures will appear here once they have been added by an administrator."}</p><StaffButton variant="secondary" onClick={() => setTripPicker(true)}>Choose another date</StaffButton></StaffPanel> : <>
+            {trip && !["discounts", "bookings", "notifications", "activity"].includes(active) && <div className="staff-trip-tray"><div className="staff-trip"><div className="staff-trip-route"><h2>{trip.route}</h2><p>{trip.vesselName} · {formatTripDate(trip.date, true)}</p></div><div className="staff-trip-time"><span>Departure</span><strong>{formatTime(trip.departureTime)}</strong></div><div className="staff-trip-time"><span>Arrival</span><strong>{formatTime(trip.arrivalTime)}</strong></div><StaffButton variant="secondary" onClick={() => setTripPicker(true)}>View trip</StaffButton></div></div>}
+            {loading ? <div className="staff-loading" role="status">Loading terminal trips…</div> : active === "activity" ? <StaffActivity /> : active === "discounts" ? <StaffDiscounts preview={preview} trip={trip} onHeading={setDiscountHeading} /> : active === "bookings" ? <BookingDetails role="staff" preview={preview} basePath={basePath} bookings={data?.bookings || []} trip={trip} api={api} onRefresh={refresh} /> : active === "notifications" ? <OperationsNotifications role="staff" preview={preview} basePath={basePath} bookings={data?.bookings || []} /> : !trip ? <StaffPanel><h2>No trips for this date</h2><p>{error ? "Retry the connection to load your terminal workspace." : "Scheduled departures will appear here once they have been added by an administrator."}</p><StaffButton variant="secondary" onClick={() => setTripPicker(true)}>Choose another date</StaffButton></StaffPanel> : <>
                 {active === "overview" && <StaffOverview trip={trip} records={paidRecords} />}
                 {active === "scanner" && <StaffScanner key={trip.id} trip={trip} onRefresh={refresh} onHeading={setScannerHeading} />}
                 {active === "walk-in" && <StaffWalkIn key={trip.id} trip={trip} fares={data.fares} onRefresh={refresh} />}

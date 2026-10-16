@@ -776,7 +776,7 @@ export default function MobileApp({ preview = false }) {
                             key={path}
                         >
                             {error && (
-                                <div className="ggo-error" role="alert">
+                                <div className={`ggo-error ${path === 'schedule' ? 'ggo-error-centered' : ''}`} role="alert">
                                     {error}
                                     <button
                                         aria-label="Dismiss error"

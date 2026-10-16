@@ -9,6 +9,7 @@ const {
 
 const staffAuth =
     require("../middleware/staffAuth");
+const { getStaffActivity } = require("../controllers/activityAuditController");
 
 
 // =========================================================
@@ -30,6 +31,8 @@ router.get(
     staffAuth,
     getCurrentStaff
 );
+
+router.get("/activity", staffAuth, getStaffActivity);
 
 
 module.exports = router;

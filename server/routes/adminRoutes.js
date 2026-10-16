@@ -4,6 +4,8 @@ const jwt = require("jsonwebtoken");
 
 const Admin = require("../models/Admin");
 const adminAuth = require("../middleware/adminAuth");
+const { recordActivity } = require("../utils/activityAudit");
+const { getAdminActivity } = require("../controllers/activityAuditController");
 const {
     createStaff,
     getAllStaff,
@@ -233,6 +235,9 @@ router.post("/login", async (req, res) => {
 
         if (!admin) {
 
+            await recordActivity({ req, actorRole: "admin", actorName: "Unverified administrator login", actorEmail: normalizedEmail,
+                action: "Failed admin sign-in", summary: `Failed administrator sign-in attempt for ${normalizedEmail}`, entityType: "admin account", subject: normalizedEmail });
+
             return res.status(401).json({
                 success: false,
                 message:
@@ -253,6 +258,9 @@ router.post("/login", async (req, res) => {
 
 
         if (!passwordMatch) {
+
+            await recordActivity({ req, actorRole: "admin", actorId: admin._id, actorName: admin.fullName, actorEmail: admin.email,
+                action: "Failed admin sign-in", summary: `Failed administrator sign-in for ${admin.email}`, entityType: "admin account", entityId: admin._id, subject: admin.email });
 
             return res.status(401).json({
                 success: false,
@@ -289,6 +297,9 @@ router.post("/login", async (req, res) => {
                         "8h"
                 }
             );
+
+        await recordActivity({ req, actorRole: "admin", actorId: admin._id, actorName: admin.fullName, actorEmail: admin.email,
+            action: "Admin signed in", summary: `${admin.fullName} signed in`, entityType: "admin account", entityId: admin._id, subject: admin.email });
 
 
         // =====================================================
@@ -385,6 +396,8 @@ router.get(
         }
     }
 );
+
+router.get("/audit-logs", adminAuth, getAdminActivity);
 // =========================================================
 // STAFF MANAGEMENT
 // =========================================================

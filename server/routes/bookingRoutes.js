@@ -39,6 +39,7 @@ const {
 const {
     getSchedulesForDate,
     createSchedule,
+    createSchedulesBulk,
     updateSchedule,
     deleteSchedule,
     resetSchedulesForDate
@@ -180,6 +181,12 @@ router.get(
     "/schedules",
     adminAuth,
     getSchedulesForDate
+);
+
+router.post(
+    "/schedules/bulk",
+    adminAuth,
+    createSchedulesBulk
 );
 
 router.post(

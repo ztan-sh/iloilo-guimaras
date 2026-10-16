@@ -3,6 +3,7 @@ const { randomUUID } = require("node:crypto");
 const Booking = require("../models/Booking");
 const FerrySchedule = require("../models/FerrySchedule");
 const { manilaDate, normalizeDate, belongsToTrip, summarizeTrip, hasMotorcycle, terminalFare } = require("../utils/staffTrip");
+const { recordActivity } = require("../utils/activityAudit");
 
 const dateFilter = (date) => {
     const [year, month, day] = date.split("-");
@@ -88,6 +89,11 @@ const createWalkInTicket = async (req, res) => {
                 ticketSource: "WALK_IN", paidAt: new Date(), recordedBy: req.staff.staffId, recordedByName: req.staff.name || "Terminal staff"
             }], { session });
         });
+        req.auditLogged = true;
+        await recordActivity({ req, actorRole: "staff", actorId: req.staff.staffId, actorName: req.staff.name, actorEmail: req.staff.email,
+            action: "Created walk-in ticket", summary: `${req.staff.name} created walk-in ticket ${booking.bookingReference} for ${booking.passengerName}`,
+            entityType: "ticket", entityId: booking._id, subject: booking.bookingReference,
+            details: { passengerName: booking.passengerName, vesselName: booking.vesselName, route: `${booking.origin} → ${booking.destination}`, date: booking.date, departureTime: booking.departureTime } });
         res.status(201).json({ success: true, booking });
     } catch (error) {
         if (error.code === 11000) {

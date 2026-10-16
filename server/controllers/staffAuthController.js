@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Staff = require("../models/Staff");
+const { recordActivity } = require("../utils/activityAudit");
 
 
 // =========================================================
@@ -72,6 +73,9 @@ const loginStaff = async (req, res) => {
 
         if (!staff) {
 
+            await recordActivity({ req, actorRole: "staff", actorName: "Unverified staff login", actorEmail: normalizedEmail,
+                action: "Failed staff sign-in", summary: `Failed staff sign-in attempt for ${normalizedEmail}`, entityType: "staff account", subject: normalizedEmail });
+
             return res.status(401).json({
                 success: false,
                 message:
@@ -85,6 +89,9 @@ const loginStaff = async (req, res) => {
         // =================================================
 
         if (!staff.isActive) {
+
+            await recordActivity({ req, actorRole: "staff", actorId: staff._id, actorName: staff.name, actorEmail: staff.email,
+                action: "Deactivated sign-in blocked", summary: `Sign-in blocked for deactivated staff account ${staff.email}`, entityType: "staff account", entityId: staff._id, subject: staff.email });
 
             return res.status(403).json({
                 success: false,
@@ -107,6 +114,9 @@ const loginStaff = async (req, res) => {
 
         if (!passwordMatch) {
 
+            await recordActivity({ req, actorRole: "staff", actorId: staff._id, actorName: staff.name, actorEmail: staff.email,
+                action: "Failed staff sign-in", summary: `Failed staff sign-in for ${staff.email}`, entityType: "staff account", entityId: staff._id, subject: staff.email });
+
             return res.status(401).json({
                 success: false,
                 message:
@@ -121,6 +131,9 @@ const loginStaff = async (req, res) => {
 
         const token =
             createStaffToken(staff);
+
+        await recordActivity({ req, actorRole: "staff", actorId: staff._id, actorName: staff.name, actorEmail: staff.email,
+            action: "Staff signed in", summary: `${staff.name} signed in`, entityType: "staff account", entityId: staff._id, subject: staff.email });
 
 
         // =================================================

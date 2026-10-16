@@ -7,30 +7,6 @@ const { belongsToTrip, hasMotorcycle } = require("../utils/staffTrip");
 const PASSENGER_CAPACITY = 100;
 const MOTORCYCLE_CAPACITY = 10;
 
-const DEFAULT_SCHEDULES = [
-    {
-        vesselName: "MV Felipe III",
-        route: "Iloilo → Guimaras",
-        departureTime: "03:30",
-        time: "03:30",
-        arrivalTime: "04:00"
-    },
-    {
-        vesselName: "MV FastCraft",
-        route: "Guimaras → Iloilo",
-        departureTime: "08:00",
-        time: "08:00",
-        arrivalTime: "08:30"
-    },
-    {
-        vesselName: "MV Halili",
-        route: "Iloilo → Guimaras",
-        departureTime: "09:00",
-        time: "09:00",
-        arrivalTime: "09:30"
-    }
-];
-
 const normalizeText = (value) =>
     String(value || "")
         .trim()
@@ -156,38 +132,6 @@ const formatTime = (value) => {
     }
 
     return `${hour}:${minuteText} ${period}`;
-};
-
-const ensureDefaultSchedules = async (date) => {
-    const normalizedDate = normalizeDate(date);
-
-    const dayControl = await ScheduleDayControl.exists({ date: normalizedDate, suppressDefaults: true });
-    if (dayControl) return;
-
-    for (const item of DEFAULT_SCHEDULES) {
-        await FerrySchedule.findOneAndUpdate(
-            {
-                date: normalizedDate,
-                vesselName: item.vesselName,
-                departureTime: item.departureTime
-            },
-            {
-                $setOnInsert: {
-                    ...item,
-                    date: normalizedDate,
-                    passengerCapacity: PASSENGER_CAPACITY,
-                    motorcycleCapacity: MOTORCYCLE_CAPACITY,
-                    isDefault: true,
-                    active: true
-                }
-            },
-            {
-                upsert: true,
-                new: true,
-                setDefaultsOnInsert: true
-            }
-        );
-    }
 };
 
 const resetSchedulesForDate = async (req, res) => {
@@ -432,15 +376,6 @@ const getSchedulesForDate = async (
                     "A valid date is required (YYYY-MM-DD)."
             });
         }
-
-        /*
-         * Make sure the default schedules exist
-         * for this exact requested date.
-         */
-        await ensureDefaultSchedules(
-            requestedDate
-        );
-
         /*
          * IMPORTANT:
          * Both Admin and Passenger use this
@@ -452,6 +387,8 @@ const getSchedulesForDate = async (
         const schedules =
             await FerrySchedule.find({
                 date: requestedDate,
+                // Exclude legacy placeholder trips created by older versions.
+                isDefault: { $ne: true },
 
                 /*
                  * Existing schedules remain visible
@@ -745,6 +682,72 @@ walkInMotorcycleCapacity: Math.min(
     }
 };
 
+const createSchedulesBulk = async (req, res) => {
+    try {
+        const trips = Array.isArray(req.body?.trips) ? req.body.trips : [];
+        if (!trips.length || trips.length > 2500) {
+            return res.status(400).json({ success: false, message: "Provide between 1 and 2,500 trips to generate." });
+        }
+
+        const validRoutes = ["Iloilo → Guimaras", "Guimaras → Iloilo"];
+        const docs = [];
+        for (const trip of trips) {
+            const vesselName = String(trip?.vesselName || "").trim();
+            const date = normalizeDate(trip?.date);
+            const departureTime = normalizeTime(trip?.departureTime);
+            const arrivalTime = normalizeTime(trip?.arrivalTime);
+            if (!vesselName || !date || !departureTime || !isAllowedDepartureTime(departureTime) || !arrivalTime || !isAllowedArrivalTime(arrivalTime) || !validRoutes.includes(trip?.route)) {
+                return res.status(400).json({ success: false, message: "One or more generated trips have invalid vessel, date, route, or time details." });
+            }
+            const [departureHour, departureMinute] = departureTime.split(":").map(Number);
+            const [arrivalHour, arrivalMinute] = arrivalTime.split(":").map(Number);
+            if (arrivalHour * 60 + arrivalMinute <= departureHour * 60 + departureMinute) {
+                return res.status(400).json({ success: false, message: "Each trip arrival must be later than its departure." });
+            }
+            const motorcycleCapacity = Math.max(0, Number.isFinite(Number(trip.motorcycleCapacity)) ? Number(trip.motorcycleCapacity) : MOTORCYCLE_CAPACITY);
+            docs.push({
+                vesselName,
+                route: trip.route,
+                date,
+                departureTime,
+                time: departureTime,
+                arrivalTime,
+                passengerCapacity: Math.max(1, Number(trip.passengerCapacity) || PASSENGER_CAPACITY),
+                motorcycleCapacity,
+                walkInMotorcycleCapacity: Math.min(Math.max(0, Number.isFinite(Number(trip.walkInMotorcycleCapacity)) ? Number(trip.walkInMotorcycleCapacity) : motorcycleCapacity), motorcycleCapacity),
+                active: true
+            });
+        }
+
+        const dates = [...new Set(docs.map(trip => trip.date))];
+        const vesselNames = [...new Set(docs.map(trip => trip.vesselName))];
+        const existing = await FerrySchedule.find({ date: { $in: dates }, vesselName: { $in: vesselNames } }).select("date vesselName departureTime").lean();
+        const keyFor = trip => `${trip.date}\u0000${trip.vesselName}\u0000${trip.departureTime}`;
+        const known = new Set(existing.map(keyFor));
+        const fresh = docs.filter(trip => {
+            const key = keyFor(trip);
+            if (known.has(key)) return false;
+            known.add(key);
+            return true;
+        });
+        const skipped = docs.length - fresh.length;
+        if (!fresh.length) return res.status(200).json({ success: true, created: 0, skipped });
+
+        const created = await FerrySchedule.insertMany(fresh, { ordered: false });
+        return res.status(201).json({ success: true, created: created.length, skipped });
+    } catch (error) {
+        if (error.code === 11000) {
+            const inserted = Array.isArray(error.insertedDocs) ? error.insertedDocs.length : Number(error.result?.insertedCount) || 0;
+            const duplicates = Array.isArray(error.writeErrors) ? error.writeErrors.filter(item => item.code === 11000).length : 0;
+            if (!error.writeErrors?.some(item => item.code !== 11000)) {
+                return res.status(200).json({ success: true, created: inserted, skipped: duplicates, message: "Some duplicate departures were skipped." });
+            }
+        }
+        console.error("Bulk ferry schedule generation error:", error);
+        return res.status(500).json({ success: false, message: "Unable to generate ferry schedules." });
+    }
+};
+
 const updateSchedule = async (
     req,
     res
@@ -1029,6 +1032,7 @@ const deleteSchedule = async (
 module.exports = {
     getSchedulesForDate,
     createSchedule,
+    createSchedulesBulk,
     updateSchedule,
     deleteSchedule,
     resetSchedulesForDate

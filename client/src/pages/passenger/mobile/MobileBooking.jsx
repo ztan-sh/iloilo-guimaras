@@ -12,7 +12,7 @@ function VesselCard({ vessel, available, treatment, stackOrder, onSelect }) {
     const lines = name.startsWith('MV ') ? ['MV', name.slice(3)] : name === 'Lite Ferry 22' ? ['Lite Ferry', '22'] : [name];
     return <button type="button" className={`ggo-vessel ggo-vessel-${treatment}`} style={{ zIndex: stackOrder }} aria-label={`View ${vessel} schedules`} onClick={onSelect}>
         <ArtworkStage width={354} height={258} className="ggo-vessel-card">
-            <Art className="ggo-vessel-shape" file={`dashboard-card-${treatment}.svg`} />
+            <Art className="ggo-vessel-shape" file={stackOrder === 1 ? `dashboard-card-first-${treatment}.svg` : `dashboard-card-${treatment}.svg`} />
             <span className="ggo-vessel-photo"><Art file="dashboard-ferry.png" width={310} height={170.441} /></span>
             <span className="ggo-vessel-meta"><span className="ggo-vessel-available">{available ? 'Available' : 'Full'}</span><span className="ggo-vessel-duration">25–35 min</span></span>
             <strong className="ggo-vessel-name">{lines.map((line, i) => <span key={i}>{line}</span>)}</strong>
@@ -187,7 +187,7 @@ export function ClientSchedule() {
             <Art file="a2b02.png" width="428" height="228" />
             <Link className="ggo-schedule-back" aria-label="Back to vessels" to={c.href('dashboard')}><Art file="schedule-back.svg" /></Link>
             <NotificationBell compact />
-            <div className="ggo-schedule-intro"><h1>Hello!</h1><label className="ggo-schedule-vessel-name" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Vessel <select aria-label="Choose vessel schedule" value={c.vessel} onChange={e => c.setVessel(e.target.value)} style={{ maxWidth: 190, minHeight: 32, padding: '4px 8px', border: '1px solid #ffffff80', borderRadius: 6, color: '#fff', background: '#102321' }}>{[...new Set(c.schedules.map(t => t.vesselName).filter(Boolean))].sort((a, b) => a.localeCompare(b)).map(vessel => <option key={vessel} value={vessel}>{vessel}</option>)}{!c.schedules.some(t => t.vesselName === c.vessel) && <option value={c.vessel}>{c.vessel}</option>}</select></label></div>
+            <div className="ggo-schedule-intro"><h1>Hello!</h1><p className="ggo-schedule-vessel-name">{c.vessel}</p></div>
             <div className="ggo-crossing"><strong>{activeRoute?.origin.toUpperCase() || '—'}</strong><div className="ggo-crossing-track"><Art file="7eaf1.svg" /><Art file="7f903.svg" /><Art file="3c859.svg" className="ggo-crossing-boat" /><small>25–35 min</small></div><strong>{activeRoute?.destination.toUpperCase() || '—'}</strong></div>
         </header>
         <div className="ggo-direction"><strong>{activeRoute?.origin.toUpperCase() || '—'}</strong><button type="button" aria-label="Change route" disabled={routeOptions.length < 2} onClick={changeRoute}><Art file="schedule-repeat.png" /></button><strong>{activeRoute?.destination.toUpperCase() || '—'}</strong></div>
@@ -240,19 +240,20 @@ export function ClientBook() {
     const [livePrices, setLivePrices] = useState(null);
     useEffect(() => { let cancelled = false; if (!d?.trip?.vesselName || c.preview) { setLivePrices(null); return; } c.request(`/pricing/public?vesselName=${encodeURIComponent(d.trip.vesselName)}`).then(result => { if (!cancelled) setLivePrices(result.prices); }).catch(() => { if (!cancelled) setLivePrices(null); }); return () => { cancelled = true; }; }, [d?.trip?.vesselName, c.preview]);
     const [bikeQuestionOpen, setBikeQuestionOpen] = useState(false);
+    const [motorcycleWarning, setMotorcycleWarning] = useState('');
     const change = patch => c.setDraft({ ...d, ...patch });
     const people = (index, patch) => change({ people: d.people.map((p, i) => i === index ? { ...p, ...patch } : p) });
     const count = number => { if (number < 1 || number > (d.motorcycle ? 3 : 10)) return; change({ people: number < d.people.length ? d.people.slice(0, number) : [...d.people, { id: createId(), name: '', age: '', gender: '', category: 'Regular' }] }); };
     const takeID = person => { if (!c.preview) return; const issue = personIssue(person); if (issue) return c.setError(issue); c.setPhoto(null); c.setPhotoPerson(person); c.setPhotoReturn('book-trip'); c.go('id-photo'); };
     const chooseMotorcycle = motorcycleType => {
         const issue = bookingWindowIssue(d.trip, true);
-        if (issue) { setBikeQuestionOpen(false); c.setError(issue); return; }
+        if (issue) { setBikeQuestionOpen(false); c.setError(''); setMotorcycleWarning(issue); return; }
         change({ motorcycle: true, motorcycleType, people: d.people.slice(0, 3) });
         setBikeQuestionOpen(false);
     };
     const requestMotorcycle = () => {
         const issue = bookingWindowIssue(d.trip, true);
-        if (issue) { c.setError(issue); return; }
+        if (issue) { c.setError(''); setMotorcycleWarning(issue); return; }
         setBikeQuestionOpen(true);
     };
     const submit = () => {
@@ -298,6 +299,14 @@ export function ClientBook() {
             <div className="ggo-bike-question"><h2>What is your motorcycle engine capacity?</h2><p>Above 250cc is a big bike. 250cc and below is a small bike.</p></div>
             <div className="ggo-bike-answers"><Button onClick={() => chooseMotorcycle('big-bike')}>Big bike</Button><Button secondary onClick={() => chooseMotorcycle('standard')}>Small bike</Button></div>
             <small>Up to 3 passengers, including you.</small>
+        </MobileDialog>}
+        {motorcycleWarning && <MobileDialog className="ggo-bike-warning-dialog" title="Motorcycle booking notice" onClose={() => setMotorcycleWarning('')}>
+            <div className="ggo-bike-warning" role="alert">
+                <span className="ggo-bike-warning-icon" aria-hidden="true">!</span>
+                <h2>Motorcycle booking notice</h2>
+                <p>{motorcycleWarning}</p>
+                <Button orange onClick={() => setMotorcycleWarning('')}>Got it</Button>
+            </div>
         </MobileDialog>}
     </main>;
 }

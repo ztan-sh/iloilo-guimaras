@@ -404,6 +404,8 @@
 .ggo-notification-count { margin:12px 0; }.ggo-notification-list { display:flex; flex-direction:column; gap:12px; margin-top:20px; }.ggo-notification { padding:16px; display:flex; align-items:flex-start; gap:12px; border:0; border-radius:16px; background:var(--ggo-surface); text-align:left; color:var(--ggo-ink); position:relative; }.ggo-notification.unread { background:var(--ggo-soft); }.ggo-notification > div { flex:1; min-width:0; }.ggo-notification h3 { margin-bottom:8px; }.ggo-notification p { color:var(--ggo-ink); margin-bottom:8px; }.ggo-event-dot { position:absolute; top:16px; right:16px; }
 .ggo-age-keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:64px; }.ggo-age-keypad button { border:0; background:var(--ggo-surface); color:var(--ggo-ink); min-height:64px; border-radius:16px; }
 .ggo-error { margin:12px 16px 0; padding:12px 36px 12px 12px; border-radius:16px; background:#fde6e2; color:#9b301e; font-size:13px; line-height:20px; position:relative; z-index:6; }.ggo-error button { position:absolute; right:0; top:0; width:36px; height:44px; border:0; background:transparent; color:inherit; }.ggo-load { font-size:12px; padding:8px 24px; }
+.ggo-error-centered { position:fixed; top:50%; left:50%; z-index:1000; width:min(460px, calc(100vw - 32px)); margin:0; padding:20px 48px 20px 20px; border-radius:18px; box-shadow:0 18px 60px #10232655; transform:translate(-50%, -50%); font-size:15px; line-height:22px; }
+.ggo-error-centered button { top:8px; right:8px; }
 .ggo-preview-bar { padding:12px 24px; background:#172729; color:#fff; display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-family:'Geist Variable',sans-serif; font-size:12px; }.ggo-preview-bar > span { color:#c5dcda; }.ggo-preview-bar nav { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-left:auto; }.ggo-preview-bar a,.ggo-preview-bar button { color:#fff; background:transparent; font:inherit; border:1px solid #ffffff40; padding:8px 12px; border-radius:20px; text-decoration:none; }
 .ggo-preview-controls { padding:8px 24px; color:#fff; background:#172729; display:flex; gap:8px; flex-wrap:wrap; font-size:12px; font-family:'Geist Variable',sans-serif; }.ggo-preview-controls button { border:1px solid #ffffff40; padding:8px 12px; border-radius:16px; background:transparent; color:white; font:inherit; }
 .ggo-dark { --ggo-ink:#e6f8f6; --ggo-muted:#acc3c1; --ggo-bg:#192729; --ggo-surface:#223536; --ggo-line:#395051; --ggo-aqua:#294847; --ggo-soft:#443225; --ggo-accent-text:#ffb57e; background:#102020; }.ggo-dark .ggo-icon { background:#fff; border-radius:5px; }.ggo-dark .ggo-button:not(.ggo-secondary):not(.ggo-orange) { color:#192729 !important; }
@@ -677,7 +679,7 @@
         max(48px, env(safe-area-inset-top))
         24px
         max(32px, env(safe-area-inset-bottom));
-    border-radius: 30px;
+    border-radius: 0;
     overflow: hidden;
     background: #ffffff;
 }
@@ -691,13 +693,6 @@
 .ggo-page.ggo-auth > * {
     max-width: 100%;
     box-sizing: border-box;
-}
-
-/* Rounded frame on mobile screens */
-@media (max-width: 600px) {
-    .ggo-page.ggo-auth {
-        border-radius: 30px;
-    }
 }
 
 /* Dashboard profile photo */
@@ -1070,3 +1065,51 @@
 
 
 
+
+.ggo-dialog.ggo-bike-warning-dialog { max-width:360px; padding:28px 24px 24px; }
+.ggo-bike-warning { display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; }
+.ggo-bike-warning-icon { display:grid; place-items:center; width:44px; height:44px; border-radius:50%; background:#fde6e2; color:#9b301e; font-size:26px; font-weight:700; }
+.ggo-bike-warning h2 { margin:0; font-size:21px; line-height:27px; }
+.ggo-bike-warning p { margin:0; color:var(--ggo-muted); font-size:15px; line-height:22px; }
+.ggo-bike-warning .ggo-button { margin-top:4px; }
+
+/* Compact the dashboard header so more ferry cards stay in view. */
+.ggo-dashboard {
+    padding-top: max(34px, env(safe-area-inset-top, 0px));
+}
+.ggo-dashboard-header {
+    margin-bottom: 18px;
+}
+.ggo-dashboard-toolbar {
+    margin-bottom: 16px;
+}
+.ggo-dashboard-header h1 {
+    font-size: 24px;
+    line-height: 29px;
+}
+.ggo-dashboard-header > p {
+    margin-top: 4px;
+}
+.ggo-guide-trigger {
+    margin-top: 8px;
+}
+@media (max-height: 760px) {
+    .ggo-dashboard {
+        padding-top: max(22px, env(safe-area-inset-top, 0px));
+        padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+    }
+    .ggo-dashboard-header {
+        margin-bottom: 12px;
+    }
+    .ggo-dashboard-toolbar {
+        margin-bottom: 10px;
+    }
+    .ggo-dashboard-header h1 {
+        font-size: 22px;
+        line-height: 26px;
+    }
+    .ggo-guide-trigger {
+        min-height: 34px;
+        margin-top: 6px;
+    }
+}

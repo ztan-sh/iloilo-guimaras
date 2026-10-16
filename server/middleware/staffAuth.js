@@ -1,4 +1,6 @@
 const jwt = require("jsonwebtoken");
+const Staff = require("../models/Staff");
+const { attachMutationAudit } = require("../utils/activityAudit");
 
 
 // =========================================================
@@ -15,7 +17,7 @@ const jwt = require("jsonwebtoken");
 // =========================================================
 
 
-const staffAuth = (req, res, next) => {
+const staffAuth = async (req, res, next) => {
 
     try {
 
@@ -99,6 +101,22 @@ const staffAuth = (req, res, next) => {
             });
         }
 
+        const staff = decoded.staffId
+            ? await Staff.findById(decoded.staffId).select("isActive")
+            : null;
+        if (!staff) {
+            return res.status(401).json({
+                success: false,
+                message: "This staff account is no longer available. Please sign in again."
+            });
+        }
+        if (!staff.isActive) {
+            return res.status(403).json({
+                success: false,
+                message: "This staff account has been deactivated."
+            });
+        }
+
 
         // =================================================
         // STORE STAFF INFORMATION
@@ -111,6 +129,7 @@ const staffAuth = (req, res, next) => {
         // =================================================
 
         req.staff = decoded;
+        attachMutationAudit(req, res, "staff", decoded);
 
 
         // =================================================
