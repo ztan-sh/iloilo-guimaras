@@ -308,3 +308,130 @@
     .staff-panel-tray { break-inside: avoid; margin-bottom: 16px; border: 1px solid #ddd; }
     .staff-root { background: white; }
 }
+
+/* Responsive workspace improvements for staff tablets and phones. */
+@media (max-width: 1100px) {
+    .staff-root.staff-workspace {
+        grid-template-columns: 210px minmax(0, 1fr);
+        gap: 18px;
+        padding: 18px;
+    }
+
+    .staff-root .staff-main { gap: 18px; }
+    .staff-root .staff-page-header { gap: 16px; }
+    .staff-root .staff-header-date { max-width: 220px; white-space: normal; }
+    .staff-root .staff-overview-panels .staff-panel-tray,
+    .staff-root .staff-overview-panels .staff-panel { min-height: 0; }
+    .staff-root .staff-table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+}
+
+@media (max-width: 760px) {
+    .staff-root.staff-workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: clamp(12px, 3vw, 20px);
+    }
+
+    .staff-root .staff-sidebar {
+        position: static;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "brand logout" "navigation navigation";
+        gap: 10px;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        margin: 0;
+        padding: 12px;
+        border-radius: var(--staff-radius);
+    }
+
+    .staff-root .staff-sidebar > .staff-brand { grid-area: brand; min-width: 0; }
+    .staff-root .staff-sidebar nav {
+        grid-area: navigation;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        min-width: 0;
+        margin: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .staff-root .staff-nav-item {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: max-content;
+        min-height: 42px;
+        padding: 10px 12px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .staff-root .staff-sidebar-bottom {
+        position: static;
+        grid-area: logout;
+        margin: 0;
+        gap: 0;
+    }
+
+    .staff-root .staff-sidebar-bottom > .staff-button {
+        width: auto;
+        min-height: 40px;
+        padding: 8px 14px;
+        white-space: nowrap;
+    }
+
+    .staff-root .staff-main { width: 100%; gap: 16px; }
+    .staff-root .staff-page-header { min-height: 0; flex-direction: column; align-items: stretch; gap: 8px; }
+    .staff-root .staff-page-header > div { width: 100%; }
+    .staff-root .staff-page-header h1 { font-size: clamp(24px, 6vw, 30px); line-height: 1.2; }
+    .staff-root .staff-page-header p { max-width: 70ch; }
+    .staff-root .staff-header-date {
+        display: flex;
+        align-self: flex-start;
+        align-items: flex-start;
+        padding: 8px 12px;
+        border: 1px solid var(--staff-line);
+        border-radius: 12px;
+        background: var(--staff-white);
+        text-align: left;
+    }
+
+    .staff-root .staff-trip { flex-wrap: wrap; gap: 12px; padding: 16px; }
+    .staff-root .staff-trip-route { flex: 1 1 100%; }
+    .staff-root .staff-trip-time { flex: 1 1 120px; min-width: 0; }
+    .staff-root .staff-trip > .staff-button { flex: 1 1 100%; width: 100%; margin: 0; }
+    .staff-root .staff-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .staff-root .staff-metrics-three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .staff-root .staff-metric { min-width: 0; min-height: 120px; padding: 16px; }
+    .staff-root .staff-metric > strong { font-size: clamp(24px, 6vw, 32px); line-height: 1.2; white-space: normal; overflow-wrap: anywhere; }
+    .staff-root .staff-two-panels { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .staff-root .staff-panel { min-width: 0; padding: clamp(14px, 4vw, 20px); }
+    .staff-root .staff-section-heading { align-items: stretch; flex-direction: column; }
+    .staff-root .staff-section-heading > .staff-button { width: 100%; }
+    .staff-root .staff-details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .staff-root .staff-dialog { width: min(600px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: clamp(16px, 4vw, 24px); }
+    .staff-root .staff-scanner-viewport { height: min(58dvh, 308px); min-height: 220px; }
+    .staff-root #staff-qr-reader video { height: 100% !important; }
+}
+
+@media (max-width: 430px) {
+    .staff-root .staff-brand { gap: 8px; font-size: 17px; }
+    .staff-root .staff-sidebar { padding: 10px; }
+    .staff-root .staff-nav-item { padding: 9px 10px; font-size: 12px; }
+    .staff-root .staff-sidebar-bottom > .staff-button { min-height: 38px; padding: 7px 10px; font-size: 12px; }
+    .staff-root .staff-metrics,
+    .staff-root .staff-metrics-three,
+    .staff-root .staff-details-grid,
+    .staff-root .staff-summary-strip { grid-template-columns: minmax(0, 1fr); }
+    .staff-root .staff-actions { flex-direction: column; gap: 10px; }
+    .staff-root .staff-actions > * { width: 100%; }
+    .staff-root .staff-trip { padding: 14px; }
+    .staff-root .staff-result-heading { align-items: flex-start; }
+}

@@ -76,7 +76,7 @@ const findFerry = ({
             .toLowerCase();
 
 
-    return FERRIES.find((ferry) => {
+    const knownFerry = FERRIES.find((ferry) => {
 
         const ferryIdMatch =
             normalizedId &&
@@ -112,6 +112,18 @@ const findFerry = ({
             ferryTimeMatch
         );
     });
+    if (knownFerry) return knownFerry;
+
+    // Admin-created vessels are not necessarily part of the legacy list above.
+    // Use the supplied vessel name as a stable date-level closure key so every
+    // schedule for that vessel is affected together.
+    const suppliedName = String(ferryName || vesselName || "").trim();
+    if (!suppliedName || !normalizeFerry(suppliedName)) return null;
+    return {
+        ferryId: normalizeFerry(suppliedName),
+        ferryName: suppliedName,
+        vesselName: suppliedName
+    };
 };
 
 

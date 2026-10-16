@@ -15,6 +15,14 @@ export const formatTime = (time) => {
     return `${String(hour % 12 || 12).padStart(2, "0")}:${match[2]} ${hour >= 12 ? "PM" : "AM"}`;
 };
 
+export const timeToMinutes = (time) => {
+    const formatted = formatTime(time);
+    const match = String(formatted).match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return Number.POSITIVE_INFINITY;
+    const hour = Number(match[1]) % 12 + (match[3].toUpperCase() === "PM" ? 12 : 0);
+    return hour * 60 + Number(match[2]);
+};
+
 export const formatTimestamp = (value, date = false) => value ? new Intl.DateTimeFormat("en-GB", {
     timeZone: "Asia/Manila", ...(date ? { day: "2-digit", month: "short", year: "numeric" } : {}),
     hour: "2-digit", minute: "2-digit", hour12: true

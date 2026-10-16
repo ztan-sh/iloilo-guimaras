@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { timeToMinutes } from "../Staff/staffUtils";
 
 
 const API_URL =
@@ -3018,7 +3019,7 @@ const AdminDashboard = () => {
         : 0;
 
     const nextDepartures = [...ferryCapacities]
-        .sort((a, b) => String(a?.departureTime || a?.time || "").localeCompare(String(b?.departureTime || b?.time || "")))
+        .sort((a, b) => timeToMinutes(a?.departureTime || a?.time) - timeToMinutes(b?.departureTime || b?.time))
         .slice(0, 4);
 
     const selectedTrip = nextDepartures[0] || ferryCapacities[0] || null;

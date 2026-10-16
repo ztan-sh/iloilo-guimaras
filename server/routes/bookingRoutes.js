@@ -40,7 +40,8 @@ const {
     getSchedulesForDate,
     createSchedule,
     updateSchedule,
-    deleteSchedule
+    deleteSchedule,
+    resetSchedulesForDate
 } = require("../controllers/ferryScheduleController");
 
 
@@ -191,6 +192,12 @@ router.put(
     "/schedules/:id",
     adminAuth,
     updateSchedule
+);
+
+router.delete(
+    "/schedules",
+    adminAuth,
+    resetSchedulesForDate
 );
 
 router.delete(

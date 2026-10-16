@@ -36,6 +36,7 @@ export const createAdminPreviewApi = () => {
             accompanyingPassengers: Array.from({ length: 9 }, (_, p) => `Sample passenger ${i + 1}.${p + 2}`), time: "11:30", ticketSource: i >= 8 ? "WALK_IN" : "ONLINE", requiredAmount: 615, totalPaid: 615 }))
     ];
     const scheduleEvents = [{ id: "preview-schedule-initial", time: stamp("07:30"), event: "Schedule updated", detail: "Departure set to 09:30 AM", reference: "HL-0930", actor: "Administrator", result: "Saved" }];
+    const ferryClosures = [];
     const allBookings = () => [...bookings, ...operationsStore.getSnapshot().bookings.filter(item => !bookings.some(booking => booking._id === item._id))];
     const respond = value => ({ data: copy(value) });
     const wait = async signal => {
@@ -56,11 +57,22 @@ export const createAdminPreviewApi = () => {
             await wait(config.signal);
             if (url === "/admin/me") return respond({ admin: { name: "Administrator", email: "admin@guimarasgo.example" } });
             if (url === "/bookings") return respond({ bookings: allBookings() });
-            if (url === "/bookings/schedules") return respond({ schedules: schedules.filter(trip => trip.date === (config.params?.date || date)).map(trip => ({ ...trip, passengers: tripStatistics(allBookings(), trip).paidPassengers })) });
+            if (url === "/bookings/schedules") return respond({ schedules: schedules.filter(trip => trip.date === (config.params?.date || date)).map(trip => ({ ...trip, passengers: tripStatistics(allBookings(), trip).paidPassengers, manualClosed: ferryClosures.some(closure => closure.date === trip.date && closure.ferryName.toLowerCase() === trip.vesselName.toLowerCase() && closure.isClosed) })) });
             if (url === "/preview/admin/events") return respond({ events: [...deriveEvents(allBookings(), []), ...scheduleEvents].sort((a, b) => new Date(b.time) - new Date(a.time)) });
             fail("This preview action is unavailable.", 404);
         },
         async post(url, body) { await wait(); if (url !== "/bookings/schedules") fail("Preview action unavailable."); return save(null, body); },
-        async put(url, body) { await wait(); if (!url.startsWith("/bookings/schedules/")) fail("Preview action unavailable."); return save(url.split("/").pop(), body); }
+        async put(url, body) {
+            await wait();
+            if (url.startsWith("/bookings/schedules/")) return save(url.split("/").pop(), body);
+            if (url === "/ferry-closures/close" || url === "/ferry-closures/open") {
+                const closed = url.endsWith("/close");
+                let closure = ferryClosures.find(item => item.date === body.date && item.ferryName.toLowerCase() === String(body.ferryName || body.vesselName).toLowerCase());
+                if (!closure) { closure = { date: body.date, ferryName: body.ferryName || body.vesselName }; ferryClosures.push(closure); }
+                closure.isClosed = closed;
+                return respond({ success: true, closure });
+            }
+            fail("Preview action unavailable.");
+        }
     };
 };

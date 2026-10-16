@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAdminWorkspace } from "./AdminState";
 import { AdminButton, AdminCapacity, AdminCell, AdminDetail, AdminDialog, AdminField, AdminHeading, AdminMetric, AdminNotice, AdminPanel, AdminStatus, AdminTable } from "../../components/admin/AdminUI";
-import { boardingState, formatTime, formatTimestamp, formatTripDate, hasMotorcycle, isPaid, matchesSearch, money, passengerCount, passengerNames, passengerRows, paymentAmount, paymentReference, paymentState, paymentTime, sourceLabel, tripLabel, tripState, tripStatistics, weekdayDate } from "./adminUtils";
+import { boardingState, formatTime, formatTimestamp, formatTripDate, hasMotorcycle, isPaid, manilaMonth, matchesSearch, money, monthTitle, monthlyTicketReport, passengerCount, passengerNames, passengerRows, paymentAmount, paymentReference, paymentState, paymentTime, sourceLabel, tripLabel, tripState, tripStatistics, weekdayDate } from "./adminUtils";
+import { downloadMonthlyTicketExcel } from "./monthlyTicketExcel";
 
 const locations = ["Iloilo", "Guimaras"].map(value => ({ value, label: value }));
 const columns = labels => labels.map(([label, width]) => ({ label, width }));
@@ -34,6 +35,8 @@ function Pagination({ page, children }) {
 export function AdminOverview() {
     const { schedules, selectedTrip: trip, statistics: s, bookings, setSelectedId, basePath, date } = useAdminWorkspace();
     const navigate = useNavigate();
+    const [reportMonth, setReportMonth] = useState(() => manilaMonth());
+    const monthlyReport = monthlyTicketReport(bookings, reportMonth);
     return <>
         <TripBanner />
         <div className="staff-metrics">
@@ -42,6 +45,29 @@ export function AdminOverview() {
             <AdminMetric label="Passengers boarded" value={`${s.boardedPassengers} / ${s.paidPassengers}`} detail={`${s.paidPassengers - s.boardedPassengers} paid passengers remaining`} />
             <AdminMetric label="Selected trip revenue" value={money(s.revenue)} detail="Successful payments only" />
         </div>
+        <AdminPanel className="admin-monthly-report">
+            <AdminHeading title={`${monthTitle(reportMonth)} tickets sold`} detail="Monthly totals accumulate across every day and remain available from the month selector.">
+                <div className="admin-monthly-report-controls">
+                    <label><span>Report month</span><input aria-label="Report month" type="month" value={reportMonth} max={manilaMonth()} onChange={event => setReportMonth(event.target.value || manilaMonth())} /></label>
+                    <AdminButton variant="secondary" onClick={() => downloadMonthlyTicketExcel(reportMonth, monthlyReport)}>Export Excel</AdminButton>
+                </div>
+            </AdminHeading>
+            <div className="admin-monthly-report-summary" aria-label={`${monthTitle(reportMonth)} summary`}>
+                <div><span>Passenger tickets sold</span><strong>{monthlyReport.tickets.toLocaleString()}</strong></div>
+                <div><span>Paid bookings</span><strong>{monthlyReport.bookings.toLocaleString()}</strong></div>
+                <div><span>Revenue</span><strong>{money(monthlyReport.revenue)}</strong></div>
+            </div>
+            <p className="admin-monthly-report-note">Confirmed paid tickets, grouped by payment date in Philippine time. A booking with multiple passengers counts one ticket per passenger.</p>
+            <AdminTable label={`${monthTitle(reportMonth)} daily ticket sales`} className="admin-monthly-report-table" columns={columns([["Date", 22], ["Tickets sold", 19], ["Cumulative tickets", 22], ["Paid bookings", 18], ["Revenue", 19]])}>
+                {monthlyReport.rows.map(row => <tr key={row.date}>
+                    <AdminCell label={row.label} detail={row.date} />
+                    <AdminCell label={row.tickets.toLocaleString()} />
+                    <AdminCell label={row.cumulativeTickets.toLocaleString()} />
+                    <AdminCell label={row.bookings.toLocaleString()} />
+                    <AdminCell label={money(row.revenue)} />
+                </tr>)}
+            </AdminTable>
+        </AdminPanel>
         <div className="staff-two-panels admin-desktop-overview-panels">
             <AdminPanel>
                 <AdminHeading title="Today's departures" detail={`${weekdayDate(date)} · Paid occupancy by trip`}><AdminButton variant="secondary" onClick={() => navigate(`${basePath}/schedules`)}>Manage schedules</AdminButton></AdminHeading>
@@ -70,12 +96,92 @@ export function AdminSchedules() {
     const { schedules, bookings, date, setDate, selectedTrip, setSelectedId, basePath, api, refresh, setNotice } = useAdminWorkspace();
     const navigate = useNavigate();
     const [route, setRoute] = useState("");
+    const [bulkOpen, setBulkOpen] = useState(false);
+    const [bulkSaving, setBulkSaving] = useState(false);
+    const [bulkError, setBulkError] = useState("");
+    const [resetOpen, setResetOpen] = useState(false);
+    const [resetSaving, setResetSaving] = useState(false);
+    const [resetError, setResetError] = useState("");
+    const [bulkForm, setBulkForm] = useState({ vesselName: "", origin: "Iloilo", startTime: "03:30", interval: "60" });
+    const [closureSaving, setClosureSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState("");
     const [confirmTrip, setConfirmTrip] = useState(null);
     const rows = schedules.filter(trip => !route || trip.route === route);
+    const availableVessels = [...new Set(schedules.map(item => item.vesselName?.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
     const trip = rows.find(item => item.id === selectedTrip?.id) || rows[0];
     const page = usePage(rows, 8);
+    const vesselSchedules = trip ? schedules.filter(item => item.vesselName.trim().toLowerCase() === trip.vesselName.trim().toLowerCase()) : [];
+    const vesselClosed = vesselSchedules.length > 0 && vesselSchedules.every(item => item.manualClosed);
+    const updateBulkForm = key => event => setBulkForm(current => ({ ...current, [key]: event.target.value }));
+    const generateDaySchedule = async event => {
+        event.preventDefault();
+        if (bulkSaving) return;
+        const vesselName = bulkForm.vesselName.trim();
+        const interval = Number(bulkForm.interval);
+        const [startHour, startMinute] = bulkForm.startTime.split(":").map(Number);
+        const firstDeparture = startHour * 60 + startMinute;
+        if (!vesselName || firstDeparture < 210 || firstDeparture > 1170 || firstDeparture % 30 !== 0 || interval < 30 || interval > 360 || interval % 30 !== 0) { setBulkError("Choose a first departure between 3:30 AM and 7:30 PM and an interval in 30-minute increments."); return; }
+        setBulkSaving(true); setBulkError("");
+        let created = 0; let skipped = 0;
+        try {
+            const ferrySchedules = schedules.filter(item => item.vesselName.trim().toLowerCase() === vesselName.toLowerCase());
+            const ferryTemplate = ferrySchedules[0];
+            const occupied = new Set(ferrySchedules.map(item => item.departureTime));
+            const originFirst = bulkForm.origin;
+            const minutesToTime = minutes => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+            const departures = [];
+            for (let departure = firstDeparture; departure <= 1170; departure += interval) departures.push(departure);
+            if (departures.at(-1) !== 1170) departures.push(1170);
+            for (let index = 0; index < departures.length; index += 1) {
+                const departure = departures[index];
+                const departureTime = minutesToTime(departure);
+                if (occupied.has(departureTime)) { skipped += 1; continue; }
+                const origin = index % 2 === 0 ? originFirst : (originFirst === "Iloilo" ? "Guimaras" : "Iloilo");
+                const destinationPort = origin === "Iloilo" ? "Guimaras" : "Iloilo";
+                const arrivalTime = minutesToTime(departure + 30);
+                try { await api.post("/bookings/schedules", { vesselName, route: `${origin} → ${destinationPort}`, date, departureTime, arrivalTime,
+                    passengerCapacity: ferryTemplate?.passengerCapacity, motorcycleCapacity: ferryTemplate?.motorcycleCapacity,
+                    walkInMotorcycleCapacity: ferryTemplate?.walkInMotorcycleCapacity }); created += 1; }
+                catch (error) { if (error.response?.status === 409) skipped += 1; else throw error; }
+            }
+            setBulkOpen(false);
+            setNotice(`${created} trips generated for ${vesselName}${skipped ? `; ${skipped} existing departures skipped` : ""}.`);
+            refresh();
+        } catch (error) {
+            setBulkError(error.response?.data?.message || error.message || `Created ${created} trips before the schedule stopped. Refresh and try again.`);
+            refresh();
+        } finally { setBulkSaving(false); }
+    };
+    const resetDaySchedule = async () => {
+        if (resetSaving) return;
+        setResetSaving(true);
+        setResetError("");
+        try {
+            const { data } = await api.delete(`/bookings/schedules?date=${encodeURIComponent(date)}`);
+            setResetOpen(false);
+            setSelectedId("");
+            setRoute("");
+            setNotice(`Reset ${weekdayDate(date)}: removed ${data.removedTrips} trip${data.removedTrips === 1 ? "" : "s"}. Booking and payment records were kept.`);
+            refresh();
+        } catch (error) {
+            setResetError(error.response?.data?.message || error.message || "Unable to reset this day's trips.");
+        } finally {
+            setResetSaving(false);
+        }
+    };
+    const toggleVesselClosure = async () => {
+        if (!trip || closureSaving) return;
+        setDeleteError("");
+        setClosureSaving(true);
+        try {
+            const action = vesselClosed ? "open" : "close";
+            await api.put(`/ferry-closures/${action}`, { date, ferryName: trip.vesselName, vesselName: trip.vesselName });
+            setNotice(`${trip.vesselName} ${vesselClosed ? "reopened" : "closed"}; this applies to all its departures on ${weekdayDate(date)}.`);
+            refresh();
+        } catch (error) { setDeleteError(error.response?.data?.message || error.message || "Unable to update ferry availability."); }
+        finally { setClosureSaving(false); }
+    };
     const deleteTrip = async () => {
         if (!confirmTrip || deleting) return;
         setDeleting(true);
@@ -96,7 +202,7 @@ export function AdminSchedules() {
         <div className="admin-desktop-schedule-filters">
             <AdminField label="Travel date" icon="routeInput" type="date" value={date} onChange={e => { if (e.target.value) setDate(e.target.value); }} />
             <AdminField label="Route" icon="routeInput" value={route} onChange={e => setRoute(e.target.value)} options={[{ value: "", label: "All routes" }, ...["Iloilo → Guimaras", "Guimaras → Iloilo"].map(value => ({ value, label: value }))]} />
-            <AdminButton onClick={() => navigate(`${basePath}/trips/new`)}><span aria-hidden="true">＋ </span>Add trip</AdminButton>
+            <div className="admin-schedule-actions"><AdminButton variant="secondary" onClick={() => { setResetError(""); setResetOpen(true); }}>Reset day trips</AdminButton><AdminButton variant="secondary" onClick={() => { setBulkForm(current => ({ ...current, vesselName: current.vesselName || availableVessels[0] || "" })); setBulkError(""); setBulkOpen(true); }}>Generate day schedule</AdminButton><AdminButton onClick={() => navigate(`${basePath}/trips/new`)}><span aria-hidden="true">＋ </span>Add trip</AdminButton></div>
         </div>
         <AdminPanel>
             <AdminHeading title={weekdayDate(date)} detail={`${countLabel(rows.length, "trip")} · ${route || "both directions"}`} />
@@ -114,7 +220,7 @@ export function AdminSchedules() {
                     </tr>;
                 })}
             </AdminTable>
-            <div className="admin-desktop-table-footer"><Pagination page={page}>{countLabel(rows.length, "trip")}</Pagination><div className="admin-desktop-table-actions"><AdminButton variant="danger" disabled={!trip || deleting} onClick={() => { setDeleteError(""); setConfirmTrip({ ...trip, relatedBookings: tripStatistics(bookings, trip).records.length }); }}>{deleting ? "Deleting…" : "Delete selected trip"}</AdminButton><AdminButton variant="secondary" disabled={!trip || deleting} onClick={() => navigate(`${basePath}/trips/${trip.id}`)}>Edit selected trip</AdminButton></div></div>
+            <div className="admin-desktop-table-footer"><Pagination page={page}>{countLabel(rows.length, "trip")}</Pagination><div className="admin-desktop-table-actions">{trip && <AdminButton variant={vesselClosed ? "secondary" : "danger"} disabled={closureSaving} onClick={toggleVesselClosure}>{closureSaving ? "Updating…" : vesselClosed ? `Reopen ${trip.vesselName}` : `Close all ${trip.vesselName} trips`}</AdminButton>}<AdminButton variant="danger" disabled={!trip || deleting} onClick={() => { setDeleteError(""); setConfirmTrip({ ...trip, relatedBookings: tripStatistics(bookings, trip).records.length }); }}>{deleting ? "Deleting…" : "Delete selected trip"}</AdminButton><AdminButton variant="secondary" disabled={!trip || deleting} onClick={() => navigate(`${basePath}/trips/${trip.id}`)}>Edit selected trip</AdminButton></div></div>
         </AdminPanel>
         {trip && <div className="staff-trip-tray"><p className="admin-desktop-allocation-note">This trip accommodates {trip.passengerCapacity} passengers and {trip.motorcycleCapacity} motorcycles. Motorcycle slots are allocated {trip.onlineMotorcycleCapacity} online and {trip.walkInMotorcycleCapacity} walk-in.</p></div>}
         {confirmTrip && <AdminDialog title="Delete this trip?" onClose={() => { if (!deleting) setConfirmTrip(null); }}>
@@ -125,6 +231,24 @@ export function AdminSchedules() {
                 {confirmTrip.relatedBookings > 0 && <p className="admin-delete-warning">There {confirmTrip.relatedBookings === 1 ? "is" : "are"} {confirmTrip.relatedBookings} existing booking record{confirmTrip.relatedBookings === 1 ? "" : "s"}. They will remain in the system, but staff will no longer see this trip for boarding.</p>}
                 <div className="admin-delete-actions"><AdminButton variant="secondary" disabled={deleting} onClick={() => setConfirmTrip(null)}>Cancel</AdminButton><AdminButton variant="danger" disabled={deleting} onClick={deleteTrip}>{deleting ? "Deleting…" : "Delete trip"}</AdminButton></div>
             </div>
+        </AdminDialog>}
+        {resetOpen && <AdminDialog title="Reset all trips for this day?" onClose={() => { if (!resetSaving) setResetOpen(false); }}>
+            <div className="staff-form-stack">
+                <p>This removes all scheduled trips for {weekdayDate(date)} across every vessel and both routes, and clears ferry closure settings for that date. Existing booking and payment records are kept. Future or current dates with active bookings cannot be reset until those bookings are resolved.</p>
+                <AdminNotice error>{resetError}</AdminNotice>
+                <div className="admin-desktop-editor-actions"><AdminButton variant="danger" disabled={resetSaving} onClick={resetDaySchedule}>{resetSaving ? "Resetting…" : "Reset all trips"}</AdminButton><AdminButton variant="secondary" disabled={resetSaving} onClick={() => setResetOpen(false)}>Cancel</AdminButton></div>
+            </div>
+        </AdminDialog>}
+        {bulkOpen && <AdminDialog title="Generate a ferry day schedule" onClose={() => { if (!bulkSaving) setBulkOpen(false); }}>
+            <form className="staff-form-stack" onSubmit={generateDaySchedule}>
+                <p>Generate alternating trips from your chosen first departure through 7:30 PM. Each trip arrives 30 minutes after departure. Existing departures for this vessel will be skipped.</p>
+                <AdminNotice error>{bulkError}</AdminNotice>
+                <AdminField label="Vessel" icon="ticketInput" value={availableVessels.includes(bulkForm.vesselName) ? bulkForm.vesselName : "__custom__"} onChange={event => setBulkForm(current => ({ ...current, vesselName: event.target.value === "__custom__" ? "" : event.target.value }))} options={[...availableVessels.map(value => ({ value, label: value })), { value: "__custom__", label: "Add another vessel…" }]} disabled={bulkSaving} />
+                {!availableVessels.includes(bulkForm.vesselName) && <AdminField label="New vessel name" icon="ticketInput" placeholder="Enter vessel name" value={bulkForm.vesselName} onChange={updateBulkForm("vesselName")} required disabled={bulkSaving} maxLength={100} />}
+                <div className="staff-details-grid"><AdminField label="First departure starts from" icon="routeInput" options={locations} value={bulkForm.origin} onChange={updateBulkForm("origin")} disabled={bulkSaving} /><AdminField label="First departure time" icon="routeInput" type="time" min="03:30" max="19:30" step="1800" value={bulkForm.startTime} onChange={updateBulkForm("startTime")} required disabled={bulkSaving} /><AdminField label="Departure interval (minutes)" icon="routeInput" type="number" min="30" max="360" step="30" value={bulkForm.interval} onChange={updateBulkForm("interval")} required disabled={bulkSaving} /></div>
+                <p>After each crossing, the next trip departs in the opposite direction. The selected start port determines the ferry’s first direction for this date.</p>
+                <div className="admin-desktop-editor-actions"><AdminButton type="submit" disabled={bulkSaving}>{bulkSaving ? "Generating…" : "Generate trips"}</AdminButton><AdminButton variant="secondary" disabled={bulkSaving} onClick={() => setBulkOpen(false)}>Cancel</AdminButton></div>
+            </form>
         </AdminDialog>}
     </>;
 }

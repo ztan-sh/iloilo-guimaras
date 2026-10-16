@@ -12,7 +12,8 @@
 .admin-desktop-status-failed, .admin-desktop-status-rejected { background: #ffecdb; color: var(--staff-ink); }
 .admin-desktop-trip-status { width: 180px; flex-shrink: 0; display: flex; justify-content: center; }
 .admin-desktop-schedule-filters { display: grid; grid-template-columns: minmax(0, 328px) minmax(0, 328px) 1fr; gap: 16px; align-items: end; }
-.admin-desktop-schedule-filters > .staff-button { width: 180px; justify-self: end; align-self: start; }
+.admin-schedule-actions { display: flex; justify-content: end; gap: 12px; }
+.admin-schedule-actions > .staff-button { width: 180px; }
 .admin-desktop-table th:first-child, .admin-desktop-table th:last-child { width: auto; }
 .admin-desktop .admin-desktop-table tbody tr:first-child { background: transparent; }
 .admin-desktop .admin-desktop-table tbody tr[data-selected="true"], .admin-desktop .admin-desktop-table tbody tr:first-child:not([data-selected]) { background: var(--staff-background); }
@@ -45,6 +46,28 @@
 .admin-desktop-notice .staff-notice { padding-right: 44px; }
 .admin-desktop-notice > button { position: absolute; right: 12px; top: 8px; border: 0; background: transparent; font-size: 22px; color: var(--staff-paid); cursor: pointer; }
 .admin-desktop-legacy { align-self: flex-start; font-size: 12px; line-height: 18px; color: var(--staff-accent-text); text-underline-offset: 3px; }
+.admin-monthly-report { margin: 24px 0; }
+.admin-monthly-report .staff-panel { min-width: 0; }
+.admin-monthly-report .staff-section-heading { align-items: end; gap: 20px; }
+.admin-monthly-report-controls { display: flex; align-items: end; gap: 12px; flex-shrink: 0; }
+.admin-monthly-report-controls label { display: grid; gap: 6px; color: var(--staff-muted); font-size: 12px; }
+.admin-monthly-report-controls input { min-height: 44px; border: 1px solid var(--staff-border, #d9d4cc); border-radius: 12px; padding: 0 12px; background: var(--staff-background); color: var(--staff-ink); font: inherit; }
+.admin-monthly-report-controls > .staff-button { min-height: 44px; }
+.admin-monthly-report-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 20px 0 12px; }
+.admin-monthly-report-summary > div { display: grid; gap: 6px; min-width: 0; padding: 14px 16px; border-radius: 16px; background: var(--staff-background); }
+.admin-monthly-report-summary span { color: var(--staff-muted); font-size: 12px; }
+.admin-monthly-report-summary strong { overflow-wrap: anywhere; color: var(--staff-ink); font-size: clamp(18px, 2vw, 25px); }
+.admin-monthly-report-note { margin: 0 0 12px; color: var(--staff-muted); font-size: 12px; line-height: 18px; }
+.admin-monthly-report .staff-table-scroll { max-height: 420px; overflow: auto; }
+.admin-monthly-report-table { min-width: 700px; }
+.admin-monthly-report .admin-desktop-table td { height: 56px; }
+@media (max-width: 760px) {
+    .admin-monthly-report .staff-section-heading { align-items: stretch; flex-direction: column; }
+    .admin-monthly-report-controls { flex-wrap: wrap; }
+    .admin-monthly-report-controls label { flex: 1; min-width: 150px; }
+    .admin-monthly-report-controls input { width: 100%; }
+    .admin-monthly-report-summary { grid-template-columns: 1fr; }
+}
 @media (min-width: 761px) {
     .admin-desktop .staff-sidebar { overflow: hidden; }
     .admin-desktop .staff-sidebar > :not(nav) { flex-shrink: 0; }
@@ -59,7 +82,7 @@
 @media (max-width: 1250px) {
     .admin-desktop-trip-status { width: 140px; }
     .admin-desktop-schedule-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 150px; }
-    .admin-desktop-schedule-filters > .staff-button { width: 150px; }
+    .admin-schedule-actions > .staff-button { width: 150px; }
 }
 @media (max-width: 1080px) {
     .admin-desktop-overview-panels .staff-panel { min-height: 0; }
@@ -71,7 +94,8 @@
     .admin-desktop .staff-sidebar nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .admin-desktop .staff-metrics-three { grid-template-columns: minmax(0, 1fr); }
     .admin-desktop-schedule-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .admin-desktop-schedule-filters > .staff-button { grid-column: 1 / -1; justify-self: start; }
+    .admin-schedule-actions { grid-column: 1 / -1; justify-content: start; flex-wrap: wrap; }
+    .admin-schedule-actions > .staff-button { width: auto; flex: 1; }
     .admin-desktop .staff-nav-item { font-size: 12px; line-height: 16px; }
     .admin-desktop-table-footer { flex-wrap: wrap; }
     .admin-desktop-editor-actions > .staff-button { width: auto !important; flex: 1; }
@@ -279,7 +303,8 @@
 .admin-desktop-status-failed, .admin-desktop-status-rejected { background: #ffecdb; color: var(--staff-ink); }
 .admin-desktop-trip-status { width: 180px; flex-shrink: 0; display: flex; justify-content: center; }
 .admin-desktop-schedule-filters { display: grid; grid-template-columns: minmax(0, 328px) minmax(0, 328px) 1fr; gap: 16px; align-items: end; }
-.admin-desktop-schedule-filters > .staff-button { width: 180px; justify-self: end; align-self: start; }
+.admin-schedule-actions { display: flex; justify-content: end; gap: 12px; }
+.admin-schedule-actions > .staff-button { width: 180px; }
 .admin-desktop-table th:first-child, .admin-desktop-table th:last-child { width: auto; }
 .admin-desktop .admin-desktop-table tbody tr:first-child { background: transparent; }
 .admin-desktop .admin-desktop-table tbody tr[data-selected="true"], .admin-desktop .admin-desktop-table tbody tr:first-child:not([data-selected]) { background: var(--staff-background); }
@@ -326,7 +351,7 @@
 @media (max-width: 1250px) {
     .admin-desktop-trip-status { width: 140px; }
     .admin-desktop-schedule-filters { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 150px; }
-    .admin-desktop-schedule-filters > .staff-button { width: 150px; }
+    .admin-schedule-actions > .staff-button { width: 150px; }
 }
 @media (max-width: 1080px) {
     .admin-desktop-overview-panels .staff-panel { min-height: 0; }
@@ -338,7 +363,8 @@
     .admin-desktop .staff-sidebar nav { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .admin-desktop .staff-metrics-three { grid-template-columns: minmax(0, 1fr); }
     .admin-desktop-schedule-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .admin-desktop-schedule-filters > .staff-button { grid-column: 1 / -1; justify-self: start; }
+    .admin-schedule-actions { grid-column: 1 / -1; justify-content: start; flex-wrap: wrap; }
+    .admin-schedule-actions > .staff-button { width: auto; flex: 1; }
     .admin-desktop .staff-nav-item { font-size: 12px; line-height: 16px; }
     .admin-desktop-table-footer { flex-wrap: wrap; }
     .admin-desktop-editor-actions > .staff-button { width: auto !important; flex: 1; }
@@ -347,4 +373,181 @@
     .admin-desktop .staff-sidebar nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .admin-desktop-schedule-filters { grid-template-columns: minmax(0, 1fr); }
     .admin-desktop-trip-status { width: auto; }
+}
+
+/* Keep the schedules footer controls from colliding with long vessel names. */
+.admin-desktop .admin-desktop-table-footer {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+}
+
+.admin-desktop .admin-desktop-table-footer > .admin-desktop-table-footer {
+    flex: 1 1 320px;
+    min-width: min(100%, 320px);
+    gap: 12px;
+}
+
+.admin-desktop .admin-desktop-table-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex: 1 1 560px;
+    min-width: min(100%, 480px);
+    gap: 10px;
+}
+
+.admin-desktop .admin-desktop-table-actions > .staff-button {
+    width: auto;
+    min-width: 0;
+    min-height: 48px;
+    flex: initial;
+    padding: 10px 12px;
+    text-align: center;
+    line-height: 1.25;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+    .admin-desktop .admin-desktop-table-footer > .admin-desktop-table-footer {
+        flex-basis: 100%;
+        min-width: 0;
+    }
+
+    .admin-desktop .admin-desktop-table-actions {
+        grid-template-columns: minmax(0, 1fr);
+        min-width: 0;
+    }
+}
+
+/* Admin workspace layout across compact laptops, tablets and phones. */
+@media (max-width: 1200px) {
+    .admin-desktop.staff-workspace {
+        grid-template-columns: 200px minmax(0, 1fr);
+        gap: 18px;
+        padding: 18px;
+    }
+
+    .admin-desktop .staff-main { gap: 18px; }
+    .admin-desktop .staff-panel { padding: 20px; }
+    .admin-desktop .admin-desktop-overview-panels .staff-panel-tray,
+    .admin-desktop .admin-desktop-overview-panels .staff-panel { min-height: 0; }
+    .admin-desktop .staff-table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+}
+
+@media (max-width: 760px) {
+    .admin-desktop.staff-workspace {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: clamp(12px, 3vw, 20px);
+    }
+
+    .admin-desktop .staff-sidebar {
+        position: static;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: "brand logout" "navigation navigation";
+        gap: 10px;
+        width: 100%;
+        height: auto;
+        min-height: 0;
+        margin: 0;
+        padding: 12px;
+        border-radius: var(--staff-radius);
+    }
+
+    .admin-desktop .staff-sidebar > .staff-brand { grid-area: brand; min-width: 0; }
+    .admin-desktop .staff-sidebar nav {
+        grid-area: navigation;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+        min-width: 0;
+        margin: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 2px;
+        scrollbar-width: thin;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-desktop .staff-nav-item {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: max-content;
+        min-height: 42px;
+        padding: 10px 12px;
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .admin-desktop .staff-sidebar-bottom {
+        position: static;
+        grid-area: logout;
+        margin: 0;
+        gap: 0;
+    }
+
+    .admin-desktop .staff-sidebar-bottom > .staff-button {
+        width: auto;
+        min-height: 40px;
+        padding: 8px 14px;
+        white-space: nowrap;
+    }
+
+    .admin-desktop .staff-main { width: 100%; min-width: 0; gap: 16px; }
+    .admin-desktop .staff-page-header { min-height: 0; flex-direction: column; align-items: stretch; gap: 8px; }
+    .admin-desktop .staff-page-header h1 { font-size: clamp(24px, 6vw, 30px); line-height: 1.2; }
+    .admin-desktop .staff-header-date {
+        display: flex;
+        align-self: flex-start;
+        align-items: flex-start;
+        max-width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--staff-line);
+        border-radius: 12px;
+        background: var(--staff-white);
+        text-align: left;
+        white-space: normal;
+    }
+
+    .admin-desktop-schedule-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .admin-desktop-schedule-filters > .admin-schedule-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: stretch; }
+    .admin-desktop-schedule-filters .admin-schedule-actions > .staff-button { flex: 1 1 160px; width: auto; min-width: 0; }
+    .admin-desktop .staff-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .admin-desktop .staff-metrics-three { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .admin-desktop .staff-metric { min-width: 0; min-height: 120px; padding: 16px; }
+    .admin-desktop .staff-metric > strong { font-size: clamp(24px, 6vw, 32px); line-height: 1.2; white-space: normal; overflow-wrap: anywhere; }
+    .admin-desktop .staff-two-panels { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .admin-desktop .staff-panel { min-width: 0; padding: clamp(14px, 4vw, 20px); }
+    .admin-desktop .staff-section-heading { align-items: stretch; flex-direction: column; }
+    .admin-desktop .staff-section-heading > .staff-button { width: 100%; }
+    .admin-desktop .staff-details-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .admin-desktop .staff-dialog { width: min(720px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); padding: clamp(16px, 4vw, 24px); }
+    .admin-desktop .admin-desktop-editor-actions { flex-wrap: wrap; gap: 10px; }
+    .admin-desktop .admin-desktop-editor-actions > .staff-button { width: auto !important; min-width: 0; flex: 1 1 160px; }
+    .admin-desktop .admin-desktop-table-footer { align-items: stretch; }
+    .admin-desktop .admin-desktop-table-footer > .admin-desktop-table-footer { flex: 1 1 100%; min-width: 0; }
+    .admin-desktop .admin-desktop-table-actions { grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); flex-basis: 100%; min-width: 0; }
+    .admin-desktop .admin-desktop-table-actions > .staff-button { width: auto; min-width: 0; flex: initial; white-space: normal; overflow-wrap: anywhere; }
+    .admin-desktop .admin-monthly-report-controls { flex-wrap: wrap; }
+    .admin-desktop .admin-monthly-report-controls label { flex: 1 1 150px; min-width: 0; }
+    .admin-desktop .admin-monthly-report-controls > .staff-button { flex: 1 1 100%; width: 100%; }
+}
+
+@media (max-width: 430px) {
+    .admin-desktop .staff-sidebar { padding: 10px; }
+    .admin-desktop .staff-brand { gap: 8px; font-size: 17px; }
+    .admin-desktop .staff-nav-item { padding: 9px 10px; font-size: 12px; }
+    .admin-desktop .staff-sidebar-bottom > .staff-button { min-height: 38px; padding: 7px 10px; font-size: 12px; }
+    .admin-desktop-schedule-filters { grid-template-columns: minmax(0, 1fr); }
+    .admin-desktop-schedule-filters > .admin-schedule-actions { grid-column: auto; }
+    .admin-desktop .staff-metrics,
+    .admin-desktop .staff-metrics-three,
+    .admin-desktop .staff-details-grid,
+    .admin-desktop .admin-monthly-report-summary { grid-template-columns: minmax(0, 1fr); }
+    .admin-desktop .staff-actions { flex-direction: column; gap: 10px; }
+    .admin-desktop .staff-actions > * { width: 100%; }
 }

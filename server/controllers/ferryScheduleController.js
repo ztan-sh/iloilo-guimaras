@@ -1,6 +1,7 @@
 const FerrySchedule = require("../models/FerrySchedule");
 const Booking = require("../models/Booking");
 const FerryClosure = require("../models/FerryClosure");
+const ScheduleDayControl = FerryClosure.ScheduleDayControl;
 const { belongsToTrip, hasMotorcycle } = require("../utils/staffTrip");
 
 const PASSENGER_CAPACITY = 100;
@@ -160,6 +161,9 @@ const formatTime = (value) => {
 const ensureDefaultSchedules = async (date) => {
     const normalizedDate = normalizeDate(date);
 
+    const dayControl = await ScheduleDayControl.exists({ date: normalizedDate, suppressDefaults: true });
+    if (dayControl) return;
+
     for (const item of DEFAULT_SCHEDULES) {
         await FerrySchedule.findOneAndUpdate(
             {
@@ -186,6 +190,52 @@ const ensureDefaultSchedules = async (date) => {
     }
 };
 
+const resetSchedulesForDate = async (req, res) => {
+    try {
+        const date = normalizeDate(req.query.date || req.body?.date);
+        if (!date) {
+            return res.status(400).json({ success: false, message: "Choose a valid travel date to reset." });
+        }
+
+        const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+        const todayParts = Object.fromEntries(parts.filter(part => part.type !== "literal").map(part => [part.type, part.value]));
+        const today = `${todayParts.year}-${todayParts.month}-${todayParts.day}`;
+
+        if (date >= today) {
+            const activeBookings = await Booking.countDocuments({
+                date,
+                status: { $nin: ["CANCELLED"] },
+                paymentStatus: { $nin: ["REJECTED", "CANCELLED"] }
+            });
+            if (activeBookings > 0) {
+                return res.status(409).json({
+                    success: false,
+                    message: `This date has ${activeBookings} active booking${activeBookings === 1 ? "" : "s"}. Resolve those bookings before resetting trips so passengers are not left without their scheduled crossing.`
+                });
+            }
+        }
+
+        await ScheduleDayControl.findOneAndUpdate(
+            { date }, { $set: { suppressDefaults: true } },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        const [schedules, closures] = await Promise.all([
+            FerrySchedule.deleteMany({ date }),
+            FerryClosure.deleteMany({ date })
+        ]);
+
+        return res.status(200).json({
+            success: true, date,
+            removedTrips: schedules.deletedCount || 0,
+            removedClosures: closures.deletedCount || 0,
+            message: "The selected day's schedules were reset. Booking and payment records were kept."
+        });
+    } catch (error) {
+        console.error("Reset ferry schedules error:", error);
+        return res.status(500).json({ success: false, message: "Unable to reset schedules for this date." });
+    }
+};
 const calculateScheduleCapacity = async (schedule, bookings) => {
     const targetVessel = normalizeText(schedule.vesselName);
     const targetTime = normalizeTime(schedule.departureTime || schedule.time);
@@ -980,5 +1030,6 @@ module.exports = {
     getSchedulesForDate,
     createSchedule,
     updateSchedule,
-    deleteSchedule
+    deleteSchedule,
+    resetSchedulesForDate
 };

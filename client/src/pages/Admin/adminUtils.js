@@ -70,6 +70,42 @@ export const passengerRows = bookings => bookings.flatMap(booking => passengerNa
 export const matchesSearch = (query, ...values) => values.join(" ").toLowerCase().includes(query.trim().toLowerCase());
 export const timestampDate = value => value ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(value)) : "";
 
+export const manilaMonth = date => String(date || todayInManila()).slice(0, 7);
+export const monthTitle = month => new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", month: "long", year: "numeric" }).format(new Date(`${month}-01T12:00:00+08:00`));
+export function monthlyTicketReport(bookings, month) {
+    const [year, monthNumber] = String(month || manilaMonth()).split("-").map(Number);
+    if (!year || monthNumber < 1 || monthNumber > 12) return { rows: [], tickets: 0, bookings: 0, revenue: 0 };
+    const dayCount = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+    const rows = Array.from({ length: dayCount }, (_, index) => {
+        const day = String(index + 1).padStart(2, "0");
+        const date = `${year}-${String(monthNumber).padStart(2, "0")}-${day}`;
+        const label = new Intl.DateTimeFormat("en-PH", { timeZone: "Asia/Manila", weekday: "short", day: "2-digit", month: "short" }).format(new Date(`${date}T12:00:00+08:00`));
+        return { date, label, tickets: 0, bookings: 0, revenue: 0, cumulativeTickets: 0 };
+    });
+    const byDate = new Map(rows.map(row => [row.date, row]));
+    for (const booking of bookings) {
+        if (!isValidTicket(booking)) continue;
+        // paidAt is the actual sale date; createdAt is a safe fallback for legacy tickets.
+        const saleDate = timestampDate(booking.paidAt || booking.createdAt);
+        if (!saleDate.startsWith(`${month}-`)) continue;
+        const row = byDate.get(saleDate);
+        if (!row) continue;
+        row.tickets += passengerCount(booking);
+        row.bookings += 1;
+        row.revenue += paymentAmount(booking);
+    }
+    let tickets = 0;
+    let totalBookings = 0;
+    let revenue = 0;
+    for (const row of rows) {
+        tickets += row.tickets;
+        totalBookings += row.bookings;
+        revenue += row.revenue;
+        row.cumulativeTickets = tickets;
+    }
+    return { rows, tickets, bookings: totalBookings, revenue };
+}
+
 // Existing records expose the latest payment state and boarding timestamps,
 // rather than a persisted audit history. Do not invent missing events or actors.
 export const deriveEvents = (bookings, schedules) => {

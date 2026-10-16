@@ -4,7 +4,7 @@ import { useClient } from './MobileState';
 import { Art, ArtworkStage, Button, Choices, Field, Footer, Gender, Header, MobileDialog, NotificationBell, Panel, Progress } from './MobileUI';
 import { accountPerson, bookingIssue, bookingWindowIssue, canIssueTicket, departureCountdown, fareFor, money, normalizeSchedule, paymentState, photoIssue, requestFor, rideLabel, todayInManila } from './mobileUtils';
 import { discountCategory, operationsStore, personIssue } from '../../../components/operations/operationsStore';
-import { formatTime, matchesTrip } from '../../Staff/staffUtils';
+import { formatTime, matchesTrip, timeToMinutes } from '../../Staff/staffUtils';
 import { createId } from '../../../utils/createId.js';
 
 function VesselCard({ vessel, available, treatment, stackOrder, onSelect }) {
@@ -165,7 +165,7 @@ export function ClientSchedule() {
     const routeOptions = [...new Map(vesselTrips.map(routeFor).filter(Boolean).map(route => [route.key, route])).values()];
     const activeRoute = routeOptions.find(route => route.key === selectedRouteKey) || routeOptions[c.reverse ? 1 : 0] || routeOptions[0];
     useEffect(() => { if (activeRoute && activeRoute.key !== selectedRouteKey) setSelectedRouteKey(activeRoute.key); }, [activeRoute?.key, selectedRouteKey]);
-    const trips = vesselTrips.filter(trip => routeFor(trip)?.key === activeRoute?.key).sort((a, b) => String(a.departureTime || '').localeCompare(String(b.departureTime || '')));
+    const trips = vesselTrips.filter(trip => routeFor(trip)?.key === activeRoute?.key).sort((a, b) => timeToMinutes(a.departureTime) - timeToMinutes(b.departureTime));
     const next = trips.find(t => !t.bookingClosed && t.passengerRemaining > 0 && !bookingWindowIssue(t, false, now) && departureCountdown(t, now)?.minutes > 0);
     const shortTime = time => {
         const match = formatTime(time).match(/^(\d+):(\d+) (AM|PM)$/);
@@ -187,7 +187,7 @@ export function ClientSchedule() {
             <Art file="a2b02.png" width="428" height="228" />
             <Link className="ggo-schedule-back" aria-label="Back to vessels" to={c.href('dashboard')}><Art file="schedule-back.svg" /></Link>
             <NotificationBell compact />
-            <div className="ggo-schedule-intro"><h1>Hello!</h1><p className="ggo-schedule-vessel-name">{c.vessel}</p></div>
+            <div className="ggo-schedule-intro"><h1>Hello!</h1><label className="ggo-schedule-vessel-name" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>Vessel <select aria-label="Choose vessel schedule" value={c.vessel} onChange={e => c.setVessel(e.target.value)} style={{ maxWidth: 190, minHeight: 32, padding: '4px 8px', border: '1px solid #ffffff80', borderRadius: 6, color: '#fff', background: '#102321' }}>{[...new Set(c.schedules.map(t => t.vesselName).filter(Boolean))].sort((a, b) => a.localeCompare(b)).map(vessel => <option key={vessel} value={vessel}>{vessel}</option>)}{!c.schedules.some(t => t.vesselName === c.vessel) && <option value={c.vessel}>{c.vessel}</option>}</select></label></div>
             <div className="ggo-crossing"><strong>{activeRoute?.origin.toUpperCase() || '—'}</strong><div className="ggo-crossing-track"><Art file="7eaf1.svg" /><Art file="7f903.svg" /><Art file="3c859.svg" className="ggo-crossing-boat" /><small>25–35 min</small></div><strong>{activeRoute?.destination.toUpperCase() || '—'}</strong></div>
         </header>
         <div className="ggo-direction"><strong>{activeRoute?.origin.toUpperCase() || '—'}</strong><button type="button" aria-label="Change route" disabled={routeOptions.length < 2} onClick={changeRoute}><Art file="schedule-repeat.png" /></button><strong>{activeRoute?.destination.toUpperCase() || '—'}</strong></div>
@@ -209,7 +209,7 @@ export function ClientSchedule() {
             </button>;
         })}{!c.loading && !trips.length && <Panel>No departures for this date and direction.</Panel>}</div>
         <div className="ggo-schedule-book-action"><Button orange onClick={() => setOptionsOpen(true)}>Book a Trip</Button></div>
-        {optionsOpen && <MobileDialog title="Travel options" onClose={() => setOptionsOpen(false)}><h2>Travel options</h2><div className="ggo-schedule-controls"><div><label htmlFor="ggo-schedule-date">Travel date</label><input id="ggo-schedule-date" type="date" value={c.date} min={todayInManila()} onChange={e => c.setDate(e.target.value)} /></div><div><label htmlFor="ggo-schedule-vessel">Vessel</label><select id="ggo-schedule-vessel" value={c.vessel} onChange={e => c.setVessel(e.target.value)}>{[...new Set(c.schedules.map(t => t.vesselName))].map(v => <option key={v}>{v}</option>)}{!c.schedules.some(t => t.vesselName === c.vessel) && <option>{c.vessel}</option>}</select></div><div><label htmlFor="ggo-schedule-route">Route</label><select id="ggo-schedule-route" value={activeRoute?.key || ''} onChange={e => { setSelectedRouteKey(e.target.value); c.setReverse(routeOptions.findIndex(route => route.key === e.target.value) > 0); }}>{routeOptions.map(route => <option key={route.key} value={route.key}>{route.label}</option>)}</select></div></div><Button onClick={() => setOptionsOpen(false)}>Done</Button></MobileDialog>}
+        {optionsOpen && <MobileDialog title="Travel options" onClose={() => setOptionsOpen(false)}><h2>Travel options</h2><div className="ggo-schedule-controls"><div><label htmlFor="ggo-schedule-date">Travel date</label><input id="ggo-schedule-date" type="date" value={c.date} min={todayInManila()} onChange={e => c.setDate(e.target.value)} /></div><div><label htmlFor="ggo-schedule-vessel">Vessel</label><select id="ggo-schedule-vessel" value={c.vessel} onChange={e => c.setVessel(e.target.value)}>{[...new Set(c.schedules.map(t => t.vesselName))].map(v => <option key={v}>{v}</option>)}{!c.schedules.some(t => t.vesselName === c.vessel) && <option>{c.vessel}</option>}</select></div><div><label htmlFor="ggo-schedule-route">Route</label><select id="ggo-schedule-route" value={activeRoute?.key || ''} onChange={e => { setSelectedRouteKey(e.target.value); c.setReverse(routeOptions.findIndex(route => route.key === e.target.value) > 0); }}>{routeOptions.map(route => <option key={route.key} value={route.key}>{route.label}</option>)}</select></div></div><p className="ggo-schedule-booking-rules">Passenger-only trips can be booked today up to 3 hours before departure. Trips with a motorcycle must be booked at least 24 hours ahead.</p><Button onClick={() => setOptionsOpen(false)}>Done</Button></MobileDialog>}
     </main>;
 }
 export function BookingTicket({ draft, fare }) {

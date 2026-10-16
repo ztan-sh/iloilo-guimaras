@@ -133,9 +133,11 @@ ferryClosureSchema.index(
 // EXPORT
 // =========================================================
 
-module.exports =
-    mongoose.models.FerryClosure ||
-    mongoose.model(
-        "FerryClosure",
-        ferryClosureSchema
-    );
+const FerryClosure = mongoose.models.FerryClosure || mongoose.model("FerryClosure", ferryClosureSchema);
+const scheduleDayControlSchema = new mongoose.Schema({
+    date: { type: String, required: true, unique: true, trim: true },
+    suppressDefaults: { type: Boolean, default: true }
+}, { timestamps: true });
+const ScheduleDayControl = mongoose.models.ScheduleDayControl || mongoose.model("ScheduleDayControl", scheduleDayControlSchema);
+FerryClosure.ScheduleDayControl = ScheduleDayControl;
+module.exports = FerryClosure;
