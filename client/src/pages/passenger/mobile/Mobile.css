@@ -1113,3 +1113,213 @@
         margin-top: 6px;
     }
 }
+
+
+.ggo-vessel-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 18px 0;
+    padding: 0 16px;
+    min-height: 50px;
+    border: 1px solid rgba(30, 58, 54, 0.16);
+    border-radius: 16px;
+    background: #fff;
+    color: #29413e;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+.ggo-vessel-search:focus-within {
+    border-color: #e97822;
+    box-shadow: 0 0 0 3px rgba(233, 120, 34, 0.13);
+}
+
+.ggo-vessel-search-icon {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    color: #71817e;
+}
+
+.ggo-vessel-search input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #20332f;
+    font: inherit;
+    font-size: 15px;
+}
+
+.ggo-vessel-search input::placeholder {
+    color: #899591;
+}
+
+.ggo-vessel-search input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.ggo-vessel-search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: #f0f2f1;
+    color: #40514d;
+    font-size: 23px;
+    cursor: pointer;
+}
+
+.ggo-vessel-search-clear:hover {
+    background: #e5e9e7;
+}
+
+@media (max-width: 480px) {
+    .ggo-vessel-search {
+        min-height: 48px;
+        margin: 14px 0;
+        padding: 0 13px;
+    }
+
+    .ggo-vessel-search input {
+        font-size: 14px;
+    }
+}
+
+
+/* Ferry Search Bar — remove the inner rectangular box */
+
+.ggo-vessel-search input,
+.ggo-vessel-search input[type="search"] {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    border-radius: 0;
+    background: transparent !important;
+    color: #20332f;
+    font: inherit;
+    font-size: 15px;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.ggo-vessel-search input:focus,
+.ggo-vessel-search input:focus-visible {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.ggo-vessel-search input::-webkit-search-cancel-button {
+    display: none;
+    -webkit-appearance: none;
+}
+
+.ggo-vessel-search {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 50px;
+    padding: 0 16px;
+    border: 1px solid rgba(30, 58, 54, 0.16);
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+.ggo-vessel-search:focus-within {
+    border-color: #e97822;
+    box-shadow: 0 0 0 3px rgba(233, 120, 34, 0.12);
+}
+
+.ggo-vessel-search-icon {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    color: #71817e;
+}
+
+.ggo-vessel-search-clear {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: #f0f2f1;
+    color: #40514d;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+/* Compact passenger dashboard header to reveal more ferry cards */
+
+.ggo-dashboard-header {
+    padding-bottom: 8px !important;
+}
+
+.ggo-dashboard-header .ggo-dashboard-toolbar {
+    margin-bottom: 8px;
+}
+
+.ggo-dashboard-header h1 {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.ggo-dashboard-header p {
+    margin-top: 4px;
+    margin-bottom: 8px;
+    line-height: 1.35;
+}
+
+.ggo-dashboard-header .ggo-guide-trigger {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.ggo-dashboard .ggo-vessel-search {
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+/* Keep the layout compact on smaller screens */
+@media (max-width: 480px) {
+    .ggo-dashboard-header {
+        padding-bottom: 6px !important;
+    }
+
+    .ggo-dashboard-header .ggo-dashboard-toolbar {
+        margin-bottom: 6px;
+    }
+
+    .ggo-dashboard .ggo-vessel-search {
+        margin-top: 8px;
+        margin-bottom: 8px;
+        min-height: 44px;
+    }
+}
+

@@ -94,12 +94,14 @@ export default function StaffWorkspace() {
     if (!token) return <Navigate to={`${basePath}/login`} replace />;
     if (!headings[active]) return <Navigate to={`${basePath}/overview`} replace />;
 
-    const logout = () => {
+     const logout = () => {
         if (!preview) {
-            localStorage.removeItem("staffToken"); sessionStorage.removeItem("staffToken");
-            localStorage.removeItem("staff"); sessionStorage.removeItem("staff");
+            localStorage.removeItem("staffToken");
+            sessionStorage.removeItem("staffToken");
+            localStorage.removeItem("staff");
+            sessionStorage.removeItem("staff");
         }
-        navigate(`${basePath}/login`, { replace: true });
+        navigate("/", { replace: true });
     };
 
     return <div className="staff-root staff-workspace" ref={root}>

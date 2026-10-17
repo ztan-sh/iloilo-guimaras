@@ -401,32 +401,20 @@ const getSchedulesForDate = async (
                 departureTime: 1
             });
 
-        /*
-         * Get bookings so we can calculate the
-         * current passenger/motorcycle capacity.
-         */
-        const bookings =
-            await Booking.find({
-                status: {
-                    $ne: "CANCELLED"
-                },
-
-                paymentStatus: {
-                    $ne: "REJECTED"
-                }
-            }).lean();
-
-        /*
-         * Only bookings for the selected travel
-         * date affect that day's capacity.
-         */
-        const dateBookings =
-            bookings.filter(
-                (booking) =>
-                    normalizeDate(
-                        booking.date
-                    ) === requestedDate
-            );
+        // Query only this day's bookings. Loading every booking and filtering
+        // in Node made the passenger schedule increasingly slow as the
+        // database grew. Accept legacy slash-formatted dates as well.
+        const [year, month, day] = requestedDate.split("-");
+        const dateFormats = [
+            requestedDate,
+            `${Number(month)}/${Number(day)}/${year}`,
+            `${month}/${day}/${year}`
+        ];
+        const dateBookings = await Booking.find({
+            date: { $in: dateFormats },
+            status: { $ne: "CANCELLED" },
+            paymentStatus: { $ne: "REJECTED" }
+        }).lean();
 
         const capacities = [];
 

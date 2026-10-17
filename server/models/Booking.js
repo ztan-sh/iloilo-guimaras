@@ -368,6 +368,10 @@ const bookingSchema = new mongoose.Schema(
     }
 );
 
+// Keep passenger history and daily capacity lookups bounded as bookings grow.
+bookingSchema.index({ userId: 1, createdAt: -1 });
+bookingSchema.index({ date: 1, status: 1, paymentStatus: 1 });
+
 
 module.exports = mongoose.model(
     "Booking",

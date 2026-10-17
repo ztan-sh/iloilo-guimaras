@@ -23,7 +23,19 @@ function VesselCard({ vessel, available, treatment, stackOrder, onSelect }) {
 
 export function ClientDashboard() {
     const c = useClient();
-    const vessels = [...new Set(c.schedules.map(t => t.vesselName))];
+    const vessels = [
+        ...new Set(
+            (c.schedules || [])
+                .map(t => String(t.vesselName || "").trim())
+                .filter(Boolean)
+        ),
+    ];
+
+    const [vesselSearch, setVesselSearch] = useState("");
+
+    const filteredVessels = vessels.filter(vessel =>
+        vessel.toLowerCase().includes(vesselSearch.trim().toLowerCase())
+    );
 
     const [avatarFailed, setAvatarFailed] = useState(false);
 
@@ -94,13 +106,51 @@ export function ClientDashboard() {
                 </button>
             </header>
 
+ <div className="ggo-vessel-search">
+        <span className="ggo-vessel-search-icon" aria-hidden="true">
+            <svg
+                viewBox="0 0 24 24"
+                width="21"
+                height="21"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m16 16 4 4" />
+            </svg>
+        </span>
+
+        <input
+            type="search"
+            value={vesselSearch}
+            onChange={e => setVesselSearch(e.target.value)}
+            placeholder="Search available ferries..."
+            aria-label="Search ferries by name"
+            autoComplete="off"
+        />
+
+        {vesselSearch && (
+            <button
+                type="button"
+                className="ggo-vessel-search-clear"
+                onClick={() => setVesselSearch("")}
+                aria-label="Clear ferry search"
+            >
+                ×
+            </button>
+        )}
+    </div>
+
             <div
                 className="ggo-vessels"
                 role="region"
                 aria-label="Available vessels"
                 tabIndex={0}
             >
-                {vessels.map((vessel, i) => (
+                 {filteredVessels.map((vessel, i) => (
                     <VesselCard
                         key={vessel}
                         vessel={vessel}
@@ -127,6 +177,18 @@ export function ClientDashboard() {
                     />
                 ))}
 
+                 {!c.loading && vessels.length > 0 && filteredVessels.length === 0 && (
+        <Panel>
+            <h2>No matching ferries</h2>
+            <p>
+                No ferry matches "{vesselSearch}". Check the spelling
+                or try another vessel name.
+            </p>
+            <Button secondary onClick={() => setVesselSearch("")}>
+                Show all ferries
+            </Button>
+        </Panel>
+    )}
                 {!c.loading && !vessels.length && (
                     <Panel>
                         <h2>No departures available</h2>

@@ -48,8 +48,13 @@ function AdminShell() {
     const current = segment === "discounts" ? ["discounts", "ID-review records", "card", "ID-review records", "Inspect passenger ID submissions and staff review decisions."] : segment === "payment-verification" ? ["payment-verification", "Payment verification", "card", "Payment verification", "Review uploaded receipts and verify or reject pending payments."] : destinations.find(item => item[0] === segment) || destinations[0];
     useAdminMotion(root, `${location.pathname}-${loading}`);
     const logout = () => {
-        if (!preview) for (const storage of [localStorage, sessionStorage]) { storage.removeItem("adminToken"); storage.removeItem("adminData"); }
-        navigate(`${basePath}/login`, { replace: true });
+        if (!preview) {
+            for (const storage of [localStorage, sessionStorage]) {
+                storage.removeItem("adminToken");
+                storage.removeItem("adminData");
+            }
+        }
+        navigate("/", { replace: true });
     };
     return <div className="staff-root staff-workspace admin-desktop" ref={root}>
         <a className="staff-skip-link" href="#admin-content">Skip to content</a>

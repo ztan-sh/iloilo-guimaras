@@ -102,3 +102,4 @@ app/src/main/res/xml/config.xml
 
 # Android APK releases
 client/public/downloads/*.apk
+.gradle-user-home/

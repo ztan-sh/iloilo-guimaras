@@ -441,36 +441,37 @@ export default function MobileApp({ preview = false }) {
         }
 
         const controller = new AbortController();
-
-        setLoading(true);
+        const shouldShowLoading = schedules.length === 0 && bookings.length === 0;
+        setLoading(shouldShowLoading);
+        const loadingTimer = shouldShowLoading
+            ? window.setTimeout(() => {
+                  setLoading(false);
+                  setError(current => current || 'The ferry service is taking longer than usual to respond. You can keep using the app; crossing details will update when the connection is ready.');
+              }, 10000)
+            : null;
 
         const loadPassengerData = async () => {
-            try {
-                const [bookingResponse, scheduleResponse] =
-                    await Promise.all([
-                        request('/bookings/my', {
-                            signal: controller.signal
-                        }),
-                        request(
-                            `/bookings/schedules/available?date=${encodeURIComponent(date)}`,
-                            { signal: controller.signal }
-                        )
-                    ]);
-
+            const bookingTask = request('/bookings/my', {
+                signal: controller.signal
+            }).then(bookingResponse => {
                 if (controller.signal.aborted) return;
-
                 const bookingData = Array.isArray(bookingResponse)
                     ? bookingResponse
                     : Array.isArray(bookingResponse.bookings)
                         ? bookingResponse.bookings
                         : Array.isArray(bookingResponse.data)
                             ? bookingResponse.data
-                            : Array.isArray(
-                                  bookingResponse.data?.bookings
-                              )
+                            : Array.isArray(bookingResponse.data?.bookings)
                                 ? bookingResponse.data.bookings
                                 : [];
+                setBookings(bookingData);
+            });
 
+            const scheduleTask = request(
+                `/bookings/schedules/available?date=${encodeURIComponent(date)}`,
+                { signal: controller.signal }
+            ).then(scheduleResponse => {
+                if (controller.signal.aborted) return;
                 const scheduleData = Array.isArray(scheduleResponse)
                     ? scheduleResponse
                     : Array.isArray(scheduleResponse.schedules)
@@ -479,38 +480,36 @@ export default function MobileApp({ preview = false }) {
                             ? scheduleResponse.capacities
                             : Array.isArray(scheduleResponse.data)
                                 ? scheduleResponse.data
-                                : Array.isArray(
-                                      scheduleResponse.data?.schedules
-                                  )
+                                : Array.isArray(scheduleResponse.data?.schedules)
                                     ? scheduleResponse.data.schedules
-                                    : Array.isArray(
-                                          scheduleResponse.data?.capacities
-                                      )
+                                    : Array.isArray(scheduleResponse.data?.capacities)
                                         ? scheduleResponse.data.capacities
                                         : [];
-
-                setBookings(bookingData);
                 setSchedules(scheduleData);
-            } catch (e) {
-                if (
-                    !controller.signal.aborted &&
-                    e.name !== 'AbortError'
-                ) {
-                    setError(e.message);
-                }
-            } finally {
-                if (!controller.signal.aborted) {
-                    setLoading(false);
-                }
+                setLoading(false);
+                if (loadingTimer) window.clearTimeout(loadingTimer);
+                setError(current => current.startsWith('The ferry service is taking longer') ? '' : current);
+            });
+
+            const results = await Promise.allSettled([bookingTask, scheduleTask]);
+            if (controller.signal.aborted) return;
+            const failed = results.find(result => result.status === 'rejected');
+            if (failed && failed.reason?.name !== 'AbortError') {
+                setError(failed.reason?.message || 'Unable to refresh your crossings.');
+            } else if (!failed) {
+                setError('');
             }
+            setLoading(false);
+            if (loadingTimer) window.clearTimeout(loadingTimer);
         };
 
         loadPassengerData();
 
         return () => {
+            if (loadingTimer) window.clearTimeout(loadingTimer);
             controller.abort();
         };
-    }, [preview, date, path, publicPage]);
+    }, [preview, date, publicPage, user.id, user._id]);
 
     useEffect(() => {
         if (preview || publicPage || !token() || !['dashboard', 'schedule'].includes(path)) return;

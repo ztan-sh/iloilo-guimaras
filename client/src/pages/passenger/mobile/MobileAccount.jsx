@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
@@ -57,6 +57,18 @@ export function ClientPass() {
 
 export function ClientProfile() {
     const c = useClient();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            await c.logout();
+            navigate('/', { replace: true });
+        } catch (error) {
+            // Keep the existing logout error handling/state behavior.
+            throw error;
+        }
+    };
+
     const [saving, setSaving] = useState(false);
     const [confirmLogout, setConfirmLogout] = useState(false);
 
@@ -107,10 +119,11 @@ export function ClientProfile() {
                     <p>Are you sure you want to log out of your account?</p>
                     <Button
                         orange
-                        onClick={c.logout}
+                        onClick={handleLogout}
                     >
                         Log out
                     </Button>
+
                     <Button
                         secondary
                         onClick={() => setConfirmLogout(false)}
