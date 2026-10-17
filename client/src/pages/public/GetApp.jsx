@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "./GetApp.css";
 
 const ANDROID_APK_URL =
-  "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/GuimarasGo.apk";
+  "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/app-debug.apk";
 const ANDROID_QR_URL = "/QR/guimarasgo-android.png";
 
 const GetApp = () => {
