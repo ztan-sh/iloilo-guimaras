@@ -63,6 +63,32 @@ export function photoIssue(file) {
     if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return 'Choose a JPG, PNG or WebP photo.';
     return file.size > 5 * 1024 * 1024 ? 'Choose a photo smaller than 5 MB.' : '';
 }
+export async function compressIdPhoto(file) {
+    const objectUrl = URL.createObjectURL(file);
+    try {
+        const image = new Image();
+        image.src = objectUrl;
+        await image.decode();
+        const scale = Math.min(1, 1600 / Math.max(image.naturalWidth, image.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Unable to prepare this ID photo. Please choose another image.');
+        context.fillStyle = '#fff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('Unable to compress this ID photo.')), 'image/jpeg', 0.82));
+        const reader = new FileReader();
+        return await new Promise((resolve, reject) => {
+            reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Unable to read the prepared ID photo.'));
+            reader.onerror = () => reject(new Error('Unable to read the prepared ID photo.'));
+            reader.readAsDataURL(blob);
+        });
+    } finally {
+        URL.revokeObjectURL(objectUrl);
+    }
+}
 export const passwordIssue = password => password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password) ? 'Use at least 8 characters with uppercase, lowercase, a number and a special character.' : '';
 export const canonicalVesselName = value => /^MV\s+Felipe\s+III$/i.test(String(value || '').trim()) ? 'MV Felipe' : String(value || '').trim();
 export const normalizeSchedule = schedule => ({ ...schedule, id: schedule.id || schedule._id || schedule.ferryId, vesselName: canonicalVesselName(schedule.vesselName || schedule.ferryName), route: schedule.route || `${schedule.origin} → ${schedule.destination}`, departureTime: schedule.departureTime || schedule.time, passengerRemaining: Number(schedule.passengerRemaining ?? Math.max(0, schedule.passengerCapacity - (schedule.passengers || 0))), motorcycleRemaining: Number(schedule.motorcycleRemaining ?? schedule.vehicleRemaining ?? 0) });

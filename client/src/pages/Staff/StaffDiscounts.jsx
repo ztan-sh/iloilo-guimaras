@@ -9,39 +9,48 @@ export default function StaffDiscounts({ role = "staff", preview, trip, onHeadin
     const ops = useOperations(preview);
     const [liveRequests, setLiveRequests] = useState([]);
     const [loadingRequests, setLoadingRequests] = useState(!preview);
-    const [loadAttempt, setLoadAttempt] = useState(0);
     const [params, setParams] = useSearchParams();
     useEffect(() => {
         if (preview || !api) { setLoadingRequests(false); return; }
         let active = true;
-        let timedOut = false;
-        const controller = new AbortController();
         setLoadingRequests(true);
-        const timeoutId = window.setTimeout(() => {
-            timedOut = true;
-            controller.abort();
-            if (active) {
-                setLoadingRequests(false);
-                setError("Discount requests took longer than 5 seconds to load. Check your connection and retry.");
-            }
-        }, 5000);
-        api.get(role === "admin" || readOnly ? "/admin/discount-requests" : "/staff/discount-requests", { signal: controller.signal }).then(({ data }) => {
-            window.clearTimeout(timeoutId);
+        api.get(role === "admin" || readOnly ? "/admin/discount-requests" : "/staff/discount-requests").then(({ data }) => {
             if (active) setLiveRequests((data.requests || []).map(item => {
                 const passenger = { id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category };
                 return { id: item._id, passenger, photo: item.photo, status: item.status, reason: item.reason || "", source: item.source || "", requestId: item._id };
             }));
         }).catch(error => {
-            window.clearTimeout(timeoutId);
-            if (active && !timedOut && !controller.signal.aborted) setError(error.response?.data?.message || error.message || "Unable to load ID review requests.");
+            if (active) setError(error.response?.data?.message || error.message || "Unable to load ID review requests.");
         }).finally(() => { if (active) setLoadingRequests(false); });
-        return () => { active = false; window.clearTimeout(timeoutId); controller.abort(); };
-    }, [preview, api, readOnly, role, loadAttempt]);
+        return () => { active = false; };
+    }, [preview, api, readOnly, role]);
     const requests = preview ? ops.requests : liveRequests;
     const request = requests.find(item => item.id === params.get("request"));
     const [reason, setReason] = useState("");
     const [error, setError] = useState("");
     const [confirmed, setConfirmed] = useState(false);
+    const [loadingRequestPhoto, setLoadingRequestPhoto] = useState(false);
+    const [requestPhoto, setRequestPhoto] = useState("");
+    useEffect(() => {
+        setRequestPhoto("");
+        if (!request || preview || request.photo || !api) {
+            setLoadingRequestPhoto(false);
+            return undefined;
+        }
+        let active = true;
+        let photoUrl = "";
+        setLoadingRequestPhoto(true);
+        api.get(`${role === "admin" ? "/admin" : "/staff"}/discount-requests/${request.id}/photo`, { responseType: "blob" })
+            .then(({ data }) => {
+                if (!active) return;
+                photoUrl = URL.createObjectURL(data);
+                setRequestPhoto(photoUrl);
+            })
+            .catch(err => { if (active) setError(err.response?.data?.message || err.message || "Unable to load this ID photo."); })
+            .finally(() => { if (active) setLoadingRequestPhoto(false); });
+        return () => { active = false; if (photoUrl) URL.revokeObjectURL(photoUrl); };
+    }, [request?.id, api, role, preview]);
+    const displayedPhoto = request?.photo || requestPhoto;
     useEffect(() => { setReason(""); setError(""); setConfirmed(false); }, [request?.id]);
     const result = request?.status === "approved" ? "Discount approved" : request?.status === "requested" ? "New ID photo requested" : "Review discount ID";
     useEffect(() => { onHeading?.({ title: request ? result : readOnly ? "ID-review records" : "Discount approvals", subtitle: request ? "Approve a valid matching ID or request another photo." : "Review passenger IDs before Student, PWD or Senior discounts apply." }); }, [request?.id, result, readOnly, onHeading]);
@@ -67,8 +76,8 @@ export default function StaffDiscounts({ role = "staff", preview, trip, onHeadin
         {readOnly && <StaffNotice>Admin can inspect this request. Staff records the ID decision.</StaffNotice>}
         <div className="operations-equal-grid">
             <OperationsPanel><h2>Passenger ID</h2><div><h3>{request.passenger.name}</h3><p>Age {request.passenger.age} · {request.passenger.gender} · {request.source}</p></div><p>Check that the name, photo, category and validity match this passenger.</p>
-                {request.photo ? <img className="operations-id-photo" src={request.photo} alt={`Submitted ID for ${request.passenger.name}`} /> : <StaffNotice error>No ID photo is available. Request a clear photo before approving this passenger.</StaffNotice>}
-                {request.photo && !readOnly && <label className="staff-payment-check"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />I checked this passenger’s matching, readable and valid ID.</label>}
+                {loadingRequestPhoto ? <div className="operations-inset staff-empty"><h3>Loading ID photo</h3><p>Fetching this passenger’s submitted document.</p></div> : displayedPhoto ? <img className="operations-id-photo" src={displayedPhoto} alt={`Submitted ID for ${request.passenger.name}`} /> : <StaffNotice error>No ID photo is available. Request a clear photo before approving this passenger.</StaffNotice>}
+                {displayedPhoto && !readOnly && <label className="staff-payment-check"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />I checked this passenger’s matching, readable and valid ID.</label>}
             </OperationsPanel>
             <OperationsPanel><h2>Discount request</h2><div><h3>Discount eligibility</h3><p>{discountCategory(request.passenger)} · Individual passenger discount</p><StaffStatus warning>Pending {role === "admin" ? "admin" : "staff"} review</StaffStatus></div>
                 <div className="operations-inset"><h3>Before approving</h3><ul><li>Passenger name matches the ID.</li><li>Photo and details are readable.</li><li>Age 60+ or a valid Student/PWD category.</li><li>The submitted ID is valid.</li></ul></div>
@@ -76,13 +85,13 @@ export default function StaffDiscounts({ role = "staff", preview, trip, onHeadin
                 <div className="operations-reasons">{["Unclear photo", "Does not match", "Invalid ID"].map(value => <StaffButton key={value} variant="secondary" disabled={readOnly} onClick={() => setReason(value)}>{value}</StaffButton>)}</div>
             </OperationsPanel>
         </div><StaffNotice error>{error}</StaffNotice>
-        <div className="operations-footer"><StaffButton variant="secondary" onClick={back}>Back to requests</StaffButton>{!readOnly && <div className="staff-actions"><StaffButton variant="secondary" disabled={!reason.trim()} onClick={() => decide("requested")}>Request new photo</StaffButton><StaffButton disabled={!request.photo || !confirmed} onClick={() => decide("approved")}>Approve discount</StaffButton></div>}</div>
+        <div className="operations-footer"><StaffButton variant="secondary" onClick={back}>Back to requests</StaffButton>{!readOnly && <div className="staff-actions"><StaffButton variant="secondary" disabled={!reason.trim()} onClick={() => decide("requested")}>Request new photo</StaffButton><StaffButton disabled={!displayedPhoto || loadingRequestPhoto || !confirmed} onClick={() => decide("approved")}>Approve discount</StaffButton></div>}</div>
     </>;
     const pending = requests.filter(item => item.status === "pending");
     const reviewed = requests.filter(item => item.status !== "pending");
     return <>
         <StaffNotice><strong>{trip ? `${trip.vesselName} · ${trip.route}` : "Passenger ID review"}</strong><p>Review IDs from registrations and bookings individually. Ages 60+, Student and PWD require approval; regular passengers under 60 need no ID.</p></StaffNotice>
-        {error && <><StaffNotice error>{error}</StaffNotice>{!preview && <StaffButton variant="secondary" onClick={() => { setError(""); setLoadAttempt(value => value + 1); }}>Retry loading requests</StaffButton>}</>}
+        {error && <StaffNotice error>{error}</StaffNotice>}
         <OperationsPanel><h2>Passenger ID requests</h2>{loadingRequests ? <div className="operations-inset staff-empty"><h3>Loading ID requests</h3><p>Connecting to submitted passenger photos.</p></div> : pending.length ? pending.map(item => <RequestRow key={item.id} item={item} onOpen={() => setParams({ request: item.id })} />) : <div className="operations-inset staff-empty"><h3>No requests to review</h3><p>Submitted passenger ID photos will appear here.</p></div>}</OperationsPanel>
         {!!reviewed.length && <OperationsPanel><h2>Reviewed IDs</h2>{reviewed.map(item => <RequestRow key={item.id} item={item} onOpen={() => setParams({ request: item.id })} />)}</OperationsPanel>}
     </>;

@@ -33,7 +33,6 @@ export default function BookingDetails({ role, preview, basePath, bookings, trip
                     passengerId: item.passengerId,
                     passenger: { id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category },
                     identity: passengerIdentity({ id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category }),
-                    photo: item.photo,
                     status: item.status,
                     reason: item.reason || "",
                     source: item.source || ""
@@ -63,7 +62,7 @@ export default function BookingDetails({ role, preview, basePath, bookings, trip
         <section className="operations-passenger-list" aria-label="Booking passengers">{passengers.map((person, index) => {
             const request = (preview ? ops.requests : liveRequests).findLast(item => item.id === person.discountRequestId || item.passengerId === person.id || item.identity === passengerIdentity(person));
             const category = !person.category && !(Number(person.age) >= 60) ? "Category not recorded" : discountCategory(person);
-            return <div className="operations-passenger-row" key={person.id}><div><strong>{person.name}</strong><p>{person.age !== undefined ? `Age ${person.age}` : "Age not recorded"} · {person.gender || "Gender not recorded"}{person.savedProfile ? " · Saved account profile" : ""}</p></div><div><strong>{category}</strong><p>{index === 0 && person.savedProfile ? "Saved from account registration" : "Individual passenger details"}</p></div><div><strong>{request ? request.status === "approved" ? "ID approved" : request.status === "requested" ? "New photo requested" : "Pending staff review" : "Not requested"}</strong><p>{request?.photo ? "ID photo submitted" : "No ID photo"}</p></div>{role === "staff" && <StaffButton variant="secondary" disabled={!preview || category === "Regular"} onClick={() => review(person)}>Review ID</StaffButton>}</div>;
+            return <div className="operations-passenger-row" key={person.id}><div><strong>{person.name}</strong><p>{person.age !== undefined ? `Age ${person.age}` : "Age not recorded"} · {person.gender || "Gender not recorded"}{person.savedProfile ? " · Saved account profile" : ""}</p></div><div><strong>{category}</strong><p>{index === 0 && person.savedProfile ? "Saved from account registration" : "Individual passenger details"}</p></div><div><strong>{request ? request.status === "approved" ? "ID approved" : request.status === "requested" ? "New photo requested" : "Pending staff review" : "Not requested"}</strong><p>{request ? "ID photo submitted" : "No ID photo"}</p></div>{role === "staff" && <StaffButton variant="secondary" disabled={!preview || category === "Regular"} onClick={() => review(person)}>Review ID</StaffButton>}</div>;
         })}</section>
         <p>Passenger 1 uses their linked account profile when available. Companions need their own details and ID approval. One discount applies per eligible passenger; motorcycle charges and PPA fees are excluded.</p>
         {role === "staff" && issue && <StaffNotice error>{issue.detail}</StaffNotice>}<StaffNotice>{message}</StaffNotice><StaffNotice error>{error}</StaffNotice>

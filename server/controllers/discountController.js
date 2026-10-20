@@ -45,11 +45,27 @@ const getOwnRequests = async (req, res) => {
 
 const getAllRequests = async (_req, res) => {
     try {
-        const requests = await DiscountRequest.find().sort({ status: 1, createdAt: 1 }).lean();
+        // ID images are large base64 values. Keep list responses small and
+        // fetch an image only when an administrator opens that request.
+        const requests = await DiscountRequest.find().select("-photo").sort({ status: 1, createdAt: 1 }).lean();
         return res.json({ success: true, requests });
     } catch (error) {
         console.error("Get discount requests error:", error);
         return res.status(500).json({ success: false, message: "Unable to retrieve ID review requests." });
+    }
+};
+
+const getRequestPhoto = async (req, res) => {
+    try {
+        const request = await DiscountRequest.findById(req.params.id).select("photo").lean();
+        const match = String(request?.photo || "").match(/^data:image\/(png|jpeg|jpg|webp);base64,([A-Za-z0-9+/=\r\n]+)$/i);
+        if (!match) return res.status(404).json({ success: false, message: "This ID photo is no longer available." });
+        const type = match[1].toLowerCase() === "jpg" ? "jpeg" : match[1].toLowerCase();
+        res.set("Cache-Control", "private, no-store");
+        return res.type(`image/${type}`).send(Buffer.from(match[2].replace(/\s/g, ""), "base64"));
+    } catch (error) {
+        console.error("Get discount request photo error:", error);
+        return res.status(500).json({ success: false, message: "Unable to retrieve this ID photo." });
     }
 };
 
@@ -73,4 +89,4 @@ const decideRequest = async (req, res) => {
     }
 };
 
-module.exports = { createOwnRequest, getOwnRequests, getAllRequests, decideRequest };
+module.exports = { createOwnRequest, getOwnRequests, getAllRequests, getRequestPhoto, decideRequest };

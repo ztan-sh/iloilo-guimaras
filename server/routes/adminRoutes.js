@@ -8,7 +8,7 @@ const { issueSession, clearSession, readCookie, assertCookieMutationOrigin } = r
 const Admin = require("../models/Admin");
 const adminAuth = require("../middleware/adminAuth");
 const { recordActivity } = require("../utils/activityAudit");
-const { getAllRequests, decideRequest } = require("../controllers/discountController");
+const { getAllRequests, getRequestPhoto, decideRequest } = require("../controllers/discountController");
 const { getAdminActivity } = require("../controllers/activityAuditController");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
@@ -37,6 +37,7 @@ const safeSecretMatches = (provided, configured) => {
     return providedBytes.length === configuredBytes.length && crypto.timingSafeEqual(providedBytes, configuredBytes);
 };
 router.get("/discount-requests", adminAuth, getAllRequests);
+router.get("/discount-requests/:id/photo", adminAuth, getRequestPhoto);
 router.put("/discount-requests/:id", adminAuth, decideRequest);
 router.post("/notifications/announcements", adminAuth, async (req, res) => {
     const title = String(req.body?.title || "").trim();

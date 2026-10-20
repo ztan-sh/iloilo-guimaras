@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useClient } from './MobileState';
 import { Art, ArtworkStage, Button, Choices, Field, Footer, Gender, Header, MobileDialog, NotificationBell, Panel, Progress } from './MobileUI';
-import { accountPerson, bookingIssue, bookingWindowIssue, canIssueTicket, departureCountdown, fareFor, money, normalizeSchedule, paymentState, photoIssue, requestFor, rideLabel, todayInManila } from './mobileUtils';
+import { accountPerson, bookingIssue, bookingWindowIssue, canIssueTicket, compressIdPhoto, departureCountdown, fareFor, money, normalizeSchedule, paymentState, photoIssue, requestFor, rideLabel, todayInManila } from './mobileUtils';
 import { DEFAULT_PRICES, VESSELS, discountCategory, operationsStore, passengerIdentity, personIssue } from '../../../components/operations/operationsStore';
 import { formatTime, matchesTrip, timeToMinutes } from '../../Staff/staffUtils';
 import { createId } from '../../../utils/createId.js';
@@ -488,7 +488,7 @@ export function ClientID() {
     const eligible = (c.draft?.people || [person]).filter(p => discountCategory(p) !== 'Regular'); const requests = eligible.map(p => requestFor(c.operations.requests, p));
     const allApproved = eligible.length > 0 && requests.every(r => r?.status === 'approved' && r.photo); const attention = requests.find(r => r?.status === 'requested');
     const title = missing ? 'ID photo required' : status ? allApproved ? 'Discount approved' : attention ? 'ID photo needs attention' : 'Awaiting staff review' : review ? 'Review ID photo' : 'Take ID photo';
-    const upload = file => { const issue = photoIssue(file); if (issue) return c.setError(issue); const reader = new FileReader(); reader.onerror = () => c.setError('Unable to read this photo. Choose another file.'); reader.onload = () => { c.setPhoto(String(reader.result)); c.go('id-review'); }; reader.readAsDataURL(file); };
+    const upload = async file => { const issue = photoIssue(file); if (issue) return c.setError(issue); try { c.setError(''); c.setPhoto(await compressIdPhoto(file)); c.go('id-review'); } catch (error) { c.setError(error.message || 'Unable to prepare this photo. Choose another image.'); } };
     const refreshReview = () => c.run(async () => {
         const result = await c.request('/auth/discount-requests');
         c.setDiscountRequests((result.requests || []).map(item => {
