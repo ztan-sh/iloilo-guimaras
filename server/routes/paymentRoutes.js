@@ -14,6 +14,7 @@ const DiscountRequest = require("../models/DiscountRequest");
 const User = require("../models/User");
 const protect = require("../middleware/authMiddleware");
 const createRateLimiter = require("../middleware/rateLimitMiddleware");
+const { readCookie } = require("../utils/authSession");
 
 const router = express.Router();
 const displayVesselName = value => /^MV\s+Felipe\s+III$/i.test(String(value || "").trim()) ? "MV Felipe" : String(value || "").trim();
@@ -167,7 +168,8 @@ router.post(
 const authenticateProofReader = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization || "";
-        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        const token = bearerToken || readCookie(req, "ggo_admin_session") || readCookie(req, "ggo_user_session");
         if (!token) return res.status(401).json({ success: false, message: "Authentication required." });
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         if (decoded.role === "ADMIN") {

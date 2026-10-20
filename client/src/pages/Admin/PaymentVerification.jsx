@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import "./PaymentVerification.css";
 
 // Accept either an API origin or a base URL ending in /api. This component
@@ -9,6 +10,7 @@ const configuredApi = import.meta.env.PROD && /^https?:\/\/(localhost|127\.0\.0\
     ? "https://iloilo-guimaras.onrender.com/api"
     : configuredApiBase || "https://iloilo-guimaras.onrender.com/api";
 const API_BASE_URL = configuredApi.replace(/\/+$/, "").replace(/\/api$/i, "");
+const nativeClient = Capacitor.isNativePlatform();
 
 const SecureReceipt = ({ url, token }) => {
     const [imageUrl, setImageUrl] = useState("");
@@ -22,7 +24,11 @@ const SecureReceipt = ({ url, token }) => {
         }
         let objectUrl = "";
         let cancelled = false;
-        fetch(url, { credentials: "include", cache: "no-store" })
+        fetch(url, {
+            credentials: "include",
+            cache: "no-store",
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+        })
             .then(response => {
                 if (!response.ok) throw new Error("Receipt is unavailable.");
                 const type = response.headers.get("content-type") || "";
@@ -66,7 +72,11 @@ const PaymentVerification = ({ onPendingCountChange }) => {
     const [confirmAction, setConfirmAction] = useState(null);
     const [processing, setProcessing] = useState(false);
 
-    const token = localStorage.getItem("adminToken") || localStorage.getItem("adminData") || "cookie-session";
+    // Browser admin sessions use HttpOnly cookies. Only native clients need
+    // the bearer token returned by the mobile login flow.
+    const token = nativeClient
+        ? localStorage.getItem("adminToken") || sessionStorage.getItem("adminToken") || ""
+        : "";
 
     /* =========================================================
        HELPER: GET PAYMENT / BOOKING ID
@@ -214,7 +224,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
 
     const loadPayments = useCallback(async () => {
 
-    if (!token) {
+    if (nativeClient && !token) {
 
         setLoading(false);
 
@@ -237,9 +247,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                 credentials: "include",
 
                 headers: {
-                    Authorization:
-                        `Bearer ${token}`,
-
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     Accept:
                         "application/json"
                 }
@@ -405,10 +413,9 @@ const PaymentVerification = ({ onPendingCountChange }) => {
             return;
         }
 
-        const currentToken =
-            localStorage.getItem("adminToken");
+        const currentToken = token;
 
-        if (!currentToken) {
+        if (nativeClient && !currentToken) {
             setError(
                 "Admin session expired. Please login again."
             );
@@ -432,8 +439,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                     method: "PUT",
                     credentials: "include",
                     headers: {
-                        Authorization:
-                            `Bearer ${currentToken}`,
+                        ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {}),
                         Accept: "application/json",
                         "Content-Type":
                             "application/json",
@@ -1145,7 +1151,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                                                 ✓
                                             </span>
 
-                                            Verify Payment
+                                            Approve Payment
                                         </button>
 
                                     </div>
@@ -1197,14 +1203,14 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                                 {confirmAction ===
                                 "reject"
                                     ? "Reject Payment?"
-                                    : "Verify Payment?"}
+                                    : "Approve Payment?"}
                             </h2>
 
                             <p>
                                 {confirmAction ===
                                 "reject"
                                     ? "Are you sure you want to reject this payment?"
-                                    : "Are you sure you want to verify this payment?"}
+                                    : "Are you sure you want to approve this payment?"}
                             </p>
 
                             <div className="selected-reference">
@@ -1269,7 +1275,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                                         : confirmAction ===
                                           "reject"
                                             ? "Reject Payment"
-                                            : "Verify Payment"}
+                                            : "Approve Payment"}
                                 </button>
 
                             </div>
