@@ -141,6 +141,7 @@ const token = () =>
     localStorage.getItem('token');
 const hasPassengerSession = () => Boolean(token() || sessionStorage.getItem('ggo-cookie-session'));
 const nativeClient = Capacitor.isNativePlatform();
+const imageFields = ['profilePhoto', 'profilePicture', 'profileImage', 'discountIdPhoto', 'avatar', 'avatarUrl', 'photo', 'photoURL', 'imageUrl'];
 
 export default function MobileApp({ preview = false }) {
     const location = useLocation();
@@ -153,6 +154,8 @@ export default function MobileApp({ preview = false }) {
         location.pathname.slice(base.length).replace(/^\//, '') ||
         'dashboard';
 
+    const [photoReturn, setPhotoReturn] = useState('book-trip');
+
     const confirmationReference =
         new URLSearchParams(location.search).get('reference');
 
@@ -164,7 +167,7 @@ export default function MobileApp({ preview = false }) {
         'reset-password',
         'reset-sent',
         'splash'
-    ].includes(path);
+    ].includes(path) || (photoReturn === 'register' && ['id-photo', 'id-review'].includes(path));
 
     const navActive = {
         dashboard: 'dashboard',
@@ -220,8 +223,6 @@ export default function MobileApp({ preview = false }) {
 
     const [photo, setPhoto] = useState(null);
     const [photoPerson, setPhotoPerson] = useState(null);
-    const [photoReturn, setPhotoReturn] = useState('book-trip');
-
     const [registration, setRegistration] = useState(() => ({
         id: createId(),
         fullName: '',
@@ -302,7 +303,19 @@ export default function MobileApp({ preview = false }) {
                 ? sessionStorage
                 : localStorage;
 
-            storage.setItem('user', JSON.stringify(value));
+            // Photos are already stored on the account. Keep them in React
+            // state, but omit their large base64 payloads from browser storage
+            // so a profile photo cannot exhaust the device's storage quota.
+            const storedUser = { ...value };
+            imageFields.forEach(field => delete storedUser[field]);
+            const legacyPhotoKey = value.email
+                ? `guimarasgo_profile_image_${value.email}`
+                : '';
+            if (legacyPhotoKey) {
+                localStorage.removeItem(legacyPhotoKey);
+                sessionStorage.removeItem(legacyPhotoKey);
+            }
+            storage.setItem('user', JSON.stringify(storedUser));
 
             if (authToken) {
                 storage.setItem('token', authToken);
