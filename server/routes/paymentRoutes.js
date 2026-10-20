@@ -261,6 +261,8 @@ router.post(
 
                 passengerDetails,
 
+                regularFare,
+
                 passengers,
 
                 vehicleType,
@@ -445,7 +447,7 @@ router.post(
                 if (category !== "Regular") {
                     request = await DiscountRequest.findOne({ userId: req.user.userId, passengerId, passengerName: name, age, gender, category, photo: { $ne: "" } }).lean();
                     if (!request) return res.status(400).json({ success: false, message: `Upload an ID photo for ${name || "each eligible passenger"} before continuing.` });
-                    if (request.status === "approved") amount = Math.round((Number(configured.solo) * Number(configured[category.toLowerCase()]) / 100) * 100) / 100;
+                    if (request.status === "approved" && regularFare !== true) amount = Math.round((Number(configured.solo) * Number(configured[category.toLowerCase()]) / 100) * 100) / 100;
                 }
                 discountTotal += amount;
                 normalizedPassengers.push({ passengerId, name, age, gender, category, discountRequestId: request?._id || null, discountStatus: request?.status || "not eligible", discountAmount: amount });
@@ -563,6 +565,8 @@ router.post(
                     stampFee: req.body.stampFee,
 
                     ppaFee: req.body.ppaFee,
+
+                    regularFare: regularFare === true,
 
                     discountAmount: req.body.discountAmount,
 

@@ -262,6 +262,8 @@ const bookingSchema = new mongoose.Schema(
             required: true
         },
 
+        regularFare: { type: Boolean, default: false },
+
         discountAmount: { type: Number, default: 0, min: 0 },
 
         requiredAmount: {

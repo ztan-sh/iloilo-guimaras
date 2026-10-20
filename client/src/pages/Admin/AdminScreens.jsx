@@ -4,6 +4,7 @@ import { useAdminWorkspace } from "./AdminState";
 import { AdminButton, AdminCapacity, AdminCell, AdminDetail, AdminDialog, AdminField, AdminHeading, AdminMetric, AdminNotice, AdminPanel, AdminStatus, AdminTable } from "../../components/admin/AdminUI";
 import { boardingState, formatTime, formatTimestamp, formatTripDate, hasMotorcycle, isPaid, manilaMonth, matchesSearch, money, monthTitle, monthlyTicketReport, passengerCount, passengerNames, passengerRows, paymentAmount, paymentReference, paymentState, paymentTime, sourceLabel, tripLabel, tripState, tripStatistics, weekdayDate } from "./adminUtils";
 import { downloadMonthlyTicketExcel } from "./monthlyTicketExcel";
+import AdminAnnouncement from "./AdminAnnouncement";
 
 const locations = ["Iloilo", "Guimaras"].map(value => ({ value, label: value }));
 const columns = labels => labels.map(([label, width]) => ({ label, width }));
@@ -33,7 +34,7 @@ function Pagination({ page, children }) {
 }
 
 export function AdminOverview() {
-    const { schedules, selectedTrip: trip, statistics: s, bookings, setSelectedId, basePath, date } = useAdminWorkspace();
+    const { schedules, selectedTrip: trip, statistics: s, bookings, setSelectedId, basePath, date, api, preview } = useAdminWorkspace();
     const navigate = useNavigate();
     const [reportMonth, setReportMonth] = useState(() => manilaMonth());
     const monthlyReport = monthlyTicketReport(bookings, reportMonth);
@@ -45,6 +46,7 @@ export function AdminOverview() {
             <AdminMetric label="Passengers boarded" value={`${s.boardedPassengers} / ${s.paidPassengers}`} detail={`${s.paidPassengers - s.boardedPassengers} paid passengers remaining`} />
             <AdminMetric label="Selected trip revenue" value={money(s.revenue)} detail="Successful payments only" />
         </div>
+        <AdminAnnouncement api={api} preview={preview} />
         <AdminPanel className="admin-monthly-report">
             <AdminHeading title={`${monthTitle(reportMonth)} tickets sold`} detail="Monthly totals accumulate across every day and remain available from the month selector.">
                 <div className="admin-monthly-report-controls">

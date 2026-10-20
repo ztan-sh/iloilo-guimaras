@@ -6,6 +6,7 @@ const createRateLimiter = require("../middleware/rateLimitMiddleware");
 const { issueSession, clearSession, readCookie, assertCookieMutationOrigin } = require("../utils/authSession");
 
 const Admin = require("../models/Admin");
+const Staff = require("../models/Staff");
 const adminAuth = require("../middleware/adminAuth");
 const { recordActivity } = require("../utils/activityAudit");
 const { getAllRequests, getRequestPhoto, decideRequest } = require("../controllers/discountController");
@@ -25,6 +26,7 @@ const {
 const router = express.Router();
 const adminRegisterLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 5, message: "Too many admin registration attempts. Please try again later." });
 const adminLoginLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 8, message: "Too many admin sign-in attempts. Please try again later." });
+const provisionAdminLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 10, message: "Too many administrator accounts created. Try again later." });
 router.post("/logout", (req, res) => {
     if (readCookie(req, "ggo_admin_session") && !assertCookieMutationOrigin(req)) return res.status(403).json({ message: "Request origin could not be verified." });
     clearSession(res, "admin");
@@ -36,6 +38,51 @@ const safeSecretMatches = (provided, configured) => {
     const configuredBytes = Buffer.from(configured);
     return providedBytes.length === configuredBytes.length && crypto.timingSafeEqual(providedBytes, configuredBytes);
 };
+
+router.get("/accounts", adminAuth, async (req, res) => {
+    try {
+        const [admins, staff] = await Promise.all([
+            Admin.find().select("fullName email role createdAt").sort({ createdAt: -1 }).lean(),
+            Staff.find().select("name email role isActive createdAt").sort({ createdAt: -1 }).lean()
+        ]);
+        const accounts = [
+            ...admins.map(account => ({ ...account, name: account.fullName, role: "ADMIN", isActive: true })),
+            ...staff.map(account => ({ ...account, role: "STAFF" }))
+        ].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        return res.status(200).json({ success: true, accounts });
+    } catch (error) {
+        console.error("Get administrator accounts error:", error);
+        return res.status(500).json({ success: false, message: "Unable to retrieve accounts." });
+    }
+});
+
+router.post("/admins", adminAuth, provisionAdminLimiter, async (req, res) => {
+    try {
+        const fullName = typeof req.body?.fullName === "string" ? req.body.fullName.trim() : "";
+        const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+        const password = req.body?.password;
+        const confirmPassword = req.body?.confirmPassword;
+        if (!fullName || fullName.length > 100 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || typeof password !== "string" || typeof confirmPassword !== "string") {
+            return res.status(400).json({ success: false, message: "Enter a valid name, email, and password." });
+        }
+        if (password !== confirmPassword) return res.status(400).json({ success: false, message: "Passwords do not match." });
+        if (password.length < 12 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+            return res.status(400).json({ success: false, message: "Admin passwords need at least 12 characters with uppercase, lowercase, number, and symbol." });
+        }
+        const [existingAdmin, existingStaff] = await Promise.all([
+            Admin.findOne({ email }).select("_id").lean(),
+            Staff.findOne({ email }).select("_id").lean()
+        ]);
+        if (existingAdmin || existingStaff) return res.status(409).json({ success: false, message: "An account with this email already exists." });
+        const admin = await Admin.create({ fullName, email, password: await bcrypt.hash(password, 12), role: "ADMIN" });
+        await recordActivity({ req, actorRole: "admin", actorName: req.admin.fullName || "Administrator", actorEmail: req.admin.email, action: "Administrator account created", summary: `Created administrator account for ${email}`, entityType: "admin account", entityId: admin._id, subject: email });
+        return res.status(201).json({ success: true, message: "Administrator account created successfully.", account: { id: admin._id, name: admin.fullName, email: admin.email, role: admin.role, isActive: true, createdAt: admin.createdAt } });
+    } catch (error) {
+        console.error("Create administrator account error:", error);
+        return res.status(500).json({ success: false, message: "Unable to create administrator account." });
+    }
+});
+
 router.get("/discount-requests", adminAuth, getAllRequests);
 router.get("/discount-requests/:id/photo", adminAuth, getRequestPhoto);
 router.put("/discount-requests/:id", adminAuth, decideRequest);
