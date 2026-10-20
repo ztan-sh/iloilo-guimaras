@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { useAdminFlow } from "./AdminPreview";
 import { AdminBrand, AdminButton, AdminField, AdminIcon, AdminNotice, useAdminMotion } from "../../components/admin/AdminUI";
 import "../Staff/Staff.css";
@@ -27,7 +28,11 @@ export default function AdminLogin() {
             sessionStorage.removeItem("adminToken");
             sessionStorage.removeItem("adminData");
             localStorage.removeItem("adminToken");
-            sessionStorage.removeItem("adminToken");
+            // Native WebViews do not reliably retain cross-site HttpOnly cookies.
+            // The API returns a short-lived bearer token only to native clients.
+            if (Capacitor.isNativePlatform() && typeof data.token === "string" && data.token) {
+                localStorage.setItem("adminToken", data.token);
+            }
             if (data.admin) localStorage.setItem("adminData", JSON.stringify(data.admin));
             navigate(`${basePath}/overview`, { replace: true });
         } catch (err) {
