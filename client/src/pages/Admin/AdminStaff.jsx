@@ -94,12 +94,12 @@ export default function AdminStaff() {
                 {accounts.map(person => {
                     const id = String(person._id || person.id);
                     return <tr key={id}>
-                        <td><strong>{person.name || person.fullName}</strong></td>
-                        <td>{person.email}</td>
-                        <td>{person.role === "ADMIN" ? "Admin" : "Staff"}</td>
-                        <td><AdminStatus>{person.isActive ? "Active" : "Inactive"}</AdminStatus></td>
-                        <td>{formatTimestamp(person.createdAt)}</td>
-                        <td>{person.role === "ADMIN" ? <span>Administrator</span> : <AdminButton variant={person.isActive ? "danger" : "secondary"} disabled={actionId === id} onClick={() => setStaffActive(person)}>{actionId === id ? "Updating…" : person.isActive ? "Deactivate" : "Activate"}</AdminButton>}</td>
+                        <td data-label="Account"><strong>{person.name || person.fullName}</strong></td>
+                        <td data-label="Email">{person.email}</td>
+                        <td data-label="Role">{person.role === "ADMIN" ? "Admin" : "Staff"}</td>
+                        <td data-label="Status"><AdminStatus>{person.isActive ? "Active" : "Inactive"}</AdminStatus></td>
+                        <td data-label="Added">{formatTimestamp(person.createdAt)}</td>
+                        <td data-label="Access">{person.role === "ADMIN" ? <span>Administrator</span> : <AdminButton variant={person.isActive ? "danger" : "secondary"} disabled={actionId === id} onClick={() => setStaffActive(person)}>{actionId === id ? "Updating…" : person.isActive ? "Deactivate" : "Activate"}</AdminButton>}</td>
                     </tr>;
                 })}
             </AdminTable>}

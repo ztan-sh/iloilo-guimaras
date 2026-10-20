@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { useStaffFlow } from "./StaffPreview";
 import { StaffBrand, StaffButton, StaffCapacity, StaffDialog, StaffIcon, StaffMetric, StaffNotice, StaffPanel, StaffStatus, useStaffMotion } from "../../components/staff/StaffUI";
 import StaffScanner from "./StaffScanner";
@@ -50,7 +51,8 @@ export default function StaffWorkspace() {
     const [logoutDialog, setLogoutDialog] = useState(false);
     const [scannerHeading, setScannerHeading] = useState(headings.scanner);
     const loadRequest = useRef(null);
-    const token = preview || localStorage.getItem("staffToken") || sessionStorage.getItem("staffToken") || localStorage.getItem("staff") || sessionStorage.getItem("staff");
+    const sessionToken = localStorage.getItem("staffToken") || sessionStorage.getItem("staffToken");
+    const token = preview || sessionToken || localStorage.getItem("staff") || sessionStorage.getItem("staff");
     let staff;
     try { staff = preview ? { name: "Terminal staff" } : JSON.parse(localStorage.getItem("staff") || "{}"); } catch { staff = {}; }
 
@@ -87,7 +89,7 @@ export default function StaffWorkspace() {
     const paidRecords = records.filter(booking => booking.paymentStatus === "VERIFIED" && booking.status === "CONFIRMED" && booking.boardingStatus !== "REJECTED");
     const heading = active === "scanner" ? scannerHeading : headings[active] || headings.overview;
     useStaffMotion(root, `${active}-${selectedId}-${heading.title}-${loading}`);
-    if (!token) return <Navigate to={`${basePath}/login`} replace />;
+    if (!token || (!preview && Capacitor.isNativePlatform() && !sessionToken)) return <Navigate to={`${basePath}/login`} replace />;
     if (!headings[active]) return <Navigate to={`${basePath}/overview`} replace />;
 
      const logout = () => {

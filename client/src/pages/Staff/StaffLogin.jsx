@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { useStaffFlow } from "./StaffPreview";
 import { StaffBrand, StaffButton, StaffField, StaffIcon, StaffNotice, useStaffMotion } from "../../components/staff/StaffUI";
 import "./Staff.css";
@@ -25,7 +26,11 @@ export default function StaffLogin() {
             const { data } = await api.post("/staff-auth/login", { email: email.trim(), password });
             localStorage.removeItem("staffToken");
             sessionStorage.removeItem("staffToken");
-            localStorage.removeItem("staffToken");
+            // Native WebViews cannot rely on the cross-site HttpOnly cookie.
+            // Keep the short-lived bearer token returned specifically to native clients.
+            if (Capacitor.isNativePlatform() && typeof data.token === "string" && data.token) {
+                localStorage.setItem("staffToken", data.token);
+            }
             if (data.staff) localStorage.setItem("staff", JSON.stringify(data.staff));
             navigate(`${basePath}/overview`, { replace: true });
         } catch (err) {

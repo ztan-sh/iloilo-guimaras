@@ -114,6 +114,77 @@
     .admin-desktop-trip-status { width: auto; }
 }
 
+/* Keep account details readable on phones instead of squeezing the wide table. */
+@media (max-width: 760px) {
+    .admin-staff-page .staff-table-scroll {
+        overflow: visible;
+    }
+
+    .admin-staff-page .admin-desktop-table {
+        display: block;
+        width: 100%;
+        min-width: 0;
+        table-layout: auto;
+    }
+
+    .admin-staff-page .admin-desktop-table colgroup,
+    .admin-staff-page .admin-desktop-table thead {
+        display: none;
+    }
+
+    .admin-staff-page .admin-desktop-table tbody {
+        display: grid;
+        gap: 12px;
+    }
+
+    .admin-staff-page .admin-desktop-table tbody tr {
+        display: grid;
+        min-width: 0;
+        padding: 8px 14px;
+        border: 1px solid var(--staff-line);
+        border-radius: var(--staff-radius-small);
+        background: var(--staff-white);
+    }
+
+    .admin-staff-page .admin-desktop-table tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-width: 0;
+        min-height: 44px;
+        height: auto;
+        padding: 9px 0;
+        overflow-wrap: anywhere;
+        border-bottom: 1px solid var(--staff-line);
+        text-align: right;
+    }
+
+    .admin-staff-page .admin-desktop-table tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        color: var(--staff-muted);
+        font-size: 12px;
+        text-align: left;
+    }
+
+    .admin-staff-page .admin-desktop-table tbody td:last-child {
+        border-bottom: 0;
+    }
+
+    .admin-staff-page .admin-desktop-table tbody td > .staff-button {
+        flex: 0 1 auto;
+        width: auto;
+        min-width: 110px;
+        white-space: normal;
+        overflow-wrap: normal;
+    }
+
+    .admin-staff-page .admin-desktop-table tbody td > .staff-status {
+        flex: 0 0 auto;
+    }
+}
+
 .admin-desktop .staff-dialog:has(.admin-delete-confirm) {
     width: min(480px, calc(100vw - 32px));
     border: 1px solid var(--staff-line);

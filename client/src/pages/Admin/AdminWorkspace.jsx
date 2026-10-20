@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import { AdminState, useAdminWorkspace } from "./AdminState";
 import { useAdminFlow } from "./AdminPreview";
 import { AdminBrand, AdminButton, AdminDialog, AdminField, AdminIcon, AdminNotice, useAdminMotion } from "../../components/admin/AdminUI";
@@ -108,6 +109,6 @@ export default function AdminWorkspace() {
     const { preview, basePath } = useAdminFlow();
     const token = localStorage.getItem("adminToken") || sessionStorage.getItem("adminToken");
     const adminProfile = localStorage.getItem("adminData") || sessionStorage.getItem("adminData");
-    if (!preview && !token && !adminProfile) return <Navigate to={`${basePath}/login`} replace />;
+    if (!preview && (!token && !adminProfile || Capacitor.isNativePlatform() && !token)) return <Navigate to={`${basePath}/login`} replace />;
     return <AdminState><AdminShell /></AdminState>;
 }

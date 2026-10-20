@@ -21,6 +21,7 @@ import {
 import { useOperations } from "../../components/operations/useOperations";
 import { useAdminFlow } from "./AdminPreview";
 import { money } from "../Staff/staffUtils";
+import api from "../../services/api";
 
 const rides = [
     ["solo", "Solo", "1 passenger · No motorcycle"],
@@ -30,41 +31,6 @@ const rides = [
 ];
 
 const categories = ["Student", "PWD", "Senior"];
-
-const configuredApiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "";
-const API_URL = (import.meta.env.PROD && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(configuredApiUrl)
-    ? "https://iloilo-guimaras.onrender.com/api"
-    : configuredApiUrl || "https://iloilo-guimaras.onrender.com/api").replace(/\/+$/, "");
-
-async function pricingRequest(url, options = {}) {
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(`${API_URL}${url}`, {
-        ...options,
-        signal: options.signal || controller.signal,
-        credentials: "include",
-        headers: {
-            Accept: "application/json",
-            ...(options.body
-                ? { "Content-Type": "application/json" }
-                : {}),
-            ...options.headers
-        }
-    }).finally(() => window.clearTimeout(timeoutId));
-
-    const contentType = response.headers.get("content-type") || "";
-    const data = contentType.includes("application/json")
-        ? await response.json()
-        : {};
-
-    if (!response.ok) {
-        throw new Error(
-            data.message || `Pricing request failed (${response.status}).`
-        );
-    }
-
-    return data;
-}
 
 export default function AdminPricing() {
     const { preview } = useAdminFlow();
@@ -103,12 +69,16 @@ export default function AdminPricing() {
         let cancelled = false;
 
         async function loadPrices() {
+            const controller = new AbortController();
             setLoadingPrices(true);
             setLiveLoaded(false);
             setError("");
 
             try {
-                const data = await pricingRequest("/pricing");
+                const { data } = await api.get("/pricing", {
+                    signal: controller.signal,
+                    timeout: 5000
+                });
 
                 if (cancelled) return;
 
@@ -206,12 +176,10 @@ export default function AdminPricing() {
                 return;
             }
 
-            const data = await pricingRequest(
+            const { data } = await api.put(
                 `/pricing/${encodeURIComponent(vessel)}`,
-                {
-                    method: "PUT",
-                    body: JSON.stringify(draft)
-                }
+                draft,
+                { timeout: 5000 }
             );
 
             const savedPrices = {
