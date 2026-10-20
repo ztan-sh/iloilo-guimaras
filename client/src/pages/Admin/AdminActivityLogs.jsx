@@ -14,7 +14,7 @@ export default function AdminActivityLogs() {
         if (preview) return;
         let active = true;
         setLoading(true);
-        api.get("/admin/audit-logs", { params: { actorRole: role, limit: 500 } })
+        api.get("/admin/audit-logs", { params: { actorRole: role, limit: 500 }, timeout: 5000 })
             .then(({ data }) => { if (active) { setLogs(data.logs || []); setError(""); } })
             .catch(err => { if (active) setError(err.response?.data?.message || (err.response ? `Activity request failed (HTTP ${err.response.status}).` : `Unable to reach the server: ${err.message}`)); })
             .finally(() => { if (active) setLoading(false); });

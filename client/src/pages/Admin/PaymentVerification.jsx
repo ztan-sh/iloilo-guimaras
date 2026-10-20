@@ -15,6 +15,7 @@ const nativeClient = Capacitor.isNativePlatform();
 const SecureReceipt = ({ url, token }) => {
     const [imageUrl, setImageUrl] = useState("");
     const [failed, setFailed] = useState(false);
+    const [timedOut, setTimedOut] = useState(false);
 
     useEffect(() => {
         if (!url) return undefined;
@@ -24,9 +25,13 @@ const SecureReceipt = ({ url, token }) => {
         }
         let objectUrl = "";
         let cancelled = false;
+        const controller = new AbortController();
+        setTimedOut(false);
+        const timeoutId = window.setTimeout(() => { setTimedOut(true); controller.abort(); }, 5000);
         fetch(url, {
             credentials: "include",
             cache: "no-store",
+            signal: controller.signal,
             headers: token ? { Authorization: `Bearer ${token}` } : {}
         })
             .then(response => {
@@ -41,14 +46,17 @@ const SecureReceipt = ({ url, token }) => {
                 setImageUrl(objectUrl);
                 setFailed(false);
             })
-            .catch(() => { if (!cancelled) setFailed(true); });
+            .catch(() => { if (!cancelled) setFailed(true); })
+            .finally(() => window.clearTimeout(timeoutId));
         return () => {
             cancelled = true;
+            window.clearTimeout(timeoutId);
+            controller.abort();
             if (objectUrl) URL.revokeObjectURL(objectUrl);
         };
     }, [url, token]);
 
-    if (failed) return <div className="no-proof">Receipt image unavailable. Refresh the payment list and try again.</div>;
+    if (failed) return <div className="no-proof">Receipt image unavailable{timedOut ? " (load timed out after 5 seconds)" : ""}. Refresh the payment list and try again.</div>;
     if (!imageUrl) return <div className="no-proof">Loading secure receipt…</div>;
     return <div className="proof-wrapper">
         <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="proof-image-link" title="Open payment receipt">
@@ -235,6 +243,9 @@ const PaymentVerification = ({ onPendingCountChange }) => {
         return;
     }
 
+    const controller = new AbortController();
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => { timedOut = true; controller.abort(); }, 5000);
     try {
 
         setError("");
@@ -245,6 +256,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
             {
                 method: "GET",
                 credentials: "include",
+                signal: controller.signal,
 
                 headers: {
                     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -337,7 +349,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
         setPayments([]);
 
         setError(
-            err.message ||
+            timedOut ? "Payment requests took longer than 5 seconds to load. Check your connection and retry." : err.message ||
             "Unable to load payment submissions."
         );
 
@@ -349,6 +361,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
 
     } finally {
 
+        window.clearTimeout(timeoutId);
         setLoading(false);
         setRefreshing(false);
 

@@ -23,7 +23,7 @@ export default function AdminStaff() {
         setLoading(true);
         setError("");
         try {
-            const { data } = await api.get("/admin/staff");
+            const { data } = await api.get("/admin/staff", { timeout: 5000 });
             setStaff(data.staff || []);
         } catch (err) {
             setError(err.response?.data?.message || err.message || "Unable to load staff accounts.");

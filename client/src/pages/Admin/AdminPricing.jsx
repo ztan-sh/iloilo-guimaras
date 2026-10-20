@@ -37,8 +37,11 @@ const API_URL = (import.meta.env.PROD && /^https?:\/\/(localhost|127\.0\.0\.1)(:
     : configuredApiUrl || "https://iloilo-guimaras.onrender.com/api").replace(/\/+$/, "");
 
 async function pricingRequest(url, options = {}) {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 5000);
     const response = await fetch(`${API_URL}${url}`, {
         ...options,
+        signal: options.signal || controller.signal,
         credentials: "include",
         headers: {
             Accept: "application/json",
@@ -47,7 +50,7 @@ async function pricingRequest(url, options = {}) {
                 : {}),
             ...options.headers
         }
-    });
+    }).finally(() => window.clearTimeout(timeoutId));
 
     const contentType = response.headers.get("content-type") || "";
     const data = contentType.includes("application/json")

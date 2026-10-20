@@ -9,19 +9,34 @@ export default function StaffDiscounts({ role = "staff", preview, trip, onHeadin
     const ops = useOperations(preview);
     const [liveRequests, setLiveRequests] = useState([]);
     const [loadingRequests, setLoadingRequests] = useState(!preview);
+    const [loadAttempt, setLoadAttempt] = useState(0);
     const [params, setParams] = useSearchParams();
     useEffect(() => {
         if (preview || !api) { setLoadingRequests(false); return; }
         let active = true;
+        let timedOut = false;
+        const controller = new AbortController();
         setLoadingRequests(true);
-        api.get(role === "admin" || readOnly ? "/admin/discount-requests" : "/staff/discount-requests").then(({ data }) => {
+        const timeoutId = window.setTimeout(() => {
+            timedOut = true;
+            controller.abort();
+            if (active) {
+                setLoadingRequests(false);
+                setError("Discount requests took longer than 5 seconds to load. Check your connection and retry.");
+            }
+        }, 5000);
+        api.get(role === "admin" || readOnly ? "/admin/discount-requests" : "/staff/discount-requests", { signal: controller.signal }).then(({ data }) => {
+            window.clearTimeout(timeoutId);
             if (active) setLiveRequests((data.requests || []).map(item => {
                 const passenger = { id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category };
                 return { id: item._id, passenger, photo: item.photo, status: item.status, reason: item.reason || "", source: item.source || "", requestId: item._id };
             }));
-        }).catch(error => { if (active) setError(error.response?.data?.message || error.message || "Unable to load ID review requests."); }).finally(() => { if (active) setLoadingRequests(false); });
-        return () => { active = false; };
-    }, [preview, api, readOnly, role]);
+        }).catch(error => {
+            window.clearTimeout(timeoutId);
+            if (active && !timedOut && !controller.signal.aborted) setError(error.response?.data?.message || error.message || "Unable to load ID review requests.");
+        }).finally(() => { if (active) setLoadingRequests(false); });
+        return () => { active = false; window.clearTimeout(timeoutId); controller.abort(); };
+    }, [preview, api, readOnly, role, loadAttempt]);
     const requests = preview ? ops.requests : liveRequests;
     const request = requests.find(item => item.id === params.get("request"));
     const [reason, setReason] = useState("");
@@ -67,7 +82,7 @@ export default function StaffDiscounts({ role = "staff", preview, trip, onHeadin
     const reviewed = requests.filter(item => item.status !== "pending");
     return <>
         <StaffNotice><strong>{trip ? `${trip.vesselName} · ${trip.route}` : "Passenger ID review"}</strong><p>Review IDs from registrations and bookings individually. Ages 60+, Student and PWD require approval; regular passengers under 60 need no ID.</p></StaffNotice>
-        {error && <StaffNotice error>{error}</StaffNotice>}
+        {error && <><StaffNotice error>{error}</StaffNotice>{!preview && <StaffButton variant="secondary" onClick={() => { setError(""); setLoadAttempt(value => value + 1); }}>Retry loading requests</StaffButton>}</>}
         <OperationsPanel><h2>Passenger ID requests</h2>{loadingRequests ? <div className="operations-inset staff-empty"><h3>Loading ID requests</h3><p>Connecting to submitted passenger photos.</p></div> : pending.length ? pending.map(item => <RequestRow key={item.id} item={item} onOpen={() => setParams({ request: item.id })} />) : <div className="operations-inset staff-empty"><h3>No requests to review</h3><p>Submitted passenger ID photos will appear here.</p></div>}</OperationsPanel>
         {!!reviewed.length && <OperationsPanel><h2>Reviewed IDs</h2>{reviewed.map(item => <RequestRow key={item.id} item={item} onOpen={() => setParams({ request: item.id })} />)}</OperationsPanel>}
     </>;
