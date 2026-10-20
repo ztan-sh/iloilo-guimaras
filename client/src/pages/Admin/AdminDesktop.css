@@ -103,7 +103,12 @@
     .admin-desktop-table-footer { flex-wrap: wrap; }
     .admin-desktop-editor-actions > .staff-button { width: auto !important; flex: 1; }
 }
+.admin-password-rules { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 12px; margin: 0; padding: 0; list-style: none; color: var(--staff-muted); font-size: 12px; }
+.admin-password-rules li { line-height: 1.4; }
+.admin-password-rules li.is-met { color: #087d74; }
+
 @media (max-width: 430px) {
+    .admin-password-rules { grid-template-columns: minmax(0, 1fr); }
     .admin-desktop .staff-sidebar nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .admin-desktop-schedule-filters { grid-template-columns: minmax(0, 1fr); }
     .admin-desktop-trip-status { width: auto; }

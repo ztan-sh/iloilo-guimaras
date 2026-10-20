@@ -7,6 +7,7 @@ export default function useTicketScanner(onDecoded) {
     const mounted = useRef(true);
     const [scanning, setScanning] = useState(false);
     const [starting, setStarting] = useState(false);
+    const [decodingImage, setDecodingImage] = useState(false);
     const [cameraError, setCameraError] = useState("");
     callback.current = onDecoded;
 
@@ -98,10 +99,30 @@ export default function useTicketScanner(onDecoded) {
         }
     };
 
+    const decodeImage = async file => {
+        if (!file || decodingImage) return "";
+        await stop();
+        setCameraError("");
+        setDecodingImage(true);
+        const imageScanner = new Html5Qrcode("staff-qr-reader", {
+            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+            useBarCodeDetectorIfSupported: false
+        });
+        try {
+            return await imageScanner.scanFile(file, false);
+        } catch {
+            setCameraError("Could not read a QR code from that image. Choose a clear original screenshot or photo, or enter the ticket ID.");
+            return "";
+        } finally {
+            try { imageScanner.clear(); } catch { /* Image scan already released. */ }
+            if (mounted.current) setDecodingImage(false);
+        }
+    };
+
     useEffect(() => {
         mounted.current = true;
         return () => { mounted.current = false; const current = resource.current; resource.current = null; void release(current); };
     }, []);
 
-    return { start, stop, scanning, starting, cameraError };
+    return { start, stop, scanning, starting, decodingImage, decodeImage, cameraError };
 }

@@ -404,6 +404,12 @@
 .ggo-edit-profile-avatar { margin:24px 0; }.ggo-profile-helper { margin-bottom:24px; }
 .ggo-language-choices { margin-top:36px; gap:16px; }.ggo-language-choices button { padding:20px; }.ggo-language-note { margin-top:24px; }
 .ggo-notification-count { margin:12px 0; }.ggo-notification-list { display:flex; flex-direction:column; gap:12px; margin-top:20px; }.ggo-notification { padding:16px; display:flex; align-items:flex-start; gap:12px; border:0; border-radius:16px; background:var(--ggo-surface); text-align:left; color:var(--ggo-ink); position:relative; }.ggo-notification.unread { background:var(--ggo-soft); }.ggo-notification > div { flex:1; min-width:0; }.ggo-notification h3 { margin-bottom:8px; }.ggo-notification p { color:var(--ggo-ink); margin-bottom:8px; }.ggo-event-dot { position:absolute; top:16px; right:16px; }
+.ggo-notification-dialog { overflow:hidden; }
+.ggo-notification-dialog-content { display:flex; flex-direction:column; gap:12px; min-height:0; }
+.ggo-notification-dialog-content h2 { margin:0; font-size:22px; line-height:28px; overflow-wrap:anywhere; }
+.ggo-notification-dialog-content time { color:var(--ggo-muted); font-size:12px; }
+.ggo-notification-dialog-message { max-height:min(58dvh, 480px); overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; white-space:pre-wrap; overflow-wrap:anywhere; line-height:1.6; scrollbar-width:none; }
+.ggo-notification-dialog-message::-webkit-scrollbar { display:none; }
 .ggo-age-keypad { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:64px; }.ggo-age-keypad button { border:0; background:var(--ggo-surface); color:var(--ggo-ink); min-height:64px; border-radius:16px; }
 .ggo-error { margin:12px 16px 0; padding:12px 36px 12px 12px; border-radius:16px; background:#fde6e2; color:#9b301e; font-size:13px; line-height:20px; position:relative; z-index:6; }.ggo-error button { position:absolute; right:0; top:0; width:36px; height:44px; border:0; background:transparent; color:inherit; }.ggo-load { font-size:12px; padding:8px 24px; }
 .ggo-error-centered { position:fixed; top:50%; left:50%; z-index:1000; width:min(460px, calc(100vw - 32px)); margin:0; padding:20px 48px 20px 20px; border-radius:18px; box-shadow:0 18px 60px #10232655; transform:translate(-50%, -50%); font-size:15px; line-height:22px; }

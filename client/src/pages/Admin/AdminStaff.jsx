@@ -4,6 +4,13 @@ import { AdminButton, AdminDialog, AdminField, AdminHeading, AdminNotice, AdminP
 import { formatTimestamp } from "./adminUtils";
 
 const emptyForm = { name: "", email: "", password: "", confirmPassword: "", role: "STAFF" };
+const adminPasswordRules = [
+    ["At least 12 characters", value => value.length >= 12],
+    ["One uppercase letter", value => /[A-Z]/.test(value)],
+    ["One lowercase letter", value => /[a-z]/.test(value)],
+    ["One number", value => /\d/.test(value)],
+    ["One symbol, such as ! or #", value => /[^A-Za-z0-9]/.test(value)]
+];
 
 export default function AdminStaff() {
     const { api, preview, setNotice } = useAdminWorkspace();
@@ -82,7 +89,7 @@ export default function AdminStaff() {
             <AdminHeading title="Staff & admin accounts" detail="Create staff or administrator credentials and manage staff access.">
                 <AdminButton onClick={() => { setError(""); setForm(emptyForm); setFormOpen(true); }}>Add account</AdminButton>
             </AdminHeading>
-            <AdminNotice error>{error}</AdminNotice>
+            {!formOpen && <AdminNotice error>{error}</AdminNotice>}
             {preview ? <AdminNotice>Account management is available in the connected administrator workspace.</AdminNotice> : loading ? <div className="staff-loading" role="status">Loading accounts…</div> : <AdminTable label="Staff and administrator accounts" columns={[{ label: "Account", width: 20 }, { label: "Email", width: 28 }, { label: "Role", width: 14 }, { label: "Status", width: 14 }, { label: "Added", width: 14 }, { label: "Access", width: 10 }]} empty={!accounts.length && "No staff or administrator accounts have been added yet."}>
                 {accounts.map(person => {
                     const id = String(person._id || person.id);
@@ -102,14 +109,14 @@ export default function AdminStaff() {
             <form className="staff-form-stack" onSubmit={createStaff}>
                 <p>Create sign-in credentials for a staff member or administrator.</p>
                 <AdminNotice error>{error}</AdminNotice>
-                <AdminField label="Account type" value={form.role} options={[{ value: "STAFF", label: "Staff" }, { value: "ADMIN", label: "Administrator" }]} onChange={event => setForm(current => ({ ...current, role: event.target.value }))} disabled={saving} />
-                <AdminField label="Full name" value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} autoComplete="name" required maxLength={100} disabled={saving} />
-                <AdminField label="Email address" type="email" value={form.email} onChange={event => setForm(current => ({ ...current, email: event.target.value }))} autoComplete="email" required maxLength={254} disabled={saving} />
+                <AdminField label="Account type" value={form.role} options={[{ value: "STAFF", label: "Staff" }, { value: "ADMIN", label: "Administrator" }]} onChange={event => { setError(""); setForm(current => ({ ...current, role: event.target.value })); }} disabled={saving} />
+                <AdminField label="Full name" value={form.name} onChange={event => { setError(""); setForm(current => ({ ...current, name: event.target.value })); }} autoComplete="name" required maxLength={100} disabled={saving} />
+                <AdminField label="Email address" type="email" value={form.email} onChange={event => { setError(""); setForm(current => ({ ...current, email: event.target.value })); }} autoComplete="email" required maxLength={254} disabled={saving} />
                 <div className="staff-details-grid">
-                    <AdminField label="Password" type="password" value={form.password} onChange={event => setForm(current => ({ ...current, password: event.target.value }))} autoComplete="new-password" minLength={form.role === "ADMIN" ? 12 : 8} required disabled={saving} />
-                    <AdminField label="Confirm password" type="password" value={form.confirmPassword} onChange={event => setForm(current => ({ ...current, confirmPassword: event.target.value }))} autoComplete="new-password" minLength={form.role === "ADMIN" ? 12 : 8} required disabled={saving} />
+                    <AdminField label="Password" type="password" value={form.password} onChange={event => { setError(""); setForm(current => ({ ...current, password: event.target.value })); }} autoComplete="new-password" minLength={form.role === "ADMIN" ? 12 : 8} required disabled={saving} />
+                    <AdminField label="Confirm password" type="password" value={form.confirmPassword} onChange={event => { setError(""); setForm(current => ({ ...current, confirmPassword: event.target.value })); }} autoComplete="new-password" minLength={form.role === "ADMIN" ? 12 : 8} required disabled={saving} />
                 </div>
-                {form.role === "ADMIN" && <small>Use at least 12 characters with uppercase, lowercase, a number, and a symbol.</small>}
+                {form.role === "ADMIN" ? <ul className="admin-password-rules" aria-label="Administrator password requirements">{adminPasswordRules.map(([label, matches]) => <li key={label} className={matches(form.password) ? "is-met" : ""}>{matches(form.password) ? "✓" : "○"} {label}</li>)}</ul> : <small>Staff passwords must contain at least 8 characters.</small>}
                 <div className="admin-desktop-editor-actions"><AdminButton type="submit" disabled={saving}>{saving ? "Creating…" : `Create ${form.role === "ADMIN" ? "admin" : "staff"} account`}</AdminButton><AdminButton type="button" variant="secondary" disabled={saving} onClick={() => setFormOpen(false)}>Cancel</AdminButton></div>
             </form>
         </AdminDialog>}

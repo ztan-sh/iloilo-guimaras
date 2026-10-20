@@ -27,6 +27,7 @@ export default function StaffScanner({ trip, onRefresh, onHeading }) {
     const [reason, setReason] = useState(rejectionReasons[0]);
     const [customReason, setCustomReason] = useState("");
     const request = useRef(null);
+    const qrImageInput = useRef(null);
     const pending = useRef(false);
     const scanner = useTicketScanner(async text => {
         const parsed = extractBookingReference(text);
@@ -35,6 +36,16 @@ export default function StaffScanner({ trip, onRefresh, onHeading }) {
         setReference(parsed);
         await lookup(parsed);
     });
+    async function scanImage(file) {
+        if (!file) return;
+        setError("");
+        const text = await scanner.decodeImage(file);
+        if (!text) return;
+        const parsed = extractBookingReference(text);
+        if (!parsed) { setError("The QR code does not contain a ticket reference. Enter the ticket ID or choose another image."); return; }
+        setReference(parsed);
+        await lookup(parsed);
+    }
     const issue = booking ? boardingIssue(booking, trip) : null;
     const statistics = trip.statistics;
 
@@ -102,6 +113,8 @@ export default function StaffScanner({ trip, onRefresh, onHeading }) {
                 </div>
                 <StaffNotice error>{scanner.cameraError}</StaffNotice>
                 <StaffButton disabled={busy || scanner.starting} onClick={scanner.scanning ? scanner.stop : scanner.start}>{scanner.starting ? "Starting camera…" : scanner.scanning ? "Stop camera" : "Verify scanned ticket"}</StaffButton>
+                <input ref={qrImageInput} type="file" accept="image/*" hidden onChange={event => { void scanImage(event.target.files?.[0]); event.target.value = ""; }} />
+                <StaffButton variant="secondary" disabled={busy || scanner.starting || scanner.decodingImage} onClick={() => qrImageInput.current?.click()}>{scanner.decodingImage ? "Reading QR image…" : "Scan saved QR image"}</StaffButton>
                 <small>Online tickets must be paid, valid for this trip and unused.</small>
             </StaffPanel>
             <StaffPanel>
