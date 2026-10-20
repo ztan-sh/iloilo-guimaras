@@ -13,8 +13,8 @@ const FERRIES = [
     {
         id: "MV-FELIPE-III",
         ferryId: "MV-FELIPE-III",
-        ferryName: "MV Felipe III",
-        vesselName: "MV Felipe III",
+        ferryName: "MV Felipe",
+        vesselName: "MV Felipe",
         departureTime: "3:30 AM",
         time: "03:30"
     },

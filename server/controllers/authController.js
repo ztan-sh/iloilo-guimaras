@@ -2,7 +2,9 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/User");
+const DiscountRequest = require("../models/DiscountRequest");
 const { sendPasswordResetEmail } = require("../services/emailService");
+const { issueSession } = require("../utils/authSession");
 
 // ========================================
 // CREATE TOKEN
@@ -206,7 +208,11 @@ const normalizeProfilePicture = (value) => {
 const profilePhotoFields = (user) => ({
     profilePicture: user.profilePicture || "",
     // Keep compatibility with frontend components using profilePhoto.
-    profilePhoto: user.profilePicture || ""
+    profilePhoto: user.profilePicture || "",
+    age: user.age ?? "",
+    gender: user.gender || "",
+    category: user.category || "Regular",
+    discountIdPhoto: user.discountIdPhoto || ""
 });
 
 // ========================================
@@ -220,7 +226,11 @@ const register = async (req, res) => {
             fullName,
             email,
             phoneNumber,
-            password
+            password,
+            age,
+            gender,
+            category = "Regular",
+            discountIdPhoto = ""
         } = req.body;
 
         if (
@@ -245,6 +255,22 @@ const register = async (req, res) => {
                 message:
                     "Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character."
             });
+        }
+
+        const normalizedCategory = ["Regular", "Student", "PWD"].includes(category) ? category : "";
+        const normalizedAge = age === undefined || age === "" ? undefined : Number(age);
+        const needsIdPhoto = normalizedCategory === "Student" || normalizedCategory === "PWD" || (normalizedAge ?? 0) >= 60;
+        let normalizedDiscountIdPhoto = "";
+        try {
+            normalizedDiscountIdPhoto = normalizeProfilePicture(discountIdPhoto) || "";
+        } catch (photoError) {
+            return res.status(400).json({ message: photoError.message });
+        }
+        if (!normalizedCategory || (normalizedAge !== undefined && (!Number.isInteger(normalizedAge) || normalizedAge < 0 || normalizedAge > 120)) || (gender !== undefined && (typeof gender !== "string" || !gender.trim()))) {
+            return res.status(400).json({ message: "Enter a valid age, gender and passenger category." });
+        }
+        if (needsIdPhoto && !normalizedDiscountIdPhoto) {
+            return res.status(400).json({ message: "Upload a clear photo of your Student, PWD or senior ID before creating your account." });
         }
 
         const normalizedEmail =
@@ -281,13 +307,24 @@ const register = async (req, res) => {
             phoneNumber:
                 phoneNumber.trim(),
 
+            age: normalizedAge,
+            gender: typeof gender === "string" ? gender.trim() : "",
+            category: normalizedCategory,
+            discountIdPhoto: normalizedDiscountIdPhoto,
             password:
                 hashedPassword
         });
 
+        if (needsIdPhoto) {
+            await DiscountRequest.findOneAndUpdate(
+                { userId: user._id, passengerId: String(user._id) },
+                { $set: { passengerName: user.fullName, age: normalizedAge, gender: user.gender || "Unspecified", category: normalizedAge >= 60 ? "Senior" : normalizedCategory, photo: normalizedDiscountIdPhoto, source: "Account registration", status: "pending", reason: "" } },
+                { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true }
+            );
+        }
+
         return res.status(201).json({
-            message:
-                "Account created successfully.",
+            message: "Account created successfully. You can now sign in.",
 
             user: {
                 id: user._id,
@@ -438,7 +475,7 @@ const login = async (req, res) => {
             message:
                 "Login successful.",
 
-            token,
+            ...issueSession(req, res, token, "user"),
 
             user: {
                 id: user._id,
@@ -465,7 +502,6 @@ const login = async (req, res) => {
         });
     }
 };
-
 
 // ========================================
 // GET CURRENT USER
@@ -529,7 +565,11 @@ const updateProfile = async (req, res) => {
         const {
             fullName,
             email,
-            phoneNumber
+            phoneNumber,
+            age,
+            gender,
+            category,
+            discountIdPhoto
         } = req.body;
 
         const submittedProfilePicture =
@@ -582,6 +622,41 @@ const updateProfile = async (req, res) => {
             });
         }
 
+        const currentUser = await User.findById(userId);
+        if (!currentUser) {
+            return res.status(404).json({ message: "User account not found." });
+        }
+
+        const profileFieldsSupplied =
+            age !== undefined || gender !== undefined || category !== undefined || discountIdPhoto !== undefined;
+        let normalizedPassengerProfile = {};
+        let normalizedDiscountIdPhoto = currentUser.discountIdPhoto || "";
+        let needsDiscountId = false;
+
+        if (profileFieldsSupplied) {
+            const normalizedAge = Number(age);
+            const normalizedGender = String(gender || "").trim();
+            const normalizedCategory = String(category || "").trim();
+            if (!Number.isInteger(normalizedAge) || normalizedAge < 0 || normalizedAge > 120 || !normalizedGender || normalizedGender.length > 40 || !["Regular", "Student", "PWD"].includes(normalizedCategory)) {
+                return res.status(400).json({ message: "Enter a valid age, gender and passenger category." });
+            }
+            try {
+                normalizedDiscountIdPhoto = normalizeProfilePicture(discountIdPhoto) ?? normalizedDiscountIdPhoto;
+            } catch (photoError) {
+                return res.status(400).json({ message: photoError.message });
+            }
+            needsDiscountId = normalizedAge >= 60 || ["Student", "PWD"].includes(normalizedCategory);
+            if (needsDiscountId && !normalizedDiscountIdPhoto) {
+                return res.status(400).json({ message: "Upload a clear Student, PWD or Senior ID photo before saving this profile." });
+            }
+            normalizedPassengerProfile = {
+                age: normalizedAge,
+                gender: normalizedGender,
+                category: normalizedCategory,
+                discountIdPhoto: normalizedDiscountIdPhoto
+            };
+        }
+
         // Update MongoDB
         const user =
             await User.findByIdAndUpdate(
@@ -592,9 +667,9 @@ const updateProfile = async (req, res) => {
 
                     email:
                         normalizedEmail,
-
                     phoneNumber:
                         phoneNumber.trim(),
+                    ...normalizedPassengerProfile,
                     ...(normalizedProfilePicture !== undefined
                         ? { profilePicture: normalizedProfilePicture }
                         : {})
@@ -612,16 +687,42 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        // Generate a new token because email
-        // may have changed.
-        const token =
-            createToken(user);
+        const profileNeedsReview = profileFieldsSupplied && needsDiscountId && (
+            normalizedDiscountIdPhoto !== (currentUser.discountIdPhoto || "") ||
+            Number(currentUser.age) !== Number(user.age) ||
+            currentUser.gender !== user.gender ||
+            currentUser.category !== user.category
+        );
+        const existingProfileRequest = needsDiscountId
+            ? await DiscountRequest.findOne({ userId: user._id, passengerId: String(user._id) }).select("_id").lean()
+            : null;
+        if (profileNeedsReview || (needsDiscountId && !existingProfileRequest)) {
+            const reviewCategory = Number(user.age) >= 60 ? "Senior" : user.category;
+            await DiscountRequest.findOneAndUpdate(
+                { userId: user._id, passengerId: String(user._id) },
+                { $set: {
+                    passengerName: user.fullName,
+                    age: user.age,
+                    gender: user.gender,
+                    category: reviewCategory,
+                    photo: user.discountIdPhoto,
+                    source: "Account profile update",
+                    status: "pending",
+                    reason: "",
+                    reviewedBy: "",
+                    reviewedAt: null
+                } },
+                { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+            );
+        }
+
+        const token = createToken(user);
 
         return res.status(200).json({
             message:
                 "Profile updated successfully.",
 
-            token,
+            ...issueSession(req, res, token, "user"),
 
             user: {
                 id: user._id,
@@ -759,7 +860,7 @@ const changePassword = async (req, res) => {
             message:
                 "Password updated successfully.",
 
-            token
+            ...issueSession(req, res, token, "user")
         });
 
     } catch (error) {

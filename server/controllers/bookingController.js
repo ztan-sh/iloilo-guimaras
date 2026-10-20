@@ -1,4 +1,5 @@
 const Booking = require("../models/Booking");
+const FerrySchedule = require("../models/FerrySchedule");
 const FerryClosure = require("../models/FerryClosure");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
@@ -663,7 +664,7 @@ const getBookingCapacity = async (req, res) => {
         //
         // Current system:
         //
-        // MV Felipe III
+        // MV Felipe
         // MV FastCraft
         // MV Halili
         //
@@ -673,10 +674,10 @@ const getBookingCapacity = async (req, res) => {
 
             {
                 id:
-                    "MV Felipe III",
+                    "MV Felipe",
 
                 vesselName:
-                    "MV Felipe III",
+                    "MV Felipe",
 
                 departureTime:
                     "3:30 AM",
@@ -1356,6 +1357,15 @@ const verifyPayment = async (req, res) => {
 
         booking.totalPaid =
             booking.requiredAmount;
+
+        if (!booking.queueNumber && booking.ferryId) {
+            const schedule = await FerrySchedule.findOneAndUpdate(
+                { _id: booking.ferryId },
+                { $inc: { queueCounter: 1 } },
+                { new: true }
+            );
+            if (schedule) booking.queueNumber = `MT-${schedule.queueCounter}`;
+        }
 
 
         await booking.save();

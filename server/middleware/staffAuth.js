@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const Staff = require("../models/Staff");
 const { attachMutationAudit } = require("../utils/activityAudit");
+const { readCookie, assertCookieMutationOrigin } = require("../utils/authSession");
 
 
 // =========================================================
@@ -25,18 +26,16 @@ const staffAuth = async (req, res, next) => {
         // GET AUTHORIZATION HEADER
         // =================================================
 
-        const authHeader =
-            req.headers.authorization;
+        const authHeader = req.headers.authorization || "";
+        const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        const cookieToken = readCookie(req, "ggo_staff_session");
 
 
         // =================================================
         // CHECK IF TOKEN EXISTS
         // =================================================
 
-        if (
-            !authHeader ||
-            !authHeader.startsWith("Bearer ")
-        ) {
+        if (!bearerToken && !cookieToken) {
 
             return res.status(401).json({
                 success: false,
@@ -50,29 +49,22 @@ const staffAuth = async (req, res, next) => {
         // EXTRACT TOKEN
         // =================================================
 
-        const token =
-            authHeader.split(" ")[1];
-
-
-        if (!token) {
-
-            return res.status(401).json({
-                success: false,
-                message:
-                    "Staff authentication token is missing."
-            });
-        }
-
-
         // =================================================
         // VERIFY JWT
         // =================================================
 
-        const decoded =
-            jwt.verify(
-                token,
-                process.env.JWT_SECRET
-            );
+        let sessionFromCookie = !bearerToken && Boolean(cookieToken);
+        let decoded;
+        try {
+            decoded = jwt.verify(bearerToken || cookieToken, process.env.JWT_SECRET);
+        } catch (error) {
+            if (!cookieToken || !bearerToken) throw error;
+            decoded = jwt.verify(cookieToken, process.env.JWT_SECRET);
+            sessionFromCookie = true;
+        }
+        if (sessionFromCookie && !assertCookieMutationOrigin(req)) {
+            return res.status(403).json({ success: false, message: "Request origin could not be verified." });
+        }
 
 
         // =================================================

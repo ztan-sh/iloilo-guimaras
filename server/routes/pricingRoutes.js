@@ -4,7 +4,7 @@ const router = express.Router();
 const adminAuth = require("../middleware/adminAuth");
 const VesselPricing = require("../models/VesselPricing");
 
-const VESSELS = ["MV Halili", "MV FastCraft", "MV Felipe", "Felipe III", "Lite Ferry 22"];
+const VESSELS = ["MV Halili", "MV FastCraft", "MV Felipe"];
 
 // Normalize common schedule/admin label variants to one saved pricing record.
 function normalizeVesselName(value) {
@@ -17,9 +17,8 @@ function normalizeVesselName(value) {
         "fastcraft": "MV FastCraft",
         "mv felipe": "MV Felipe",
         "felipe": "MV Felipe",
-        "felipe iii": "Felipe III",
-        "mv felipe iii": "Felipe III",
-        "lite ferry 22": "Lite Ferry 22"
+        "felipe iii": "MV Felipe",
+        "mv felipe iii": "MV Felipe"
     };
     return aliases[key] || name;
 }
@@ -92,7 +91,7 @@ async function getAllPrices() {
 
     const savedByVessel = Object.fromEntries(
         saved.map(item => [
-            item.vesselName,
+            normalizeVesselName(item.vesselName),
             Object.fromEntries(
                 Object.keys(DEFAULT_PRICES).map(key => [
                     key,
@@ -102,10 +101,7 @@ async function getAllPrices() {
         ])
     );
 
-    const allVessels = [...new Set([
-        ...VESSELS,
-        ...saved.map(item => normalizeVesselName(item.vesselName)).filter(Boolean)
-    ])];
+    const allVessels = VESSELS;
 
     return Object.fromEntries(
         allVessels.map(vessel => {
@@ -125,6 +121,9 @@ router.get("/public", async (req, res) => {
         }
 
         const vesselName = normalizeVesselName(requestedName);
+        if (!VESSELS.includes(vesselName)) {
+            return res.status(400).json({ success: false, message: "Choose one of the supported vessels." });
+        }
         let saved = await VesselPricing.findOne({ vesselName }).lean();
 
         // Schedule vessels may be added without a code change. Seed their
@@ -177,6 +176,9 @@ router.put("/:vesselName", adminAuth, async (req, res) => {
             });
         }
         const vesselName = normalizeVesselName(requestedName);
+        if (!VESSELS.includes(vesselName)) {
+            return res.status(400).json({ success: false, message: "Choose one of the supported vessels." });
+        }
 
         const issue = validatePrices(req.body);
 

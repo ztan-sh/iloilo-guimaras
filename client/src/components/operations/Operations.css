@@ -3,6 +3,8 @@
 .operations-assisted-fields { padding: 0; margin: 0; border: 0; min-width: 0; }
 .operations-stack { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
 .operations-vessel-tray { display: flex; flex-direction: column; gap: 12px; padding: 12px; background: var(--staff-surface); border-radius: var(--staff-radius); }
+.operations-vessel-select { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--staff-muted); }
+.operations-vessel-select select { width: 100%; min-height: 48px; padding: 12px 16px; border: 1px solid var(--staff-line); border-radius: var(--staff-radius-small); color: var(--staff-ink); background: var(--staff-white); font: inherit; }
 .operations-vessels { display: flex; gap: 12px; margin-top: 8px; }
 .operations-vessels > .staff-button { flex: 1; min-width: 0; }
 .operations-vessels .staff-button.is-selected { background: #ffecdb; color: var(--staff-accent-text); }
@@ -32,6 +34,7 @@
 .operations-footer .staff-actions > .staff-button { width: auto; min-width: 162px; flex: initial; }
 .operations-equal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: stretch; }
 .operations-id-photo { display: block; width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--staff-radius-small); background: var(--staff-background); }
+.operations-id-thumb { width: 56px; height: 56px; flex: 0 0 56px; object-fit: cover; border-radius: 8px; background: var(--staff-background); }
 .operations-reasons { display: flex; gap: 8px; flex-wrap: wrap; }
 .operations-reasons > .staff-button { width: auto; min-height: 40px; padding: 8px 12px; font-size: 13px; }
 .operations-record-row { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--staff-line); }

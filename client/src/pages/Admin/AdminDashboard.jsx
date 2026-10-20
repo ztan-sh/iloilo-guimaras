@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { timeToMinutes } from "../Staff/staffUtils";
+import SecurePaymentProof from "../../components/SecurePaymentProof";
 
 
 const API_URL =
     import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:5000/api";
+    "https://iloilo-guimaras.onrender.com/api";
 
 const API_ORIGIN = API_URL.replace(/\/api\/?$/, "");
 
@@ -485,7 +486,7 @@ const AdminDashboard = () => {
         }
 
         const ferryByTime = {
-            "03:30": "MV Felipe III",
+            "03:30": "MV Felipe",
             "08:00": "MV FastCraft",
             "09:00": "MV Halili"
         };
@@ -3149,15 +3150,10 @@ const AdminDashboard = () => {
          * may return the proof directly as a string.
          */
         if (typeof proof === "string") {
-
-            if (
-                proof.startsWith("http://") ||
-                proof.startsWith("https://")
-            ) {
-                return proof;
-            }
-
-            return `${API_ORIGIN}${proof}`;
+            if (proof.startsWith("data:image/")) return proof;
+            const filename = proof.split(/[?#]/, 1)[0].split("/").pop();
+            return /^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(?:jpg|jpeg|png)$/i.test(filename || "")
+                ? `${API_ORIGIN}/api/payment/proof/${encodeURIComponent(filename)}` : null;
         }
 
         /*
@@ -3166,14 +3162,10 @@ const AdminDashboard = () => {
          */
         if (proof.url) {
 
-            if (
-                proof.url.startsWith("http://") ||
-                proof.url.startsWith("https://")
-            ) {
-                return proof.url;
-            }
-
-            return `${API_ORIGIN}${proof.url}`;
+            if (proof.url.startsWith("data:image/")) return proof.url;
+            const filename = String(proof.fileName || proof.filename || proof.url).split(/[?#]/, 1)[0].split("/").pop();
+            return /^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(?:jpg|jpeg|png)$/i.test(filename || "")
+                ? `${API_ORIGIN}/api/payment/proof/${encodeURIComponent(filename)}` : null;
         }
 
         return null;
@@ -5147,12 +5139,7 @@ const AdminDashboard = () => {
                                                                 className="payment-proof"
                                                             >
 
-                                                                <img
-                                                                    src={
-                                                                        proofUrl
-                                                                    }
-                                                                    alt="Payment Proof"
-                                                                />
+                                                                <SecurePaymentProof url={proofUrl} alt="Payment proof" />
 
                                                                 <div className="proof-overlay">
                                                                     <span>

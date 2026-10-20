@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 const API_URL =
     import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:5000/api";
+    "https://iloilo-guimaras.onrender.com/api";
 
 const Trips = () => {
     const navigate = useNavigate();
@@ -32,8 +32,8 @@ const Trips = () => {
     const [availableTrips, setAvailableTrips] =
     useState([
         {
-            id: "MV Felipe III",
-            vesselName: "MV Felipe III",
+            id: "MV Felipe",
+            vesselName: "MV Felipe",
             departureTime: "3:30 AM",
             time: "03:30",
 

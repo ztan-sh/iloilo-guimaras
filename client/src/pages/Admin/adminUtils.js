@@ -13,7 +13,9 @@ export const timeValue = value => {
 export const normalizeTrip = trip => {
     const motorcycles = Number(trip.motorcycleCapacity ?? trip.vehicleCapacity ?? 10);
     const walkIn = Math.min(motorcycles, Math.max(0, Number(trip.walkInMotorcycleCapacity) || 0));
-    return { ...trip, id: String(trip._scheduleId || trip.scheduleId || trip._id || trip.id),
+    const rawVessel = String(trip.vesselName || '').trim();
+    const vesselName = /^MV\s+Felipe\s+III$/i.test(rawVessel) ? 'MV Felipe' : rawVessel;
+    return { ...trip, vesselName, ferryName: vesselName, id: String(trip._scheduleId || trip.scheduleId || trip._id || trip.id),
         departureTime: timeValue(trip.time || trip.departureTime), arrivalTime: timeValue(trip.arrivalTime),
         passengerCapacity: Number(trip.passengerCapacity ?? 100), motorcycleCapacity: motorcycles,
         walkInMotorcycleCapacity: walkIn, onlineMotorcycleCapacity: motorcycles - walkIn };

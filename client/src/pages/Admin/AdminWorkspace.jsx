@@ -22,13 +22,14 @@ const destinations = [
     ["overview", "Overview", "home", "Operations overview", "Monitor paid tickets, capacity and boarding for the selected trip."],
     ["schedules", "Schedules", "schedules", "Ferry schedules", "Manage departure times and review paid capacity before each crossing."],
     ["pricing", "Ride pricing", "card", "Ride pricing", "Choose a vessel to edit its ride fares and passenger discounts."],
-    ["tickets", "Ticket records", "ticket", "Ticket records", "Review paid online tickets and walk-in sales for the selected trip."],
-    ["passengers", "Passengers", "user", "Passenger information", "View passenger details and motorcycle information linked to paid tickets."],
+    ["tickets", "Ticket records", "ticket", "Ticket records", "Review bookings and walk-in sales for the selected trip."],
+    ["passengers", "Passengers", "user", "Passenger information", "View passenger details and motorcycle information linked to bookings."],
     ["payments", "Payments", "card", "Payment records", "Track successful payments and review processing or failed attempts."],
+    ["discounts", "Discount approvals", "card", "Discount approvals", "Review passenger ID photos and approve or request replacements."],
     ["boarding", "Boarding records", "check", "Boarding records", "Monitor validated tickets and boarded passengers for each departure."],
     ["records", "System records", "lock", "System records", "Review schedule updates, payment events and ticket verification activity."],
     ["bookings", "Booking details", "user", "Booking passenger details", "Check the ride, passengers, individual IDs and confirmed payment."],
-    ["notifications", "Notifications", "bell", "Notifications", "Monitor new bookings, staff ID decisions and pricing updates."],
+    ["notifications", "Notifications", "bell", "Notifications", "Review updates and send announcements to passengers."],
     ["staff", "Staff accounts", "account", "Staff accounts", "Create staff login credentials and activate or deactivate staff access."],
     ["activity", "Activity logs", "check", "Activity logs", "Review staff and administrator activity in separate audit trails."]
 ];
@@ -49,6 +50,7 @@ function AdminShell() {
     useAdminMotion(root, `${location.pathname}-${loading}`);
     const logout = () => {
         if (!preview) {
+            state.api.post("/admin/logout").catch(() => {});
             for (const storage of [localStorage, sessionStorage]) {
                 storage.removeItem("adminToken");
                 storage.removeItem("adminData");
@@ -80,8 +82,8 @@ function AdminShell() {
                 <Route path="boarding" element={<AdminBoarding />} /><Route path="records" element={<AdminRecords />} />
                 <Route path="pricing" element={<AdminPricing />} /><Route path="payment-verification" element={<PaymentVerification />} />
                 <Route path="bookings" element={<BookingDetails role="admin" preview={preview} basePath={basePath} bookings={state.bookings} trip={selectedTrip} onSelectRelatedTrip={booking => { const related = schedules.find(item => matchesTrip(booking, item)); if (related) setSelectedId(related.id); }} />} />
-                <Route path="notifications" element={<OperationsNotifications role="admin" preview={preview} basePath={basePath} bookings={state.bookings} />} />
-                <Route path="discounts" element={<StaffDiscounts preview={preview} trip={selectedTrip} readOnly />} />
+                <Route path="notifications" element={<OperationsNotifications role="admin" preview={preview} basePath={basePath} bookings={state.bookings} api={state.api} />} />
+                <Route path="discounts" element={<StaffDiscounts role="admin" preview={preview} trip={selectedTrip} api={state.api} />} />
                 <Route path="staff" element={<AdminStaff />} />
                 <Route path="activity" element={<AdminActivityLogs />} />
                 <Route path="*" element={<Navigate to={`${basePath}/overview`} replace />} />
@@ -105,6 +107,7 @@ function AdminShell() {
 export default function AdminWorkspace() {
     const { preview, basePath } = useAdminFlow();
     const token = localStorage.getItem("adminToken") || sessionStorage.getItem("adminToken");
-    if (!preview && !token) return <Navigate to={`${basePath}/login`} replace />;
+    const adminProfile = localStorage.getItem("adminData") || sessionStorage.getItem("adminData");
+    if (!preview && !token && !adminProfile) return <Navigate to={`${basePath}/login`} replace />;
     return <AdminState><AdminShell /></AdminState>;
 }

@@ -1,32 +1,34 @@
 const jwt = require("jsonwebtoken");
+const { readCookie, assertCookieMutationOrigin } = require("../utils/authSession");
 
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
 
     try {
 
-        const authHeader =
-            req.headers.authorization;
-
-        if (
-            !authHeader ||
-            !authHeader.startsWith(
-                "Bearer "
-            )
-        ) {
+        const authHeader = req.headers.authorization || "";
+        const bearerToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        const cookieToken = readCookie(req, "ggo_user_session");
+        const token = bearerToken || cookieToken;
+        if (!token) {
             return res.status(401).json({
                 message:
                     "Authentication required."
             });
         }
 
-        const token =
-            authHeader.split(" ")[1];
+        let sessionFromCookie = !bearerToken && Boolean(cookieToken);
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET);
+        } catch (error) {
+            if (!cookieToken || !bearerToken) throw error;
+            decoded = jwt.verify(cookieToken, process.env.JWT_SECRET);
+            sessionFromCookie = true;
+        }
 
-        const decoded =
-            jwt.verify(
-                token,
-                process.env.JWT_SECRET
-            );
+        if (sessionFromCookie && !assertCookieMutationOrigin(req)) {
+            return res.status(403).json({ message: "Request origin could not be verified." });
+        }
 
         req.user = decoded;
 

@@ -31,26 +31,21 @@ const rides = [
 
 const categories = ["Student", "PWD", "Senior"];
 
-const API_URL =
-    (import.meta.env.VITE_API_URL || "http://localhost:5000/api")
-        .replace(/\/+$/, "");
+const configuredApiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "";
+const API_URL = (import.meta.env.PROD && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(configuredApiUrl)
+    ? "https://iloilo-guimaras.onrender.com/api"
+    : configuredApiUrl || "https://iloilo-guimaras.onrender.com/api").replace(/\/+$/, "");
 
 async function pricingRequest(url, options = {}) {
-    const token = localStorage.getItem("adminToken");
-
-    if (!token) {
-        throw new Error("Please log in as an administrator.");
-    }
-
     const response = await fetch(`${API_URL}${url}`, {
         ...options,
+        credentials: "include",
         headers: {
             Accept: "application/json",
             ...(options.body
                 ? { "Content-Type": "application/json" }
                 : {}),
-            ...options.headers,
-            Authorization: `Bearer ${token}`
+            ...options.headers
         }
     });
 

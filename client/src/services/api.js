@@ -3,10 +3,21 @@
 // =========================================================
 
 import axios from "axios";
+import { Capacitor } from "@capacitor/core";
+const nativeClient = Capacitor.isNativePlatform();
 
-const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:5000/api";
+// Browser sessions now live in HttpOnly cookies; clear older browser JWTs.
+if (!nativeClient) {
+    for (const key of ["token", "adminToken", "staffToken"]) {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+    }
+}
+
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || "";
+const API_BASE_URL = import.meta.env.PROD && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(configuredApiBase)
+    ? "https://iloilo-guimaras.onrender.com/api"
+    : configuredApiBase || "https://iloilo-guimaras.onrender.com/api";
 
 
 // =========================================================
@@ -16,6 +27,7 @@ const API_BASE_URL =
 const api = axios.create({
 
     baseURL: API_BASE_URL,
+    withCredentials: true,
 
     headers: {
         "Content-Type": "application/json"
@@ -40,29 +52,29 @@ api.interceptors.request.use(
 
     (config) => {
 
-        const staffToken =
+        const staffToken = nativeClient ?
             localStorage.getItem(
                 "staffToken"
             ) ||
             sessionStorage.getItem(
                 "staffToken"
-            );
+            ) : "";
 
-        const adminToken =
+        const adminToken = nativeClient ?
             localStorage.getItem(
                 "adminToken"
             ) ||
             sessionStorage.getItem(
                 "adminToken"
-            );
+            ) : "";
 
-        const userToken =
+        const userToken = nativeClient ?
             localStorage.getItem(
                 "token"
             ) ||
             sessionStorage.getItem(
                 "token"
-            );
+            ) : "";
 
 
         // Keep each role's token isolated from the other roles.
@@ -85,6 +97,7 @@ api.interceptors.request.use(
         }
 
 
+        if (nativeClient) config.headers["X-Client-Platform"] = "native";
         if (token) {
 
             config.headers.Authorization =

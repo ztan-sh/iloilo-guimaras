@@ -1,6 +1,7 @@
 const express = require("express");
 
 const router = express.Router();
+const { getAllRequests, decideRequest } = require("../controllers/discountController");
 
 
 // =========================================================
@@ -12,6 +13,8 @@ const { getWorkspace, createWalkInTicket } = require("../controllers/staffWorksp
 
 router.get("/workspace", staffAuth, getWorkspace);
 router.post("/walk-in", staffAuth, createWalkInTicket);
+router.get("/discount-requests", staffAuth, getAllRequests);
+router.put("/discount-requests/:id", staffAuth, decideRequest);
 
 
 // =========================================================

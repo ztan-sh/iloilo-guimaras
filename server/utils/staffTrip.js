@@ -17,6 +17,13 @@ const normalizeTime = (value) => {
     return `${String(hour).padStart(2, "0")}:${match[2]}`;
 };
 
+const normalizeVessel = (value) => {
+    const vessel = String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+    // Older bookings used the former display name for the same ferry.
+    if (/^(?:m\/?v\s+)?felipe iii$/.test(vessel)) return "mv felipe";
+    return vessel;
+};
+
 const hasMotorcycle = (booking) => {
     const value = String(booking.vehicleType || "").toLowerCase().trim();
     return !["", "no motorcycle", "nomotorcycle", "no vehicle", "none", "passenger only", "passenger-only", "passenger"].includes(value)
@@ -32,10 +39,12 @@ const belongsToTrip = (booking, trip) => {
         || normalizeTime(booking.time || booking.departureTime) !== normalizeTime(trip.departureTime || trip.time)
         || normalize(booking.origin) !== normalize(origin)
         || normalize(booking.destination) !== normalize(destination)) return false;
-    const vessel = normalize(booking.vesselName || booking.ferryName);
-    if (vessel) return vessel === normalize(trip.vesselName);
+    const vesselNames = [booking.vesselName, booking.ferryName].filter(Boolean).map(normalizeVessel);
+    const tripVessel = normalizeVessel(trip.vesselName);
+    if (vesselNames.includes(tripVessel)) return true;
     const id = String(booking.ferryId || "");
-    return id ? id === String(trip._id || trip.id) || normalize(id) === normalize(trip.vesselName) : true;
+    if (id && (id === String(trip._id || trip.id) || normalizeVessel(id) === tripVessel)) return true;
+    return vesselNames.length === 0 && !id;
 };
 
 const summarizeTrip = (trip, records) => {

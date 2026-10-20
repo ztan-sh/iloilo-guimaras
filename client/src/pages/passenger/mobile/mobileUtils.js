@@ -3,6 +3,16 @@ import { matchesTrip, todayInManila } from '../../Staff/staffUtils.js';
 
 export { todayInManila };
 export const money = value => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value) || 0);
+export const discountAmountFor = booking => {
+    const saved = Number(booking?.discountAmount) || 0;
+    if (saved > 0) return Math.round(saved * 100) / 100;
+    const gross = (Number(booking?.passengerFare) || 0)
+        + (Number(booking?.motorcycleFare) || 0)
+        + (Number(booking?.stampFee) || 0)
+        + (Number(booking?.ppaFee) || 0);
+    const total = Number(booking?.requiredAmount);
+    return Number.isFinite(total) ? Math.max(0, Math.round((gross - total) * 100) / 100) : 0;
+};
 export const paymentState = booking => booking.paymentStatus === 'VERIFIED' ? 'Paid' : ['REJECTED', 'FAILED'].includes(booking.paymentStatus) ? 'Failed' : 'Processing';
 export const canIssueTicket = booking => Boolean(booking?.bookingReference && booking.paymentStatus === 'VERIFIED' && booking.status === 'CONFIRMED' && booking.boardingStatus !== 'REJECTED');
 export const accountPerson = user => ({ id: user.id || user._id, name: user.fullName || '', age: user.age ?? '', gender: user.gender || '', category: user.category || 'Regular', savedProfile: true });
@@ -32,7 +42,7 @@ export function bookingWindowIssue(trip, motorcycle = false, now = Date.now()) {
         : 'Passenger bookings must be made at least 3 hours before departure (Philippine time).';
     return '';
 }
-export const fareFor = (draft, operations, preview, livePrices = null) => quoteRide(preview ? operations.prices[draft.trip.vesselName] || DEFAULT_PRICES : livePrices || DEFAULT_PRICES, draft.people, draft.motorcycle, preview ? operations.requests : [], draft.regularFare, draft.motorcycleType);
+export const fareFor = (draft, operations, preview, livePrices = null) => quoteRide(preview ? operations.prices[draft.trip.vesselName] || DEFAULT_PRICES : livePrices || DEFAULT_PRICES, draft.people, draft.motorcycle, operations.requests || [], draft.regularFare, draft.motorcycleType);
 export function bookingIssue(draft, requests = [], preview = false) {
     if (!draft?.trip) return 'Choose a departure first.';
     const windowIssue = bookingWindowIssue(draft.trip, draft.motorcycle);
@@ -44,11 +54,9 @@ export function bookingIssue(draft, requests = [], preview = false) {
     if (draft.trip.bookingClosed || draft.trip.manualClosed) return 'This departure is closed. Choose another trip.';
     if (draft.people.length > draft.trip.passengerRemaining) return 'There are not enough passenger spaces on this departure.';
     if (draft.motorcycle && draft.trip.motorcycleRemaining < 1) return 'Online motorcycle spaces are full. Choose another departure or travel without a motorcycle.';
-    if (!draft.regularFare) {
-        const eligible = draft.people.filter(p => discountCategory(p) !== 'Regular');
-        if (eligible.length && !preview) return 'Discount review is not available yet. Continue at the regular fare.';
-        if (eligible.some(p => requestFor(requests, p)?.status !== 'approved' || !requestFor(requests, p)?.photo)) return 'Staff must approve every requested passenger ID before discounted payment.';
-    }
+    const eligible = draft.people.filter(p => discountCategory(p) !== 'Regular');
+    if (eligible.some(p => !requestFor(requests, p)?.photo)) return 'Upload a clear ID photo for every Student, PWD or senior passenger before continuing.';
+    if (preview && !draft.regularFare && eligible.some(p => requestFor(requests, p)?.status !== 'approved')) return 'Staff must approve every requested passenger ID before discounted payment.';
     return '';
 }
 export function photoIssue(file) {
@@ -56,7 +64,8 @@ export function photoIssue(file) {
     return file.size > 5 * 1024 * 1024 ? 'Choose a photo smaller than 5 MB.' : '';
 }
 export const passwordIssue = password => password.length < 8 || !/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password) ? 'Use at least 8 characters with uppercase, lowercase, a number and a special character.' : '';
-export const normalizeSchedule = schedule => ({ ...schedule, id: schedule.id || schedule._id || schedule.ferryId, vesselName: schedule.vesselName || schedule.ferryName, route: schedule.route || `${schedule.origin} → ${schedule.destination}`, departureTime: schedule.departureTime || schedule.time, passengerRemaining: Number(schedule.passengerRemaining ?? Math.max(0, schedule.passengerCapacity - (schedule.passengers || 0))), motorcycleRemaining: Number(schedule.motorcycleRemaining ?? schedule.vehicleRemaining ?? 0) });
+export const canonicalVesselName = value => /^MV\s+Felipe\s+III$/i.test(String(value || '').trim()) ? 'MV Felipe' : String(value || '').trim();
+export const normalizeSchedule = schedule => ({ ...schedule, id: schedule.id || schedule._id || schedule.ferryId, vesselName: canonicalVesselName(schedule.vesselName || schedule.ferryName), route: schedule.route || `${schedule.origin} → ${schedule.destination}`, departureTime: schedule.departureTime || schedule.time, passengerRemaining: Number(schedule.passengerRemaining ?? Math.max(0, schedule.passengerCapacity - (schedule.passengers || 0))), motorcycleRemaining: Number(schedule.motorcycleRemaining ?? schedule.vehicleRemaining ?? 0) });
 export function remainingFor(trip, bookings) {
     const reservations = bookings.filter(b => matchesTrip(b, trip) && paymentState(b) !== 'Failed' && b.boardingStatus !== 'REJECTED');
     const passengers = reservations.reduce((sum, b) => sum + Number(b.passengers || 1), 0);
@@ -71,7 +80,7 @@ export function clientEvents(bookings, requests, events, userId) {
     return events.filter(e => ids.has(e.requestId) || bookingIds.has(e.bookingId));
 }
 export function previewSchedules(date, bookings) {
-    return ['MV Halili', 'Felipe III', 'Lite Ferry 22'].flatMap((vesselName, v) => ['Iloilo → Guimaras', 'Guimaras → Iloilo'].flatMap((route, r) => ['09:30', '10:15', '13:00', '15:30'].map((departureTime, i) => {
+    return ['MV Halili', 'MV FastCraft', 'MV Felipe'].flatMap((vesselName, v) => ['Iloilo → Guimaras', 'Guimaras → Iloilo'].flatMap((route, r) => ['09:30', '10:15', '13:00', '15:30'].map((departureTime, i) => {
         const [h, m] = departureTime.split(':').map(Number); const arrival = h * 60 + m + 30;
         return remainingFor({ id: v === 0 && i === 0 && r === 0 ? 'preview-iloilo' : v === 0 && i === 1 && r === 1 ? 'preview-guimaras' : `client-trip-${v}-${r}-${i}`, vesselName, date, route, departureTime, arrivalTime: `${String(Math.floor(arrival / 60)).padStart(2, '0')}:${String(arrival % 60).padStart(2, '0')}`, passengerCapacity: 100, motorcycleCapacity: 10, walkInMotorcycleCapacity: 2 }, bookings);
     })));

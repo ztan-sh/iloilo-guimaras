@@ -5,7 +5,6 @@ import { StaffBrand, StaffButton, StaffCapacity, StaffDialog, StaffIcon, StaffMe
 import StaffScanner from "./StaffScanner";
 import StaffWalkIn from "./StaffWalkIn";
 import StaffAssisted from "./StaffAssisted";
-import StaffDiscounts from "./StaffDiscounts";
 import BookingDetails from "../../components/operations/BookingDetails";
 import OperationsNotifications from "../../components/operations/OperationsNotifications";
 import StaffActivity from "./StaffActivity";
@@ -17,7 +16,6 @@ import "../../components/operations/Operations.css";
 const navigation = [
     { path: "overview", label: "Terminal overview", icon: "home" },
     { path: "scanner", label: "Verify ticket", icon: "ticket" },
-    { path: "discounts", label: "Discount approvals", icon: "card" },
     { path: "assisted", label: "Assisted booking", icon: "card" },
     { path: "manifest", label: "Boarding manifest", icon: "user" },
     { path: "bookings", label: "Booking details", icon: "user" },
@@ -30,7 +28,6 @@ const headings = {
     "walk-in": { title: "Walk-in ticketing", subtitle: "Record a paid terminal ticket within the walk-in motorcycle allocation." },
     manifest: { title: "Boarding manifest", subtitle: "Review paid passengers and motorcycles for the selected departure." },
     assisted: { title: "Assisted ticket booking", subtitle: "Follow the client flow: review each passenger’s ID, then confirm payment." },
-    discounts: { title: "Discount approvals", subtitle: "Review passenger IDs before Student, PWD or Senior discounts apply." },
     bookings: { title: "Booking passenger details", subtitle: "Check the ride, passengers, individual IDs and confirmed payment." },
     notifications: { title: "Notifications", subtitle: "Open booking updates and ID requests that need attention." },
     activity: { title: "Activity logs", subtitle: "Review the sign-ins and ticket actions recorded for your account." }
@@ -52,9 +49,8 @@ export default function StaffWorkspace() {
     const [tripPicker, setTripPicker] = useState(false);
     const [logoutDialog, setLogoutDialog] = useState(false);
     const [scannerHeading, setScannerHeading] = useState(headings.scanner);
-    const [discountHeading, setDiscountHeading] = useState(headings.discounts);
     const loadRequest = useRef(null);
-    const token = preview || localStorage.getItem("staffToken") || sessionStorage.getItem("staffToken");
+    const token = preview || localStorage.getItem("staffToken") || sessionStorage.getItem("staffToken") || localStorage.getItem("staff") || sessionStorage.getItem("staff");
     let staff;
     try { staff = preview ? { name: "Terminal staff" } : JSON.parse(localStorage.getItem("staff") || "{}"); } catch { staff = {}; }
 
@@ -89,13 +85,14 @@ export default function StaffWorkspace() {
     const trip = data?.trips.find(item => item.id === selectedId);
     const records = trip ? data.bookings.filter(booking => matchesTrip(booking, trip)) : [];
     const paidRecords = records.filter(booking => booking.paymentStatus === "VERIFIED" && booking.status === "CONFIRMED" && booking.boardingStatus !== "REJECTED");
-    const heading = active === "scanner" ? scannerHeading : active === "discounts" ? discountHeading : headings[active] || headings.overview;
+    const heading = active === "scanner" ? scannerHeading : headings[active] || headings.overview;
     useStaffMotion(root, `${active}-${selectedId}-${heading.title}-${loading}`);
     if (!token) return <Navigate to={`${basePath}/login`} replace />;
     if (!headings[active]) return <Navigate to={`${basePath}/overview`} replace />;
 
      const logout = () => {
         if (!preview) {
+            api.post("/staff-auth/logout").catch(() => {});
             localStorage.removeItem("staffToken");
             sessionStorage.removeItem("staffToken");
             localStorage.removeItem("staff");
@@ -122,7 +119,7 @@ export default function StaffWorkspace() {
             <StaffNotice error>{error}</StaffNotice>
             {error && <StaffButton variant="secondary" className="staff-retry" onClick={refresh}>Retry connection</StaffButton>}
             {trip && !["discounts", "bookings", "notifications", "activity"].includes(active) && <div className="staff-trip-tray"><div className="staff-trip"><div className="staff-trip-route"><h2>{trip.route}</h2><p>{trip.vesselName} · {formatTripDate(trip.date, true)}</p></div><div className="staff-trip-time"><span>Departure</span><strong>{formatTime(trip.departureTime)}</strong></div><div className="staff-trip-time"><span>Arrival</span><strong>{formatTime(trip.arrivalTime)}</strong></div><StaffButton variant="secondary" onClick={() => setTripPicker(true)}>View trip</StaffButton></div></div>}
-            {loading ? <div className="staff-loading" role="status">Loading terminal trips…</div> : active === "activity" ? <StaffActivity /> : active === "discounts" ? <StaffDiscounts preview={preview} trip={trip} onHeading={setDiscountHeading} /> : active === "bookings" ? <BookingDetails role="staff" preview={preview} basePath={basePath} bookings={data?.bookings || []} trip={trip} api={api} onRefresh={refresh} /> : active === "notifications" ? <OperationsNotifications role="staff" preview={preview} basePath={basePath} bookings={data?.bookings || []} /> : !trip ? <StaffPanel><h2>No trips for this date</h2><p>{error ? "Retry the connection to load your terminal workspace." : "Scheduled departures will appear here once they have been added by an administrator."}</p><StaffButton variant="secondary" onClick={() => setTripPicker(true)}>Choose another date</StaffButton></StaffPanel> : <>
+            {loading ? <div className="staff-loading" role="status">Loading terminal trips…</div> : active === "activity" ? <StaffActivity /> : active === "bookings" ? <BookingDetails role="staff" preview={preview} basePath={basePath} bookings={data?.bookings || []} trip={trip} api={api} onRefresh={refresh} /> : active === "notifications" ? <OperationsNotifications role="staff" preview={preview} basePath={basePath} bookings={data?.bookings || []} /> : !trip ? <StaffPanel><h2>No trips for this date</h2><p>{error ? "Retry the connection to load your terminal workspace." : "Scheduled departures will appear here once they have been added by an administrator."}</p><StaffButton variant="secondary" onClick={() => setTripPicker(true)}>Choose another date</StaffButton></StaffPanel> : <>
                 {active === "overview" && <StaffOverview trip={trip} records={paidRecords} />}
                 {active === "scanner" && <StaffScanner key={trip.id} trip={trip} onRefresh={refresh} onHeading={setScannerHeading} />}
                 {active === "walk-in" && <StaffWalkIn key={trip.id} trip={trip} fares={data.fares} onRefresh={refresh} />}

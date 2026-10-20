@@ -64,6 +64,7 @@ const paymentProofSchema = new mongoose.Schema(
 
 const passengerDetailsSchema = new mongoose.Schema(
     {
+        passengerId: { type: String, default: "", trim: true, maxlength: 128 },
         name: {
             type: String,
             required: true,
@@ -80,7 +81,11 @@ const passengerDetailsSchema = new mongoose.Schema(
             type: String,
             required: true,
             trim: true
-        }
+        },
+        category: { type: String, default: "Regular", trim: true },
+        discountRequestId: { type: mongoose.Schema.Types.ObjectId, ref: "DiscountRequest", default: null },
+        discountStatus: { type: String, default: "not eligible", trim: true },
+        discountAmount: { type: Number, default: 0, min: 0 }
     },
     {
         _id: false
@@ -102,6 +107,12 @@ const bookingSchema = new mongoose.Schema(
             type: String,
             required: true,
             unique: true,
+            trim: true
+        },
+
+        queueNumber: {
+            type: String,
+            default: "",
             trim: true
         },
 
@@ -250,6 +261,8 @@ const bookingSchema = new mongoose.Schema(
             type: Number,
             required: true
         },
+
+        discountAmount: { type: Number, default: 0, min: 0 },
 
         requiredAmount: {
             type: Number,

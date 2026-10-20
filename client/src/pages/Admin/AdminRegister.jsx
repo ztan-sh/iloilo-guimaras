@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL ||
-    "http://localhost:5000/api";
+    "https://iloilo-guimaras.onrender.com/api";
 
 const AdminRegister = () => {
     const navigate = useNavigate();
@@ -32,6 +32,11 @@ const AdminRegister = () => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
+
+        if (form.password.length < 12 || !/[a-z]/.test(form.password) || !/[A-Z]/.test(form.password) || !/\d/.test(form.password) || !/[^A-Za-z0-9]/.test(form.password)) {
+            setError("Use at least 12 characters with uppercase, lowercase, number, and symbol characters.");
+            return;
+        }
 
         setError("");
         setSuccess("");
@@ -198,6 +203,7 @@ const AdminRegister = () => {
                                         onChange={handleChange}
                                         placeholder="Password"
                                         autoComplete="new-password"
+                                        minLength={12}
                                         required
                                     />
 

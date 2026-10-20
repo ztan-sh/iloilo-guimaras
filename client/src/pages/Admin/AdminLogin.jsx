@@ -24,10 +24,10 @@ export default function AdminLogin() {
         try {
             if (preview) { navigate(`${basePath}/overview`, { replace: true }); return; }
             const { data } = await api.post("/admin/login", { email: email.trim(), password });
-            if (!data.token) throw new Error("The sign-in response did not include a session. Please retry.");
             sessionStorage.removeItem("adminToken");
             sessionStorage.removeItem("adminData");
-            localStorage.setItem("adminToken", data.token);
+            localStorage.removeItem("adminToken");
+            sessionStorage.removeItem("adminToken");
             if (data.admin) localStorage.setItem("adminData", JSON.stringify(data.admin));
             navigate(`${basePath}/overview`, { replace: true });
         } catch (err) {

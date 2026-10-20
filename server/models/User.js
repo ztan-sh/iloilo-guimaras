@@ -22,6 +22,11 @@ const userSchema = new mongoose.Schema(
             trim: true
         },
 
+        age: { type: Number, min: 0, max: 120, default: undefined },
+        gender: { type: String, trim: true, default: "" },
+        category: { type: String, enum: ["Regular", "Student", "PWD"], default: "Regular" },
+        discountIdPhoto: { type: String, default: "" },
+
         password: {
             type: String,
             required: true

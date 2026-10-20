@@ -1,11 +1,17 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const createRateLimiter = require("../middleware/rateLimitMiddleware");
+const { issueSession, clearSession, readCookie, assertCookieMutationOrigin } = require("../utils/authSession");
 
 const Admin = require("../models/Admin");
 const adminAuth = require("../middleware/adminAuth");
 const { recordActivity } = require("../utils/activityAudit");
+const { getAllRequests, decideRequest } = require("../controllers/discountController");
 const { getAdminActivity } = require("../controllers/activityAuditController");
+const Notification = require("../models/Notification");
+const User = require("../models/User");
 const {
     createStaff,
     getAllStaff,
@@ -17,13 +23,43 @@ const {
 } = require("../controllers/adminController");
 
 const router = express.Router();
+const adminRegisterLimiter = createRateLimiter({ windowMs: 60 * 60 * 1000, max: 5, message: "Too many admin registration attempts. Please try again later." });
+const adminLoginLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 8, message: "Too many admin sign-in attempts. Please try again later." });
+router.post("/logout", (req, res) => {
+    if (readCookie(req, "ggo_admin_session") && !assertCookieMutationOrigin(req)) return res.status(403).json({ message: "Request origin could not be verified." });
+    clearSession(res, "admin");
+    return res.status(200).json({ success: true });
+});
+const safeSecretMatches = (provided, configured) => {
+    if (typeof configured !== "string" || !configured || typeof provided !== "string") return false;
+    const providedBytes = Buffer.from(provided);
+    const configuredBytes = Buffer.from(configured);
+    return providedBytes.length === configuredBytes.length && crypto.timingSafeEqual(providedBytes, configuredBytes);
+};
+router.get("/discount-requests", adminAuth, getAllRequests);
+router.put("/discount-requests/:id", adminAuth, decideRequest);
+router.post("/notifications/announcements", adminAuth, async (req, res) => {
+    const title = String(req.body?.title || "").trim();
+    const message = String(req.body?.message || "").trim();
+    if (!title || title.length > 160 || !message || message.length > 1200) {
+        return res.status(400).json({ success: false, message: "Enter a title (up to 160 characters) and message (up to 1,200 characters)." });
+    }
+    try {
+        const users = await User.find({}).select("_id").lean();
+        if (users.length) await Notification.insertMany(users.map(user => ({ userId: user._id, type: "announcement", title, message })));
+        return res.status(201).json({ success: true, delivered: users.length, message: `Announcement sent to ${users.length} passenger account${users.length === 1 ? "" : "s"}.` });
+    } catch (error) {
+        console.error("Create passenger announcement error:", error);
+        return res.status(500).json({ success: false, message: "Unable to send this announcement." });
+    }
+});
 
 
 // =========================================================
 // ADMIN REGISTRATION
 // =========================================================
 
-router.post("/register", async (req, res) => {
+router.post("/register", adminRegisterLimiter, async (req, res) => {
 
     try {
 
@@ -74,12 +110,12 @@ router.post("/register", async (req, res) => {
         // PASSWORD LENGTH
         // =====================================================
 
-        if (password.length < 6) {
+        if (password.length < 12 || !/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
 
             return res.status(400).json({
                 success: false,
                 message:
-                    "Password must be at least 6 characters."
+                    "Password must have at least 12 characters and include uppercase, lowercase, number, and symbol characters."
             });
         }
 
@@ -88,10 +124,7 @@ router.post("/register", async (req, res) => {
         // ADMIN REGISTRATION CODE
         // =====================================================
 
-        if (
-            registrationCode !==
-            process.env.ADMIN_REGISTRATION_CODE
-        ) {
+        if (!safeSecretMatches(registrationCode, process.env.ADMIN_REGISTRATION_CODE)) {
 
             return res.status(403).json({
                 success: false,
@@ -199,7 +232,7 @@ router.post("/register", async (req, res) => {
 // ADMIN LOGIN
 // =========================================================
 
-router.post("/login", async (req, res) => {
+router.post("/login", adminLoginLimiter, async (req, res) => {
 
     try {
 
@@ -313,7 +346,7 @@ router.post("/login", async (req, res) => {
             message:
                 "Administrator login successful.",
 
-            token,
+            ...issueSession(req, res, token, "admin"),
 
             admin: {
 

@@ -1,15 +1,22 @@
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 const { Readable } = require("stream");
 
 const Booking = require("../models/Booking");
 const VesselPricing = require("../models/VesselPricing");
 const FerrySchedule = require("../models/FerrySchedule");
+const DiscountRequest = require("../models/DiscountRequest");
+const User = require("../models/User");
 const protect = require("../middleware/authMiddleware");
+const createRateLimiter = require("../middleware/rateLimitMiddleware");
 
 const router = express.Router();
+const displayVesselName = value => /^MV\s+Felipe\s+III$/i.test(String(value || "").trim()) ? "MV Felipe" : String(value || "").trim();
 
 // =========================================================
 // MONGODB GRIDFS STORAGE
@@ -20,6 +27,12 @@ const router = express.Router();
 
 const GRIDFS_BUCKET_NAME = "paymentProofs";
 const storage = multer.memoryStorage();
+const uploadProofLimiter = createRateLimiter({
+    windowMs: 60 * 60 * 1000,
+    max: 12,
+    keyGenerator: req => `payment-proof:${req.user?.userId || req.ip}`,
+    message: "Too many payment receipts were uploaded. Please try again later."
+});
 
 // =========================================================
 // FILE FILTER
@@ -70,6 +83,8 @@ const upload = multer({
 
 router.post(
     "/upload-proof",
+    protect,
+    uploadProofLimiter,
     upload.single("paymentProof"),
     async (req, res) => {
         try {
@@ -78,6 +93,12 @@ router.post(
                     success: false,
                     message: "No payment proof was uploaded."
                 });
+            }
+
+            const isJpeg = req.file.buffer?.[0] === 0xff && req.file.buffer?.[1] === 0xd8 && req.file.buffer?.[2] === 0xff;
+            const isPng = req.file.buffer?.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+            if (!((req.file.mimetype === "image/jpeg" || req.file.mimetype === "image/jpg") && isJpeg) && !(req.file.mimetype === "image/png" && isPng)) {
+                return res.status(400).json({ success: false, message: "The uploaded file is not a valid JPG or PNG image." });
             }
 
             if (!mongoose.connection.db) {
@@ -97,14 +118,15 @@ router.post(
                 ? originalExtension
                 : (req.file.mimetype === "image/png" ? ".png" : ".jpg");
 
-            const filename = `payment-proof-${Date.now()}-${Math.round(Math.random() * 1000000000)}${safeExtension}`;
+            const filename = `payment-proof-${crypto.randomUUID()}${safeExtension}`;
 
             const uploadStream = bucket.openUploadStream(filename, {
                 contentType: req.file.mimetype,
                 metadata: {
                     originalName: req.file.originalname,
                     contentType: req.file.mimetype,
-                    uploadedAt: new Date()
+                    uploadedAt: new Date(),
+                    userId: String(req.user.userId)
                 }
             });
 
@@ -114,7 +136,7 @@ router.post(
                 Readable.from(req.file.buffer).pipe(uploadStream);
             });
 
-            const fileUrl = `/uploads/payment-proofs/${filename}`;
+            const fileUrl = `/api/payment/proof/${encodeURIComponent(filename)}`;
 
             console.log("Payment proof saved to MongoDB GridFS:", filename);
 
@@ -142,6 +164,66 @@ router.post(
     }
 );
 
+const authenticateProofReader = (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization || "";
+        const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+        if (!token) return res.status(401).json({ success: false, message: "Authentication required." });
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.role === "ADMIN") {
+            req.proofReader = { role: "ADMIN", id: decoded.id || decoded.adminId || "" };
+        } else if (decoded.userId && !decoded.role) {
+            req.proofReader = { role: "USER", id: String(decoded.userId) };
+        } else {
+            return res.status(403).json({ success: false, message: "You are not allowed to view this payment receipt." });
+        }
+        return next();
+    } catch {
+        return res.status(401).json({ success: false, message: "Invalid or expired authentication token." });
+    }
+};
+
+router.get("/proof/:filename", authenticateProofReader, async (req, res) => {
+    try {
+        const filename = String(req.params.filename || "");
+        if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(?:jpg|jpeg|png)$/i.test(filename)) {
+            return res.status(400).json({ success: false, message: "Invalid payment receipt reference." });
+        }
+
+        const ownershipQuery = { "paymentProof.fileName": filename };
+        if (req.proofReader.role === "USER") ownershipQuery.userId = req.proofReader.id;
+        const associatedBooking = await Booking.exists(ownershipQuery);
+        if (!associatedBooking) return res.status(404).json({ success: false, message: "Payment receipt not found." });
+
+        res.set({
+            "Content-Type": /\.png$/i.test(filename) ? "image/png" : "image/jpeg",
+            "Content-Disposition": `inline; filename="${filename}"`,
+            "Cache-Control": "private, no-store, max-age=0",
+            "X-Content-Type-Options": "nosniff"
+        });
+
+        const localDirectory = path.resolve(__dirname, "../uploads/payment-proofs");
+        const localPath = path.resolve(localDirectory, filename);
+        if (localPath.startsWith(`${localDirectory}${path.sep}`) && fs.existsSync(localPath)) {
+            return fs.createReadStream(localPath).pipe(res);
+        }
+
+        if (!mongoose.connection.db) return res.status(503).json({ success: false, message: "Payment receipt storage is not ready." });
+        const { GridFSBucket } = require("mongodb");
+        const bucket = new GridFSBucket(mongoose.connection.db, { bucketName: GRIDFS_BUCKET_NAME });
+        const file = await bucket.find({ filename }).sort({ uploadDate: -1 }).next();
+        if (!file) return res.status(404).json({ success: false, message: "Payment receipt not found." });
+        if (req.proofReader.role === "USER" && String(file.metadata?.userId || "") !== req.proofReader.id) {
+            return res.status(404).json({ success: false, message: "Payment receipt not found." });
+        }
+        return bucket.openDownloadStream(file._id).pipe(res);
+    } catch (error) {
+        console.error("Payment proof retrieval error:", error);
+        if (!res.headersSent) return res.status(500).json({ success: false, message: "Unable to retrieve payment receipt." });
+        return res.destroy(error);
+    }
+});
+
 // =========================================================
 // CREATE BOOKING
 // =========================================================
@@ -157,12 +239,7 @@ router.post(
                 "Creating booking..."
             );
 
-            console.log(
-                "Booking data:",
-                req.body
-            );
-
-            const {
+            let {
 
                 bookingReference,
 
@@ -179,6 +256,8 @@ router.post(
                 passengerAge,
 
                 passengerGender,
+
+                passengerDetails,
 
                 passengers,
 
@@ -234,6 +313,28 @@ router.post(
                 });
             }
 
+            const proofFilename = String(paymentProof?.fileName || paymentProof?.filename || "").trim();
+            if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(?:jpg|jpeg|png)$/i.test(proofFilename) || !mongoose.connection.db) {
+                return res.status(400).json({ success: false, message: "Upload a valid payment receipt before submitting this booking." });
+            }
+            const { GridFSBucket } = require("mongodb");
+            const proofBucket = new GridFSBucket(mongoose.connection.db, { bucketName: GRIDFS_BUCKET_NAME });
+            const ownedProof = await proofBucket.find({
+                filename: proofFilename,
+                "metadata.userId": String(req.user.userId)
+            }).sort({ uploadDate: -1 }).next();
+            if (!ownedProof) {
+                return res.status(403).json({ success: false, message: "This payment receipt does not belong to your account. Upload your own receipt and try again." });
+            }
+            req.body.paymentProof = {
+                fileName: proofFilename,
+                originalName: String(ownedProof.metadata?.originalName || "payment-receipt").slice(0, 255),
+                fileType: ownedProof.metadata?.contentType === "image/png" ? "image/png" : "image/jpeg",
+                fileSize: Number(ownedProof.length) || 0,
+                url: `/api/payment/proof/${encodeURIComponent(proofFilename)}`
+            };
+            paymentProof = req.body.paymentProof;
+
             if (vehicleType === "Motorcycle" && motorcycleType && !["standard", "big-bike"].includes(motorcycleType)) {
                 return res.status(400).json({
                     success: false,
@@ -272,8 +373,8 @@ router.post(
             req.body.destination = String(schedule.route || "").split(/\s*(?:→|->|↔)\s*/)[1] || destination;
             req.body.date = schedule.date;
             req.body.time = schedule.departureTime;
-            req.body.vesselName = schedule.vesselName;
-            req.body.ferryName = schedule.vesselName;
+            req.body.vesselName = displayVesselName(schedule.vesselName);
+            req.body.ferryName = req.body.vesselName;
 
             // Calculate the amount on the server from saved pricing. Never trust client totals.
             const vesselName = String(req.body.vesselName || req.body.ferryName || "").trim();
@@ -318,26 +419,58 @@ router.post(
 
             const configured = { ...DEFAULT_VESSEL_PRICES, ...(pricing || {}) };
             const passengerCount = Math.max(1, Math.min(10, Number(passengers) || 1));
+            const bookingPassengers = Array.isArray(passengerDetails) && passengerDetails.length === passengerCount
+                ? passengerDetails
+                : passengerCount === 1
+                    ? [{ id: String(req.user.userId), name: passengerName, age: passengerAge, gender: passengerGender, category: req.body.passengerCategory || "Regular" }]
+                    : [];
+            if (Array.isArray(passengerDetails) && passengerDetails.length && passengerDetails.length !== passengerCount) {
+                return res.status(400).json({ success: false, message: "Provide complete details for every passenger." });
+            }
+            const normalizedPassengers = [];
+            let discountTotal = 0;
+            const account = await User.findById(req.user.userId).select("fullName age gender category").lean();
+            for (const passenger of bookingPassengers) {
+                const passengerId = String(passenger.id || "");
+                const isAccountHolder = passengerId === String(req.user.userId);
+                const name = String(isAccountHolder ? account?.fullName : passenger.name || "").trim();
+                const age = Number(isAccountHolder ? account?.age ?? passenger.age : passenger.age);
+                const gender = String(isAccountHolder ? account?.gender || passenger.gender : passenger.gender || "").trim();
+                const passengerCategory = isAccountHolder ? account?.category || passenger.category : passenger.category;
+                const category = age >= 60 ? "Senior" : ["Student", "PWD"].includes(passengerCategory) ? passengerCategory : "Regular";
+                let request = null;
+                let amount = 0;
+                if (category !== "Regular") {
+                    request = await DiscountRequest.findOne({ userId: req.user.userId, passengerId, passengerName: name, age, gender, category, photo: { $ne: "" } }).lean();
+                    if (!request) return res.status(400).json({ success: false, message: `Upload an ID photo for ${name || "each eligible passenger"} before continuing.` });
+                    if (request.status === "approved") amount = Math.round((Number(configured.solo) * Number(configured[category.toLowerCase()]) / 100) * 100) / 100;
+                }
+                discountTotal += amount;
+                normalizedPassengers.push({ passengerId, name, age, gender, category, discountRequestId: request?._id || null, discountStatus: request?.status || "not eligible", discountAmount: amount });
+            }
             if (vehicleType === "Motorcycle" && !["standard", "big-bike"].includes(motorcycleType || "standard")) {
                 return res.status(400).json({ success: false, message: "Choose a standard motorcycle or big bike." });
             }
             if (vehicleType === "Motorcycle" && motorcycleType === "big-bike" && passengerCount > 3) {
                 return res.status(400).json({ success: false, message: "Big-bike bookings are limited to 3 passengers." });
             }
-            const serverPassengerFare = Math.round(passengerCount * Number(configured.solo) * 100) / 100;
+            const grossPassengerFare = Math.round(passengerCount * Number(configured.solo) * 100) / 100;
+            const serverPassengerFare = grossPassengerFare;
             const serverMotorcycleFare = vehicleType !== "Motorcycle" ? 0 : motorcycleType === "big-bike"
                 ? Number(configured.bigBike)
                 : Number(configured.motorcycle);
             const serverStampFee = vehicleType !== "Motorcycle" ? 0 : motorcycleType === "big-bike"
                 ? Number(configured.bigBikeStamp) : Number(configured.smallBikeStamp);
             const serverPpaFee = Number(configured.ppa);
-            const serverRequiredAmount = Math.round((serverPassengerFare + serverMotorcycleFare + serverStampFee + serverPpaFee) * 100) / 100;
+            const serverRequiredAmount = Math.round((serverPassengerFare + serverMotorcycleFare + serverStampFee - discountTotal + serverPpaFee) * 100) / 100;
             // Persist server-calculated values, not the amounts supplied by the browser.
             req.body.passengerFare = serverPassengerFare;
             req.body.motorcycleFare = serverMotorcycleFare;
             req.body.stampFee = serverStampFee;
             req.body.ppaFee = serverPpaFee;
             req.body.requiredAmount = serverRequiredAmount;
+            req.body.discountAmount = discountTotal;
+            req.body.passengerDetails = normalizedPassengers;
 
             // =================================================
             // CHECK DUPLICATE BOOKING REFERENCE
@@ -359,6 +492,18 @@ router.post(
                 });
             }
 
+            // Reserve the next passenger queue position for this exact departure.
+            // This makes the number available as soon as the booking is saved,
+            // while payment verification can still happen afterward.
+            const queuedSchedule = await FerrySchedule.findOneAndUpdate(
+                { _id: schedule._id, active: { $ne: false } },
+                { $inc: { queueCounter: 1 } },
+                { new: true }
+            );
+            if (!queuedSchedule) {
+                return res.status(409).json({ success: false, message: "This departure is no longer available. Choose another trip." });
+            }
+
             // =================================================
             // CREATE BOOKING
             // =================================================
@@ -371,6 +516,8 @@ router.post(
                     userId: req.user.userId,
 
                     bookingReference,
+
+                    queueNumber: `MT-${String(queuedSchedule.queueCounter).padStart(2, "0")}`,
 
                     origin: req.body.origin,
 
@@ -398,6 +545,8 @@ router.post(
 
                     passengers,
 
+                    passengerDetails: req.body.passengerDetails,
+
                     vehicleType,
 
                     motorcycleType: vehicleType === "Motorcycle" ? motorcycleType || "standard" : "",
@@ -412,6 +561,8 @@ router.post(
                     stampFee: req.body.stampFee,
 
                     ppaFee: req.body.ppaFee,
+
+                    discountAmount: req.body.discountAmount,
 
                     requiredAmount: req.body.requiredAmount,
 

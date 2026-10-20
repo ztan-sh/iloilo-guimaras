@@ -19,7 +19,7 @@ export const createAdminPreviewApi = () => {
         arrivalTime: `${time.slice(0, 2) === "09" ? "10" : String(Number(time.slice(0, 2)) + 1)}:00`,
         passengerCapacity: 100, motorcycleCapacity: 10, walkInMotorcycleCapacity: 2
     }));
-    schedules.push(...["Felipe III", "Lite Ferry 22"].map((vesselName, i) => normalizeTrip({ id: `admin-preview-vessel-${i}`, vesselName, date, route: "Iloilo → Guimaras", departureTime: "09:30", arrivalTime: "10:00", passengerCapacity: 100, motorcycleCapacity: 10, walkInMotorcycleCapacity: 2 })));
+
     const stamp = time => `${date}T${time}:00+08:00`;
     const base = { date, origin: "Iloilo", destination: "Guimaras", time: "09:30", vesselName: "MV Halili",
         passengers: 1, vehicleType: "Motorcycle", motorcycleModel: "Honda Click", plateNumber: "ABC 1234",

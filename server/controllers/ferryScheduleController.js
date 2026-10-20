@@ -1,17 +1,43 @@
 const FerrySchedule = require("../models/FerrySchedule");
 const Booking = require("../models/Booking");
 const FerryClosure = require("../models/FerryClosure");
+const Notification = require("../models/Notification");
 const ScheduleDayControl = FerryClosure.ScheduleDayControl;
 const { belongsToTrip, hasMotorcycle } = require("../utils/staffTrip");
 
+const notifySchedulePassengers = async (schedule, { type, title, message }) => {
+    const bookings = await Booking.find({ ferryId: String(schedule._id), userId: { $ne: null }, status: { $ne: "CANCELLED" } })
+        .select("_id userId bookingReference")
+        .lean();
+    if (!bookings.length) return 0;
+    await Notification.insertMany(bookings.map(booking => ({
+        userId: booking.userId, type, title, message,
+        bookingId: booking._id, bookingReference: booking.bookingReference
+    })));
+    return bookings.length;
+};
+
 const PASSENGER_CAPACITY = 100;
 const MOTORCYCLE_CAPACITY = 10;
+const ACTIVE_VESSELS = ["MV Halili", "MV FastCraft", "MV Felipe"];
+const LEGACY_VESSELS = ["MV Felipe III"];
 
 const normalizeText = (value) =>
     String(value || "")
         .trim()
         .toLowerCase()
         .replace(/\s+/g, " ");
+
+const canonicalVesselName = (value) => {
+    const normalized = normalizeText(value);
+    if (normalized === "mv felipe iii") return "MV Felipe";
+    return ACTIVE_VESSELS.find(name => normalizeText(name) === normalized) || "";
+};
+
+const vesselNamesFor = (value) => {
+    const canonical = canonicalVesselName(value);
+    return canonical === "MV Felipe" ? [canonical, ...LEGACY_VESSELS] : [canonical];
+};
 
 const normalizeDate = (value) => {
     const text = String(value || "").trim();
@@ -35,7 +61,8 @@ const normalizeTime = (value) => {
     const text = String(value || "").trim();
 
     if (/^\d{2}:\d{2}$/.test(text)) {
-        return text;
+        const [hour, minute] = text.split(":").map(Number);
+        return hour <= 23 && minute <= 59 ? text : "";
     }
 
     const match = text.match(
@@ -66,23 +93,7 @@ const normalizeTime = (value) => {
 };
 
 const isAllowedDepartureTime = (value) => {
-    const normalized = normalizeTime(value);
-
-    if (!normalized) {
-        return false;
-    }
-
-    const [hourText, minuteText] = normalized.split(":");
-
-    const totalMinutes =
-        Number(hourText) * 60 +
-        Number(minuteText);
-
-    return (
-        totalMinutes >= 3 * 60 + 30 &&
-        totalMinutes <= 19 * 60 + 30 &&
-        totalMinutes % 30 === 0
-    );
+    return Boolean(normalizeTime(value));
 };
 
 const isAllowedArrivalTime = (value) => {
@@ -96,17 +107,7 @@ const isAllowedArrivalTime = (value) => {
         return false;
     }
 
-    const [hourText, minuteText] = normalized.split(":");
-
-    const totalMinutes =
-        Number(hourText) * 60 +
-        Number(minuteText);
-
-    return (
-        totalMinutes >= 4 * 60 &&
-        totalMinutes <= 20 * 60 &&
-        totalMinutes % 30 === 0
-    );
+    return Boolean(normalized);
 };
 
 const formatTime = (value) => {
@@ -181,11 +182,11 @@ const resetSchedulesForDate = async (req, res) => {
     }
 };
 const calculateScheduleCapacity = async (schedule, bookings) => {
-    const targetVessel = normalizeText(schedule.vesselName);
+    const targetVessel = normalizeText(canonicalVesselName(schedule.vesselName));
     const targetTime = normalizeTime(schedule.departureTime || schedule.time);
 
     const matchingBookings = bookings.filter((booking) => {
-        const bookingVessel = normalizeText(
+        const bookingVessel = normalizeText(canonicalVesselName(
             booking.vesselName ||
             booking.ferryName ||
             booking.vessel ||
@@ -195,7 +196,7 @@ const calculateScheduleCapacity = async (schedule, bookings) => {
             booking.selectedTrip?.vesselName ||
             booking.selectedTrip?.ferryName ||
             ""
-        );
+        ));
 
         const bookingTime = normalizeTime(
             booking.time ||
@@ -271,8 +272,8 @@ const calculateScheduleCapacity = async (schedule, bookings) => {
                         schedule.vesselName
                 },
                 {
-                    ferryName:
-                        schedule.vesselName
+                ferryName:
+                    { $in: vesselNamesFor(schedule.vesselName) }
                 }
             ],
 
@@ -294,10 +295,10 @@ const calculateScheduleCapacity = async (schedule, bookings) => {
             schedule._id.toString(),
 
         vesselName:
-            schedule.vesselName,
+            canonicalVesselName(schedule.vesselName),
 
         ferryName:
-            schedule.vesselName,
+            canonicalVesselName(schedule.vesselName),
 
         route:
             schedule.route,
@@ -387,6 +388,7 @@ const getSchedulesForDate = async (
         const schedules =
             await FerrySchedule.find({
                 date: requestedDate,
+                vesselName: { $in: [...ACTIVE_VESSELS, ...LEGACY_VESSELS] },
                 // Exclude legacy placeholder trips created by older versions.
                 isDefault: { $ne: true },
 
@@ -475,6 +477,9 @@ const createSchedule = async (
             walkInMotorcycleCapacity
         } = req.body || {};
 
+        const canonicalVessel = canonicalVesselName(vesselName);
+        if (!canonicalVessel) return res.status(400).json({ success: false, message: "Choose MV Halili, MV FastCraft or MV Felipe." });
+
         const normalizedDate =
             normalizeDate(date);
 
@@ -498,7 +503,7 @@ const createSchedule = async (
             return res.status(400).json({
                 success: false,
                 message:
-                    "Departure time must be between 3:30 AM and 7:30 PM in 30-minute increments."
+                    "Enter a valid departure time."
             });
         }
 
@@ -510,7 +515,7 @@ const createSchedule = async (
             return res.status(400).json({
                 success: false,
                 message:
-                    "Arrival time must be between 4:00 AM and 8:00 PM in 30-minute increments."
+                    "Enter a valid arrival time."
             });
         }
 
@@ -592,10 +597,7 @@ const createSchedule = async (
                 date:
                     normalizedDate,
 
-                vesselName:
-                    String(
-                        vesselName
-                    ).trim(),
+                vesselName: { $in: vesselNamesFor(canonicalVessel) },
 
                 departureTime:
                     normalizedDeparture
@@ -610,7 +612,7 @@ const createSchedule = async (
         }
 
         const schedule = await FerrySchedule.create({
-            vesselName: String(vesselName).trim(),
+            vesselName: canonicalVessel,
             route,
             date: normalizedDate,
             departureTime: normalizedDeparture,
@@ -680,7 +682,7 @@ const createSchedulesBulk = async (req, res) => {
         const validRoutes = ["Iloilo → Guimaras", "Guimaras → Iloilo"];
         const docs = [];
         for (const trip of trips) {
-            const vesselName = String(trip?.vesselName || "").trim();
+            const vesselName = canonicalVesselName(trip?.vesselName);
             const date = normalizeDate(trip?.date);
             const departureTime = normalizeTime(trip?.departureTime);
             const arrivalTime = normalizeTime(trip?.arrivalTime);
@@ -708,9 +710,9 @@ const createSchedulesBulk = async (req, res) => {
         }
 
         const dates = [...new Set(docs.map(trip => trip.date))];
-        const vesselNames = [...new Set(docs.map(trip => trip.vesselName))];
+        const vesselNames = [...new Set(docs.flatMap(trip => vesselNamesFor(trip.vesselName)))];
         const existing = await FerrySchedule.find({ date: { $in: dates }, vesselName: { $in: vesselNames } }).select("date vesselName departureTime").lean();
-        const keyFor = trip => `${trip.date}\u0000${trip.vesselName}\u0000${trip.departureTime}`;
+        const keyFor = trip => `${trip.date}\u0000${canonicalVesselName(trip.vesselName)}\u0000${trip.departureTime}`;
         const known = new Set(existing.map(keyFor));
         const fresh = docs.filter(trip => {
             const key = keyFor(trip);
@@ -754,6 +756,14 @@ const updateSchedule = async (
             });
         }
 
+        const originalSchedule = {
+            vesselName: schedule.vesselName,
+            route: schedule.route,
+            date: schedule.date,
+            departureTime: schedule.departureTime,
+            arrivalTime: schedule.arrivalTime || ""
+        };
+
         const {
             vesselName,
             route,
@@ -764,6 +774,9 @@ const updateSchedule = async (
             motorcycleCapacity,
             walkInMotorcycleCapacity
         } = req.body || {};
+
+        const canonicalVessel = canonicalVesselName(vesselName);
+        if (!canonicalVessel) return res.status(400).json({ success: false, message: "Choose MV Halili, MV FastCraft or MV Felipe." });
 
         const normalizedDate =
             normalizeDate(date);
@@ -788,7 +801,7 @@ const updateSchedule = async (
             return res.status(400).json({
                 success: false,
                 message:
-                    "Departure time must be between 3:30 AM and 7:30 PM in 30-minute increments."
+                    "Enter a valid departure time."
             });
         }
 
@@ -800,7 +813,7 @@ const updateSchedule = async (
             return res.status(400).json({
                 success: false,
                 message:
-                    "Arrival time must be between 4:00 AM and 8:00 PM in 30-minute increments."
+                    "Enter a valid arrival time."
             });
         }
 
@@ -878,10 +891,7 @@ const updateSchedule = async (
                 date:
                     normalizedDate,
 
-                vesselName:
-                    String(
-                        vesselName
-                    ).trim(),
+                vesselName: { $in: vesselNamesFor(canonicalVessel) },
 
                 departureTime:
                     normalizedDeparture,
@@ -900,9 +910,7 @@ const updateSchedule = async (
         }
 
         schedule.vesselName =
-            String(
-                vesselName
-            ).trim();
+            canonicalVessel;
 
         schedule.route =
             route;
@@ -951,11 +959,31 @@ schedule.active = true;
 
         await schedule.save();
 
+        const scheduleChanged =
+            canonicalVesselName(originalSchedule.vesselName) !== canonicalVessel ||
+            String(originalSchedule.route) !== String(route) ||
+            String(originalSchedule.date) !== String(normalizedDate) ||
+            String(originalSchedule.departureTime) !== String(normalizedDeparture) ||
+            String(originalSchedule.arrivalTime) !== String(normalizedArrival);
+        let notificationsCreated = 0;
+        if (scheduleChanged) {
+            try {
+                const isDelay = String(originalSchedule.departureTime || "") && normalizedDeparture > String(originalSchedule.departureTime);
+                const type = isDelay ? "trip_delayed" : "trip_rescheduled";
+                const title = isDelay ? "Trip departure delayed" : "Trip schedule updated";
+                const message = `${schedule.vesselName} · ${schedule.route} · ${schedule.date}. Departure: ${formatTime(normalizedDeparture)}${normalizedArrival ? `, arrival: ${formatTime(normalizedArrival)}` : ""}.`;
+                notificationsCreated = await notifySchedulePassengers(schedule, { type, title, message });
+            } catch (notificationError) {
+                console.error("Schedule passenger notification error:", notificationError);
+            }
+        }
+
         return res.status(200).json({
             success: true,
 
             message:
                 "Ferry schedule updated successfully.",
+            notificationsCreated,
 
             schedule
         });
@@ -981,7 +1009,7 @@ const deleteSchedule = async (
     try {
         const schedule =
             await FerrySchedule.findOneAndUpdate(
-                { _id: req.params.id },
+                { _id: req.params.id, active: { $ne: false } },
                 { $set: { active: false } },
                 { new: true }
             );
@@ -994,13 +1022,25 @@ const deleteSchedule = async (
             });
         }
 
+        let notificationsCreated = 0;
+        try {
+            notificationsCreated = await notifySchedulePassengers(schedule, {
+                type: "trip_cancelled",
+                title: "Trip cancelled",
+                message: `${schedule.vesselName} · ${schedule.route} · ${schedule.date}, departing ${formatTime(schedule.departureTime)}, has been cancelled. Please contact the terminal for assistance.`
+            });
+        } catch (notificationError) {
+            console.error("Trip cancellation notification error:", notificationError);
+        }
+
         // Deactivate defaults and admin-created trips alike. Keep the record
         // for existing bookings, but remove it from schedule availability.
 
         return res.status(200).json({
             success: true,
             message:
-                "Ferry schedule deleted successfully."
+                "Ferry schedule deleted successfully.",
+            notificationsCreated
         });
 
     } catch (error) {

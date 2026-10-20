@@ -1,9 +1,9 @@
 import { createId } from "../../utils/createId.js";
 
-export const VESSELS = ["MV Halili", "MV FastCraft", "MV Felipe", "Felipe III", "Lite Ferry 22"];
+export const VESSELS = ["MV Halili", "MV FastCraft", "MV Felipe"];
 export const DEFAULT_PRICES = Object.freeze({ solo: 35, motorcycle: 285, smallBikeStamp: 5, bigBike: 353, bigBikeStamp: 7, companion: 70, student: 20, pwd: 20, senior: 20, ppa: 65 });
 const round = value => Math.round((value + Number.EPSILON) * 100) / 100;
-export const passengerIdentity = person => JSON.stringify([person.id, person.name?.trim(), Number(person.age), person.gender, person.category]);
+export const passengerIdentity = person => JSON.stringify([person.id, person.name?.trim(), Number(person.age), person.gender, Number(person.age) >= 60 ? "Senior" : person.category]);
 export const discountCategory = person => Number(person.age) >= 60 ? "Senior" : ["Student", "PWD"].includes(person.category) ? person.category : "Regular";
 export function pricingIssue(prices) {
     if (Object.values(prices).some(value => value == null || value === "" || !Number.isFinite(Number(value)))) return "Enter valid amounts and percentages.";

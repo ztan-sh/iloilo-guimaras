@@ -17,7 +17,11 @@ export function AdminField({ label, icon, children, options, id: suppliedId, ...
     const id = suppliedId || generatedId;
     return <div className="staff-field"><label htmlFor={id}>{label}</label><div className="staff-input-wrap">
         {icon && <span className="staff-input-icon"><AdminIcon name={icon} /></span>}
-        {options ? <select id={id} {...props}>{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input id={id} {...props} />}
+        {options ? <select id={id} {...props}>{options.map(option => {
+            const value = typeof option === "string" ? option : option.value;
+            const label = typeof option === "string" ? option : option.label;
+            return <option key={value} value={value}>{label}</option>;
+        })}</select> : <input id={id} {...props} />}
         {children}
     </div></div>;
 }

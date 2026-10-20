@@ -23,9 +23,9 @@ export default function StaffLogin() {
         try {
             if (preview) { navigate(`${basePath}/overview`, { replace: true }); return; }
             const { data } = await api.post("/staff-auth/login", { email: email.trim(), password });
-            if (!data.token) throw new Error("The sign-in response did not include a session. Please retry.");
             localStorage.removeItem("staffToken");
-            sessionStorage.setItem("staffToken", data.token);
+            sessionStorage.removeItem("staffToken");
+            localStorage.removeItem("staffToken");
             if (data.staff) localStorage.setItem("staff", JSON.stringify(data.staff));
             navigate(`${basePath}/overview`, { replace: true });
         } catch (err) {

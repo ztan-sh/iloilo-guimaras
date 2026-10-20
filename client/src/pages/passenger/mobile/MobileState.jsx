@@ -1,11 +1,14 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { operationsStore } from '../../../components/operations/operationsStore';
+import { operationsStore, passengerIdentity } from '../../../components/operations/operationsStore';
 import { useOperations } from '../../../components/operations/useOperations';
 import {
     accountPerson,
+    canonicalVesselName,
     clientEvents,
+    normalizeSchedule,
     previewSchedules,
     sampleClientBookings,
     todayInManila
@@ -102,11 +105,12 @@ const normalizeApiBase = value => {
     return /\/api$/i.test(trimmed) ? trimmed : `${trimmed}/api`;
 };
 
-const API = normalizeApiBase(
-    import.meta.env.DEV
-        ? (import.meta.env.VITE_LOCAL_API_BASE_URL || 'http://localhost:5000/api')
-        : (import.meta.env.VITE_API_BASE_URL || 'https://iloilo-guimaras.onrender.com/api')
-);
+const configuredProductionApi = import.meta.env.VITE_API_BASE_URL || '';
+const API = normalizeApiBase(import.meta.env.DEV
+    ? (import.meta.env.VITE_LOCAL_API_BASE_URL || 'http://localhost:5000/api')
+    : (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(configuredProductionApi)
+        ? 'https://iloilo-guimaras.onrender.com/api'
+        : configuredProductionApi || 'https://iloilo-guimaras.onrender.com/api'));
 
 const readJSON = (storage, key, fallback = null) => {
     try {
@@ -135,6 +139,8 @@ const testBuild =
 const token = () =>
     sessionStorage.getItem('token') ||
     localStorage.getItem('token');
+const hasPassengerSession = () => Boolean(token() || sessionStorage.getItem('ggo-cookie-session'));
+const nativeClient = Capacitor.isNativePlatform();
 
 export default function MobileApp({ preview = false }) {
     const location = useLocation();
@@ -190,6 +196,8 @@ export default function MobileApp({ preview = false }) {
 
     const [bookings, setBookings] = useState([]);
     const [schedules, setSchedules] = useState([]);
+    const [discountRequests, setDiscountRequests] = useState([]);
+    const [serverNotifications, setServerNotifications] = useState([]);
 
     const [date, setDate] = useState(todayInManila);
     const [vessel, setVessel] = useState('MV Halili');
@@ -335,8 +343,10 @@ export default function MobileApp({ preview = false }) {
                     : { 'Content-Type': 'application/json' }),
                 ...(token()
                     ? { Authorization: `Bearer ${token()}` }
-                    : {})
+                    : {}),
+                ...(nativeClient ? { 'X-Client-Platform': 'native' } : {})
             },
+            credentials: 'include',
             ...(body
                 ? {
                       body:
@@ -397,7 +407,7 @@ export default function MobileApp({ preview = false }) {
     }, [preview]);
 
     useEffect(() => {
-        if (preview || !token() || publicPage) return;
+        if (preview || !hasPassengerSession() || publicPage) return;
 
         const controller = new AbortController();
 
@@ -413,7 +423,9 @@ export default function MobileApp({ preview = false }) {
 
                 // Keep the authenticated server copy (including the saved photo)
                 // in both React state and browser storage after refresh.
-                saveUser({ ...value, ...personal });
+                // The saved server profile is authoritative; device values only
+                // fill fields that older accounts have not stored yet.
+                saveUser({ ...personal, ...value });
             })
             .catch(e => {
                 if (e.name !== 'AbortError') {
@@ -435,7 +447,7 @@ export default function MobileApp({ preview = false }) {
      * - { data: { schedules: [...] } }
      */
     useEffect(() => {
-        if (preview || publicPage || !token()) {
+        if (preview || publicPage || !hasPassengerSession()) {
             setLoading(false);
             return;
         }
@@ -464,7 +476,10 @@ export default function MobileApp({ preview = false }) {
                             : Array.isArray(bookingResponse.data?.bookings)
                                 ? bookingResponse.data.bookings
                                 : [];
-                setBookings(bookingData);
+                setBookings(bookingData.map(booking => {
+                    const vesselName = canonicalVesselName(booking.vesselName || booking.ferryName);
+                    return { ...booking, vesselName, ferryName: vesselName };
+                }));
             });
 
             const scheduleTask = request(
@@ -485,13 +500,25 @@ export default function MobileApp({ preview = false }) {
                                     : Array.isArray(scheduleResponse.data?.capacities)
                                         ? scheduleResponse.data.capacities
                                         : [];
-                setSchedules(scheduleData);
+                const normalizedSchedules = scheduleData.map(normalizeSchedule);
+                setSchedules(normalizedSchedules);
+                setVessel(current => normalizedSchedules.some(item => item.vesselName === current)
+                    ? current
+                    : normalizedSchedules[0]?.vesselName || current);
                 setLoading(false);
                 if (loadingTimer) window.clearTimeout(loadingTimer);
                 setError(current => current.startsWith('The ferry service is taking longer') ? '' : current);
             });
 
-            const results = await Promise.allSettled([bookingTask, scheduleTask]);
+            const discountTask = request('/auth/discount-requests', { signal: controller.signal }).then(result => {
+                if (controller.signal.aborted) return;
+                setDiscountRequests((result.requests || []).map(item => {
+                    const passenger = { id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category };
+                    return { id: item._id, passenger, identity: passengerIdentity(passenger), photo: item.photo, status: item.status, reason: item.reason || '', source: item.source || '', requestId: item._id };
+                }));
+            });
+
+            const results = await Promise.allSettled([bookingTask, scheduleTask, discountTask]);
             if (controller.signal.aborted) return;
             const failed = results.find(result => result.status === 'rejected');
             if (failed && failed.reason?.name !== 'AbortError') {
@@ -512,14 +539,82 @@ export default function MobileApp({ preview = false }) {
     }, [preview, date, publicPage, user.id, user._id]);
 
     useEffect(() => {
-        if (preview || publicPage || !token() || !['dashboard', 'schedule'].includes(path)) return;
+        if (preview || publicPage || !hasPassengerSession()) return;
+        let active = true;
+        const loadNotifications = async () => {
+            try {
+                const result = await request('/notifications');
+                if (active) setServerNotifications((result.notifications || []).map(item => ({
+                    id: String(item._id), bookingId: item.bookingId ? String(item.bookingId) : '',
+                    bookingReference: item.bookingReference || '', type: item.type || 'booking_update',
+                    title: item.title, detail: item.message, time: item.createdAt,
+                    serverRead: Boolean(item.isRead), requestId: item.type === 'discount' ? item.bookingId : ''
+                })));
+            } catch {
+                // Continue to show local booking status if notification loading is unavailable.
+            }
+        };
+        loadNotifications();
+        const timer = window.setInterval(loadNotifications, 20000);
+        return () => { active = false; window.clearInterval(timer); };
+    }, [preview, publicPage, user.id, user._id]);
+
+    // A payment can be verified while the passenger app is already open.
+    // Refresh the persisted ticket when its boarding pass is opened so the
+    // queue number assigned by the server is not hidden by stale app state.
+    useEffect(() => {
+        const reference = new URLSearchParams(location.search).get('reference');
+        if (preview || publicPage || !hasPassengerSession() || path !== 'boarding-pass' || !reference) return;
+
+        const controller = new AbortController();
+        let attempts = 0;
+        let timer;
+        const refreshTicket = async () => {
+            try {
+                const result = await request(`/bookings/reference/${encodeURIComponent(reference)}`, { signal: controller.signal });
+                if (controller.signal.aborted || !result.booking) return;
+                setBookings(current => current.map(booking => {
+                    if (booking.bookingReference !== reference) return booking;
+                    const latest = { ...booking, ...result.booking };
+                    const vesselName = canonicalVesselName(latest.vesselName || latest.ferryName);
+                    return { ...latest, vesselName, ferryName: vesselName };
+                }));
+                if (result.booking.queueNumber && timer) window.clearInterval(timer);
+            } catch (refreshError) {
+                if (refreshError.name !== 'AbortError') console.warn('Unable to refresh boarding pass details:', refreshError);
+            }
+        };
+
+        refreshTicket();
+        timer = window.setInterval(() => {
+            attempts += 1;
+            if (attempts >= 12) {
+                window.clearInterval(timer);
+                return;
+            }
+            refreshTicket();
+        }, 5000);
+        return () => {
+            controller.abort();
+            if (timer) window.clearInterval(timer);
+        };
+    }, [preview, publicPage, path, location.search]);
+
+    useEffect(() => {
+        if (preview || publicPage || !hasPassengerSession() || !['dashboard', 'schedule'].includes(path)) return;
         const refreshSchedules = async () => {
             try {
                 const response = await request(`/bookings/schedules/available?date=${encodeURIComponent(date)}`);
                 const rows = Array.isArray(response)
                     ? response
                     : response.schedules || response.capacities || response.data?.schedules || response.data?.capacities || [];
-                if (Array.isArray(rows)) setSchedules(rows);
+                if (Array.isArray(rows)) {
+                    const normalizedSchedules = rows.map(normalizeSchedule);
+                    setSchedules(normalizedSchedules);
+                    setVessel(current => normalizedSchedules.some(item => item.vesselName === current)
+                        ? current
+                        : normalizedSchedules[0]?.vesselName || current);
+                }
             } catch {
                 // Keep the last good list visible if a background refresh is interrupted.
             }
@@ -532,14 +627,16 @@ export default function MobileApp({ preview = false }) {
         ? operations.bookings.filter(b => b.userId === user.id)
         : bookings;
 
+    const activeOperations = preview ? operations : { ...operations, requests: discountRequests };
+
     const events = preview
         ? clientEvents(
               operations.bookings,
-              operations.requests,
+              activeOperations.requests,
               operations.events,
               user.id
           )
-        : ownBookings.map(b => ({
+        : [...serverNotifications, ...ownBookings.map(b => ({
               id: `${b._id}:${b.paymentStatus}`,
               bookingId: b._id,
               type: 'booking',
@@ -551,7 +648,7 @@ export default function MobileApp({ preview = false }) {
                           : 'Payment verification underway',
               detail: `${b.origin} → ${b.destination} · ${b.bookingReference}`,
               time: b.updatedAt || b.createdAt
-          }));
+          }))].sort((a, b) => new Date(b.time || 0) - new Date(a.time || 0));
 
     const markRead = ids => {
         const next = [...new Set([...read, ...ids])];
@@ -565,15 +662,22 @@ export default function MobileApp({ preview = false }) {
                 `ggo-read:${user.id || user._id}`,
                 JSON.stringify(next)
             );
+            ids.filter(id => /^[a-f\d]{24}$/i.test(String(id))).forEach(id => {
+                request(`/notifications/${encodeURIComponent(id)}/read`, { method: 'PATCH' }).then(() => {
+                    setServerNotifications(current => current.map(item => item.id === id ? { ...item, serverRead: true } : item));
+                }).catch(() => {});
+            });
         }
     };
 
     const logout = () => {
         if (!preview) {
+            request('/auth/logout', { method: 'POST' }).catch(() => {});
             for (const storage of [localStorage, sessionStorage]) {
                 storage.removeItem('token');
                 storage.removeItem('user');
             }
+            sessionStorage.removeItem('ggo-cookie-session');
 
             setUser({});
             setBookings([]);
@@ -633,7 +737,8 @@ export default function MobileApp({ preview = false }) {
         setReverse,
         href,
         go,
-        operations,
+        operations: activeOperations,
+        setDiscountRequests,
         request,
         run,
         error,
@@ -665,7 +770,7 @@ export default function MobileApp({ preview = false }) {
         openGuide: () => setGuideOpen(true)
     };
 
-    if (!preview && !publicPage && !token()) {
+    if (!preview && !publicPage && !hasPassengerSession()) {
         return <Navigate to="/login" replace />;
     }
 

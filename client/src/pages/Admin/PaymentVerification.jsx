@@ -4,8 +4,54 @@ import "./PaymentVerification.css";
 
 // Accept either an API origin or a base URL ending in /api. This component
 // appends /api to its requests, so normalize to the server origin here.
-const configuredApi = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+const configuredApiBase = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || "";
+const configuredApi = import.meta.env.PROD && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(configuredApiBase)
+    ? "https://iloilo-guimaras.onrender.com/api"
+    : configuredApiBase || "https://iloilo-guimaras.onrender.com/api";
 const API_BASE_URL = configuredApi.replace(/\/+$/, "").replace(/\/api$/i, "");
+
+const SecureReceipt = ({ url, token }) => {
+    const [imageUrl, setImageUrl] = useState("");
+    const [failed, setFailed] = useState(false);
+
+    useEffect(() => {
+        if (!url) return undefined;
+        if (url.startsWith("data:image/")) {
+            setImageUrl(url);
+            return undefined;
+        }
+        let objectUrl = "";
+        let cancelled = false;
+        fetch(url, { credentials: "include", cache: "no-store" })
+            .then(response => {
+                if (!response.ok) throw new Error("Receipt is unavailable.");
+                const type = response.headers.get("content-type") || "";
+                if (!/^image\/(png|jpeg)$/i.test(type)) throw new Error("Invalid receipt image.");
+                return response.blob();
+            })
+            .then(blob => {
+                if (cancelled) return;
+                objectUrl = URL.createObjectURL(blob);
+                setImageUrl(objectUrl);
+                setFailed(false);
+            })
+            .catch(() => { if (!cancelled) setFailed(true); });
+        return () => {
+            cancelled = true;
+            if (objectUrl) URL.revokeObjectURL(objectUrl);
+        };
+    }, [url, token]);
+
+    if (failed) return <div className="no-proof">Receipt image unavailable. Refresh the payment list and try again.</div>;
+    if (!imageUrl) return <div className="no-proof">Loading secure receipt…</div>;
+    return <div className="proof-wrapper">
+        <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="proof-image-link" title="Open payment receipt">
+            <img src={imageUrl} alt="Customer payment receipt" className="proof-image" />
+            <div className="proof-overlay"><span>View Receipt</span></div>
+        </a>
+        <a href={imageUrl} target="_blank" rel="noopener noreferrer" className="receipt-link">Open full receipt →</a>
+    </div>;
+};
 
 const PaymentVerification = ({ onPendingCountChange }) => {
     const [payments, setPayments] = useState([]);
@@ -20,7 +66,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
     const [confirmAction, setConfirmAction] = useState(null);
     const [processing, setProcessing] = useState(false);
 
-    const token = localStorage.getItem("adminToken");
+    const token = localStorage.getItem("adminToken") || localStorage.getItem("adminData") || "cookie-session";
 
     /* =========================================================
        HELPER: GET PAYMENT / BOOKING ID
@@ -81,14 +127,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
     }
 
     // Complete URL
-    if (
-        url.startsWith("http://") ||
-        url.startsWith("https://") ||
-        url.startsWith("data:image/")
-    ) {
-
-        return url;
-    }
+    if (url.startsWith("data:image/")) return url;
 
     // Convert Windows path
     url =
@@ -97,53 +136,9 @@ const PaymentVerification = ({ onPendingCountChange }) => {
             "/"
         );
 
-    // Remove Vite address if accidentally stored
-    url =
-        url.replace(
-            /^https?:\/\/localhost:5173/i,
-            ""
-        );
-
-    // Remove server/uploads prefix
-    url =
-        url.replace(
-            /^\/?server\/uploads\//i,
-            "/uploads/"
-        );
-
-    // uploads/payment-proofs/...
-    if (
-        url.startsWith(
-            "uploads/"
-        )
-    ) {
-
-        url =
-            "/" + url;
-    }
-
-    // payment-proofs/...
-    else if (
-        url.startsWith(
-            "payment-proofs/"
-        )
-    ) {
-
-        url =
-            "/uploads/" + url;
-    }
-
-    // Just filename
-    else if (
-        !url.startsWith("/")
-    ) {
-
-        url =
-            "/uploads/payment-proofs/" +
-            url;
-    }
-
-    return `${API_BASE_URL}${url.startsWith("/") ? url : `/${url}`}`;
+    const filename = url.split(/[?#]/, 1)[0].split("/").pop();
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,180}\.(?:jpg|jpeg|png)$/i.test(filename || "")) return null;
+    return `${API_BASE_URL}/api/payment/proof/${encodeURIComponent(filename)}`;
 };
 
     /* =========================================================
@@ -239,6 +234,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
             `${API_BASE_URL}/api/bookings/pending-payments`,
             {
                 method: "GET",
+                credentials: "include",
 
                 headers: {
                     Authorization:
@@ -434,6 +430,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                 endpoint,
                 {
                     method: "PUT",
+                    credentials: "include",
                     headers: {
                         Authorization:
                             `Bearer ${currentToken}`,
@@ -1087,80 +1084,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                                         </div>
 
                                         {proofUrl ? (
-                                            <div className="proof-wrapper">
-
-                                                <a
-                                                    href={proofUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="proof-image-link"
-                                                    title="Open payment receipt"
-                                                >
-
-                                                    <img
-                                                        src={proofUrl}
-                                                        alt="Customer payment receipt"
-                                                        className="proof-image"
-                                                        onError={(
-                                                            event
-                                                        ) => {
-                                                            event.currentTarget.style.display =
-                                                                "none";
-
-                                                            const wrapper =
-                                                                event.currentTarget.closest(
-                                                                    ".proof-image-link"
-                                                                );
-
-                                                            if (
-                                                                wrapper &&
-                                                                !wrapper.querySelector(
-                                                                    ".proof-error"
-                                                                )
-                                                            ) {
-                                                                const errorBox =
-                                                                    document.createElement(
-                                                                        "div"
-                                                                    );
-
-                                                                errorBox.className =
-                                                                    "proof-error";
-
-                                                                errorBox.innerHTML =
-                                                                    `
-                                                                    <strong>
-                                                                        Receipt image unavailable
-                                                                    </strong>
-                                                                    <span>
-                                                                        Check that the backend serves the /uploads folder.
-                                                                    </span>
-                                                                    `;
-
-                                                                wrapper.appendChild(
-                                                                    errorBox
-                                                                );
-                                                            }
-                                                        }}
-                                                    />
-
-                                                    <div className="proof-overlay">
-                                                        <span>
-                                                            View Receipt
-                                                        </span>
-                                                    </div>
-
-                                                </a>
-
-                                                <a
-                                                    href={proofUrl}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="receipt-link"
-                                                >
-                                                    Open full receipt →
-                                                </a>
-
-                                            </div>
+                                            <SecureReceipt url={proofUrl} token={token} />
                                         ) : (
                                             <div className="no-proof">
 

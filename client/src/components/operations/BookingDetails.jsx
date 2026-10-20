@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { StaffButton, StaffDialog, StaffNotice, StaffStatus } from "../staff/StaffUI";
 import { OperationsPanel } from "./OperationsUI";
@@ -9,7 +9,7 @@ import { boardingIssue, hasMotorcycle, money, passengerCount } from "../../pages
 export function bookingPassengers(booking) {
     return Array.from({ length: passengerCount(booking) }, (_, index) => {
         const details = booking.passengerDetails?.[index] || {};
-        return { ...details, id: details.id || `${booking._id}-passenger-${index}`, name: details.name || (index ? booking.accompanyingPassengers?.[index - 1]?.name || booking.accompanyingPassengers?.[index - 1] : booking.passengerName) || `Passenger ${index + 1}`, age: details.age ?? (index === 0 ? booking.passengerAge : undefined), gender: details.gender || (index === 0 ? booking.passengerGender : ""), category: details.category || "", savedProfile: details.savedProfile || false };
+        return { ...details, id: details.passengerId || details.id || `${booking._id}-passenger-${index}`, name: details.name || (index ? booking.accompanyingPassengers?.[index - 1]?.name || booking.accompanyingPassengers?.[index - 1] : booking.passengerName) || `Passenger ${index + 1}`, age: details.age ?? (index === 0 ? booking.passengerAge : undefined), gender: details.gender || (index === 0 ? booking.passengerGender : ""), category: details.category || "", savedProfile: details.savedProfile || false };
     });
 }
 export default function BookingDetails({ role, preview, basePath, bookings, trip, api, onRefresh, onSelectRelatedTrip }) {
@@ -21,6 +21,27 @@ export default function BookingDetails({ role, preview, basePath, bookings, trip
     const [busy, setBusy] = useState(false);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
+    const [liveRequests, setLiveRequests] = useState([]);
+    useEffect(() => {
+        if (preview || !api) return;
+        let active = true;
+        api.get(role === "staff" ? "/staff/discount-requests" : "/admin/discount-requests")
+            .then(({ data }) => {
+                if (active) setLiveRequests((data.requests || []).map(item => ({
+                    id: item._id,
+                    requestId: item._id,
+                    passengerId: item.passengerId,
+                    passenger: { id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category },
+                    identity: passengerIdentity({ id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category }),
+                    photo: item.photo,
+                    status: item.status,
+                    reason: item.reason || "",
+                    source: item.source || ""
+                })));
+            })
+            .catch(() => { if (active) setLiveRequests([]); });
+        return () => { active = false; };
+    }, [api, preview, role]);
     const issue = booking ? boardingIssue(booking, trip) : null;
     const board = async () => {
         if (busy || issue) return;
@@ -33,14 +54,14 @@ export default function BookingDetails({ role, preview, basePath, bookings, trip
     const passengers = bookingPassengers(booking);
     const paid = booking.paymentStatus === "VERIFIED" && booking.status === "CONFIRMED";
     const review = person => {
-        const request = ops.requests.findLast(item => item.identity === passengerIdentity(person));
+        const request = (preview ? ops.requests : liveRequests).findLast(item => item.id === person.discountRequestId || item.passengerId === person.id || item.identity === passengerIdentity(person));
         navigate(`${basePath}/discounts${request ? `?request=${encodeURIComponent(request.id)}` : ""}`);
     };
     return <>
         <label className="staff-field operations-booking-picker">Booking record<select value={booking._id} onChange={e => { setParams({ booking: e.target.value }); setMessage(""); setError(""); }}>{bookings.map(item => <option key={item._id} value={item._id}>{item.bookingReference} · {item.passengerName}</option>)}</select></label>
         <div className="operations-booking-summary"><div><strong>{booking.vesselName || booking.ferryName || "Vessel not recorded"}</strong><p>{booking.origin} → {booking.destination} · {booking.date} · {booking.time}</p></div><div><strong>{hasMotorcycle(booking) ? "With motorcycle" : "No motorcycle"} · {passengers.length} {passengers.length === 1 ? "passenger" : "passengers"}</strong><p>Maximum {hasMotorcycle(booking) ? 3 : 10} passengers</p></div><div><strong>{money(booking.totalPaid ?? booking.requiredAmount)}</strong><p>{paid ? "Payment confirmed" : `Payment ${booking.paymentStatus || "not confirmed"}`}</p></div></div>
         <section className="operations-passenger-list" aria-label="Booking passengers">{passengers.map((person, index) => {
-            const request = ops.requests.findLast(item => item.identity === passengerIdentity(person));
+            const request = (preview ? ops.requests : liveRequests).findLast(item => item.id === person.discountRequestId || item.passengerId === person.id || item.identity === passengerIdentity(person));
             const category = !person.category && !(Number(person.age) >= 60) ? "Category not recorded" : discountCategory(person);
             return <div className="operations-passenger-row" key={person.id}><div><strong>{person.name}</strong><p>{person.age !== undefined ? `Age ${person.age}` : "Age not recorded"} · {person.gender || "Gender not recorded"}{person.savedProfile ? " · Saved account profile" : ""}</p></div><div><strong>{category}</strong><p>{index === 0 && person.savedProfile ? "Saved from account registration" : "Individual passenger details"}</p></div><div><strong>{request ? request.status === "approved" ? "ID approved" : request.status === "requested" ? "New photo requested" : "Pending staff review" : "Not requested"}</strong><p>{request?.photo ? "ID photo submitted" : "No ID photo"}</p></div>{role === "staff" && <StaffButton variant="secondary" disabled={!preview || category === "Regular"} onClick={() => review(person)}>Review ID</StaffButton>}</div>;
         })}</section>

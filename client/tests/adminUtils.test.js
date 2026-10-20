@@ -27,3 +27,9 @@ test("system records use available timestamps without inventing schedule history
     const events = deriveEvents([{ ...base, paidAt: "2026-10-11T00:12:00Z", boardedAt: "2026-10-11T01:02:00Z", boardedByName: "Test staff" }], [trip]);
     assert.deepEqual(events.map(event => [event.event, event.actor, event.result]), [["Boarding recorded", "Test staff", "Boarded"], ["Payment confirmed", "Payment record", "Paid"]]);
 });
+
+test("legacy Felipe III schedules display as the supported MV Felipe vessel", () => {
+    const legacy = normalizeTrip({ id: "legacy", vesselName: "MV Felipe III", departureTime: "04:00 AM" });
+    assert.equal(legacy.vesselName, "MV Felipe");
+    assert.equal(legacy.ferryName, "MV Felipe");
+});

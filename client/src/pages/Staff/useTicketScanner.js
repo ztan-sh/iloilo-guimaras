@@ -38,7 +38,9 @@ export default function useTicketScanner(onDecoded) {
         const current = {
             scanner: new Html5Qrcode("staff-qr-reader", {
                 formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-                useBarCodeDetectorIfSupported: true
+                // Prefer the bundled decoder: native BarcodeDetector behavior
+                // varies between browsers and can miss screen-displayed codes.
+                useBarCodeDetectorIfSupported: false
             }),
             cancelled: false,
             decoded: false
@@ -46,17 +48,21 @@ export default function useTicketScanner(onDecoded) {
         resource.current = current;
         try {
             current.started = current.scanner.start({ facingMode: "environment" }, {
-                fps: 30,
+                fps: 20,
                 videoConstraints: {
                     facingMode: { ideal: "environment" },
                     width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    height: { ideal: 1080 },
+                    frameRate: { ideal: 30, max: 30 }
                 },
                 qrbox: (width, height) => {
-                    // Leave room for the QR code quiet zone, even when it nearly fills the guide.
-                    // Cropping that border can prevent decoding.
-                    const size = Math.floor(Math.min(width, height) * 0.98);
-                    return { width: size, height: size };
+                    // Use nearly the full camera frame so the code can be
+                    // recognized even when staff cannot center it precisely.
+                    // Retain a small border for the QR quiet zone.
+                    return {
+                        width: Math.floor(width * 0.96),
+                        height: Math.floor(height * 0.96)
+                    };
                 }
             }, decoded => {
                 if (current.cancelled || current.decoded) return;
@@ -69,7 +75,16 @@ export default function useTicketScanner(onDecoded) {
             setStarting(false);
             try {
                 const capabilities = current.scanner.getRunningTrackCapabilities();
-                if (capabilities?.focusMode?.includes("continuous")) await current.scanner.applyVideoConstraints({ focusMode: "continuous" });
+                const advanced = {};
+                for (const mode of ["focusMode", "exposureMode", "whiteBalanceMode"]) {
+                    if (capabilities?.[mode]?.includes("continuous")) advanced[mode] = "continuous";
+                }
+                // Modest optical zoom helps fill the frame with a ticket QR on
+                // cameras that support it, without forcing unsupported settings.
+                if (capabilities?.zoom && capabilities.zoom.max >= 1.25 && capabilities.zoom.min <= 1.25) advanced.zoom = 1.25;
+                if (Object.keys(advanced).length) {
+                    await current.scanner.applyVideoConstraints({ advanced: [advanced] });
+                }
             } catch { /* Continuous focus is optional on supported cameras. */ }
         } catch (error) {
             if (resource.current === current) resource.current = null;

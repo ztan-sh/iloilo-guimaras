@@ -2,6 +2,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const Staff = require("../models/Staff");
 const { recordActivity } = require("../utils/activityAudit");
+const { issueSession } = require("../utils/authSession");
 
 
 // =========================================================
@@ -147,7 +148,7 @@ const loginStaff = async (req, res) => {
             message:
                 "Staff login successful.",
 
-            token,
+            ...issueSession(req, res, token, "staff"),
 
             staff: {
 

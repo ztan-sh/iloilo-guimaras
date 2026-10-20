@@ -15,8 +15,12 @@ export function AdminState({ children }) {
     const [notice, setNotice] = useState("");
     const [data, setData] = useState({ schedules: [], bookings: [], events: [], admin: null, loading: true, error: "" });
     useEffect(() => {
+        const timer = setInterval(() => setVersion(current => current + 1), 10000);
+        return () => clearInterval(timer);
+    }, []);
+    useEffect(() => {
         const controller = new AbortController();
-        setData(current => ({ ...current, loading: true, error: "" }));
+        setData(current => ({ ...current, loading: current.loading, error: "" }));
         const config = { signal: controller.signal };
         Promise.all([
             flow.api.get("/bookings/schedules", { ...config, params: { date } }),

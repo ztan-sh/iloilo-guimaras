@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 
 
 const Confirmation = () => {
@@ -18,6 +19,7 @@ const Confirmation = () => {
 
     const [booking, setBooking] =
         useState(null);
+    const [qrCodeUrl, setQrCodeUrl] = useState("");
 
 
     /*
@@ -31,6 +33,24 @@ const Confirmation = () => {
         loadBooking();
 
     }, []);
+
+    useEffect(() => {
+        if (!booking?.bookingReference) {
+            setQrCodeUrl("");
+            return undefined;
+        }
+        let active = true;
+        QRCode.toDataURL(booking.bookingReference, {
+            width: 600,
+            margin: 4,
+            errorCorrectionLevel: "H"
+        }).then(url => {
+            if (active) setQrCodeUrl(url);
+        }).catch(() => {
+            if (active) setQrCodeUrl("");
+        });
+        return () => { active = false; };
+    }, [booking?.bookingReference]);
 
 
     /*
@@ -753,60 +773,6 @@ const Confirmation = () => {
      * This now uses the REAL passenger name instead of
      * "Guest Passenger".
      */
-
-    const qrData = booking
-        ? `
-GUIMARASGO BOARDING PASS
-
-Booking Reference:
-${booking.bookingReference}
-
-Passenger:
-${booking.passengerName || "N/A"}
-
-Age:
-${booking.passengerAge || "N/A"}
-
-Gender:
-${booking.passengerGender || "N/A"}
-
-Passengers:
-${passengers}
-
-Route:
-${booking.origin} Port to ${booking.destination} Port
-
-Date:
-${formatDate(booking.date)}
-
-Departure:
-${formatTime(booking.time)}
-
-Vehicle:
-${vehicleType}
-
-Plate Number:
-${plateNumber}
-
-Status:
-${booking.status || "CONFIRMED"}
-        `.trim()
-        : "";
-
-
-    /*
-     * =========================================================
-     * QR CODE URL
-     * =========================================================
-     */
-
-    const qrCodeUrl =
-        booking
-            ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
-                qrData
-            )}`
-            : "";
-
 
     /*
      * =========================================================
@@ -2418,6 +2384,11 @@ ${booking.status || "CONFIRMED"}
                             Show this QR code
                             at boarding
                         </p>
+
+                        <div className="boarding-queue-number">
+                            <small>Queue number</small>
+                            <strong>{booking.queueNumber || "Assigned after payment confirmation"}</strong>
+                        </div>
 
 
                         <div

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "./StaffManagement.css";
 
-const API_URL = "http://localhost:5000/api";
+const API_URL = "https://iloilo-guimaras.onrender.com/api";
 
 const StaffManagement = () => {
 
@@ -76,8 +76,7 @@ const StaffManagement = () => {
 
     const loadStaff = async () => {
 
-        const token =
-            localStorage.getItem("adminToken");
+        const token = localStorage.getItem("adminToken") || localStorage.getItem("adminData") || "cookie-session";
 
         if (!token) {
             return;
@@ -92,6 +91,7 @@ const StaffManagement = () => {
                     `${API_URL}/admin/staff`,
                     {
                         method: "GET",
+                        credentials: "include",
 
                         headers: {
                             Authorization:
@@ -174,8 +174,7 @@ const StaffManagement = () => {
 
         event.preventDefault();
 
-        const token =
-            localStorage.getItem("adminToken");
+        const token = localStorage.getItem("adminToken") || localStorage.getItem("adminData") || "cookie-session";
 
         if (!token) {
             showNotification(
@@ -234,6 +233,7 @@ const StaffManagement = () => {
                     `${API_URL}/admin/staff`,
                     {
                         method: "POST",
+                        credentials: "include",
 
                         headers: {
                             Authorization:
@@ -320,8 +320,7 @@ const StaffManagement = () => {
 
     const handleActivate = async (staffId) => {
 
-        const token =
-            localStorage.getItem("adminToken");
+        const token = localStorage.getItem("adminToken") || localStorage.getItem("adminData") || "cookie-session";
 
         if (!token) {
             return;
@@ -336,6 +335,7 @@ const StaffManagement = () => {
                     `${API_URL}/admin/staff/${staffId}/activate`,
                     {
                         method: "PUT",
+                        credentials: "include",
 
                         headers: {
                             Authorization:
@@ -390,8 +390,7 @@ const StaffManagement = () => {
 
     const handleDeactivate = async (staffId) => {
 
-        const token =
-            localStorage.getItem("adminToken");
+        const token = localStorage.getItem("adminToken") || localStorage.getItem("adminData") || "cookie-session";
 
         if (!token) {
             return;
@@ -406,6 +405,7 @@ const StaffManagement = () => {
                     `${API_URL}/admin/staff/${staffId}/deactivate`,
                     {
                         method: "PUT",
+                        credentials: "include",
 
                         headers: {
                             Authorization:
@@ -460,8 +460,7 @@ const StaffManagement = () => {
 
     const handleDelete = async (staffId) => {
 
-        const token =
-            localStorage.getItem("adminToken");
+        const token = localStorage.getItem("adminToken") || localStorage.getItem("adminData") || "cookie-session";
 
         if (!token) {
             return;
@@ -485,6 +484,7 @@ const StaffManagement = () => {
                     `${API_URL}/admin/staff/${staffId}`,
                     {
                         method: "DELETE",
+                        credentials: "include",
 
                         headers: {
                             Authorization:

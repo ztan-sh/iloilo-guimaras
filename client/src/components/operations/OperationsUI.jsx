@@ -3,7 +3,7 @@ import { StaffButton, StaffField } from "../staff/StaffUI";
 import { VESSELS } from "./operationsStore";
 export function OperationsPanel({ children, className = "" }) { return <section className={`operations-panel ${className}`}>{children}</section>; }
 export function VesselSelector({ value, onChange, disabled = false, available = VESSELS }) {
-    return <div className="operations-vessels" role="group" aria-label="Choose a vessel">{VESSELS.map(vessel => <StaffButton key={vessel} variant="secondary" aria-pressed={value === vessel} className={value === vessel ? "is-selected" : ""} disabled={disabled || !available.includes(vessel)} onClick={() => onChange(vessel)}>{vessel}</StaffButton>)}</div>;
+    return <label className="operations-vessel-select">Choose a vessel<select aria-label="Choose a vessel" value={value} disabled={disabled} onChange={event => onChange(event.target.value)}>{VESSELS.map(vessel => <option key={vessel} value={vessel} disabled={!available.includes(vessel)}>{vessel}</option>)}</select></label>;
 }
 export function PencilField(props) { return <StaffField {...props}><img src="/images/operations/04e4f.svg" width="24" height="24" alt="" aria-hidden="true" /></StaffField>; }
 export function PassengerFields({ person, onChange, prefix }) {

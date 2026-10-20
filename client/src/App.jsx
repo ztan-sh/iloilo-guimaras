@@ -14,7 +14,6 @@ import GetApp from "./pages/public/GetApp";
 
 import AdminRegister from "./pages/Admin/AdminRegister";
 import AdminLogin from "./pages/Admin/AdminLogin";
-import AdminDashboard from "./pages/Admin/AdminDashboard";
 import AdminWorkspace from "./pages/Admin/AdminWorkspace";
 import AdminPreview from "./pages/Admin/AdminPreview";
 
@@ -105,7 +104,7 @@ function App() {
             {/* ADMIN DASHBOARD */}
             <Route
                 path="/admin-dashboard"
-                element={<AdminDashboard />}
+                element={<Navigate to="/admin/overview" replace />}
             />
 
             {/* =========================================

@@ -148,6 +148,7 @@ const createBooking = async (
             plateNumber,
             passengerFare,
             motorcycleFare,
+            stampFee,
             ppaFee,
             requiredAmount,
             paymentMethod,
@@ -214,7 +215,17 @@ const createBooking = async (
 
                 motorcycleFare,
 
+                stampFee: Number(stampFee) || 0,
+
                 ppaFee,
+
+                discountAmount: Math.max(0, Math.round((
+                    (Number(passengerFare) || 0)
+                    + (Number(motorcycleFare) || 0)
+                    + (Number(stampFee) || 0)
+                    + (Number(ppaFee) || 0)
+                    - (Number(requiredAmount) || 0)
+                ) * 100) / 100),
 
                 requiredAmount,
 

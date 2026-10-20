@@ -9,11 +9,8 @@ const pricingRoutes = require("./routes/pricingRoutes");
 
 
 const express = require("express");
-const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const path = require("path");
-const fs = require("fs");
 
 const connectDB =
     require("./config/database");
@@ -28,6 +25,20 @@ const adminStaffRoutes =
 dotenv.config();
 
 const app = express();
+app.disable("x-powered-by");
+if (process.env.NODE_ENV === "production") app.set("trust proxy", 1);
+
+app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(self), microphone=(), geolocation=()");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+    if (process.env.NODE_ENV === "production" && req.secure) {
+        res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
+    next();
+});
 
 
 // ===============================
@@ -53,7 +64,8 @@ const allowedOrigins = [
     "capacitor://localhost",
 
     // Production website
-    "https://iloilo-guimaras.vercel.app"
+    "https://iloilo-guimaras.vercel.app",
+    ...(process.env.WEB_ORIGINS || "").split(",").map(value => value.trim()).filter(Boolean)
 ];
 
 
@@ -112,78 +124,9 @@ app.use(
 
 
 app.use(
-    // A validated profile photo may be sent as a base64 data URL (up to 5 MB).
-    express.json({ limit: "8mb" })
+    // Profile and discount ID photos can both be included in a profile update.
+    express.json({ limit: "16mb" })
 );
-
-
-// ===============================
-// UPLOADS
-// ===============================
-
-// =====================================================
-// PAYMENT PROOF FILE SERVING
-// Existing local uploads remain available as a fallback.
-// New uploads are stored in MongoDB GridFS so they persist
-// across Render restarts and redeployments.
-// =====================================================
-
-const LOCAL_UPLOAD_DIR = path.join(__dirname, "uploads");
-
-app.use(
-    "/uploads",
-    express.static(LOCAL_UPLOAD_DIR, {
-        fallthrough: true,
-        index: false
-    })
-);
-
-// Keep the existing /uploads/payment-proofs/<filename> URL
-// so the current admin receipt links can continue to work.
-// If the file is not on disk, look it up in MongoDB GridFS.
-app.get("/uploads/payment-proofs/:filename", async (req, res, next) => {
-    try {
-        const filename = path.basename(req.params.filename || "");
-
-        if (!filename || filename !== req.params.filename) {
-            return res.status(400).send("Invalid payment proof filename.");
-        }
-
-        if (!mongoose.connection.db) {
-            return res.status(503).send("Payment proof storage is not ready.");
-        }
-
-        const { GridFSBucket } = require("mongodb");
-        const bucket = new GridFSBucket(mongoose.connection.db, {
-            bucketName: "paymentProofs"
-        });
-
-        const files = await bucket.find({ filename }).toArray();
-        if (!files.length) {
-            return res.status(404).send("Payment proof not found.");
-        }
-
-        const file = files[files.length - 1];
-        res.set("Content-Type", file.metadata?.contentType || "application/octet-stream");
-        res.set("Content-Disposition", `inline; filename="${filename}"`);
-        res.set("Cache-Control", "private, max-age=300");
-
-        const downloadStream = bucket.openDownloadStream(file._id);
-        downloadStream.on("error", (error) => {
-            if (!res.headersSent) {
-                next(error);
-            } else {
-                res.destroy(error);
-            }
-        });
-        downloadStream.pipe(res);
-    } catch (error) {
-        console.error("Payment proof retrieval error:", error);
-        if (!res.headersSent) {
-            res.status(500).send("Unable to retrieve payment proof.");
-        }
-    }
-});
 
 
 // ===============================

@@ -5,9 +5,9 @@ import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
 import { useClient } from './MobileState';
 import { Art, ArtworkStage, Button, Choices, Field, Footer, Gender, GenderPicker, Header, Icon, MobileDialog, NotificationBell, Panel, Progress, Row, Toggle } from './MobileUI';
-import { canIssueTicket, money, passwordIssue, paymentState, todayInManila } from './mobileUtils';
+import { canIssueTicket, discountAmountFor, money, passwordIssue, paymentState, todayInManila } from './mobileUtils';
 import { formatTime, formatTimestamp } from '../../Staff/staffUtils';
-import { personIssue } from '../../../components/operations/operationsStore';
+import { passengerIdentity, personIssue } from '../../../components/operations/operationsStore';
 
 export function ClientHistory({ tickets = false }) {
     const c = useClient(); const [filter, setFilter] = useState('All'); const [detailId, setDetailId] = useState(null);
@@ -18,7 +18,8 @@ export function ClientHistory({ tickets = false }) {
         <div className="ggo-record-list">{list.map(b => {
             const status = paymentState(b); const ready = canIssueTicket(b);
             const props = ready ? { as: Link, to: c.href(`boarding-pass?reference=${encodeURIComponent(b.bookingReference)}`), 'aria-label': `View boarding pass ${b.bookingReference}` } : { as: 'button', type: 'button', onClick: () => setDetailId(b._id), 'aria-label': `View ${status.toLowerCase()} payment ${b.bookingReference}` };
-            return <Panel key={b._id} className="ggo-payment-record" {...props}><div className="ggo-record-top"><strong>{b.origin} → {b.destination}</strong><span className={`ggo-status ${status.toLowerCase()}`}>{status}</span></div><div className="ggo-record-top"><h2>{money(status === 'Paid' ? b.totalPaid ?? b.requiredAmount : b.requiredAmount)}</h2><small>{b.paymentMethod}</small></div><small>{formatTimestamp(b.createdAt, true)}</small><div className="ggo-record-bottom"><small>{b.bookingReference}</small><span className={ready ? 'ggo-paid' : status === 'Failed' ? 'ggo-failed' : 'ggo-accent'}>{ready ? 'View ticket →' : status === 'Failed' ? 'No ticket issued' : 'No ticket yet'}</span></div></Panel>;
+            const discount = discountAmountFor(b);
+            return <Panel key={b._id} className="ggo-payment-record" {...props}><div className="ggo-record-top"><strong>{b.origin} → {b.destination}</strong><span className={`ggo-status ${status.toLowerCase()}`}>{status}</span></div><div className="ggo-record-top"><h2>{money(status === 'Paid' ? b.totalPaid ?? b.requiredAmount : b.requiredAmount)}</h2><small>{b.paymentMethod}</small></div>{discount > 0 && <small className="ggo-record-discount">Discount applied: −{money(discount)}</small>}<small>{formatTimestamp(b.createdAt, true)}</small><div className="ggo-record-bottom"><small>{b.bookingReference}</small><span className={ready ? 'ggo-paid' : status === 'Failed' ? 'ggo-failed' : 'ggo-accent'}>{ready ? 'View ticket →' : status === 'Failed' ? 'No ticket issued' : 'No ticket yet'}</span></div></Panel>;
         })}{!list.length && <Panel><h3>{tickets ? 'No confirmed tickets yet' : `No ${filter === 'All' ? '' : filter.toLowerCase() + ' '}payments yet`}</h3><p>Choose a crossing when you’re ready.</p><Button onClick={() => c.go('dashboard')}>Find a crossing</Button></Panel>}</div>
         {detail && <PaymentDetails booking={detail} onClose={() => setDetailId(null)} />}
     </main>;
@@ -27,7 +28,8 @@ function PaymentDetails({ booking, onClose }) {
     const c = useClient(); const status = paymentState(booking); const ready = canIssueTicket(booking);
     const title = status === 'Failed' ? 'Payment failed' : status === 'Processing' ? 'Payment processing' : 'Payment confirmed';
     const description = status === 'Failed' ? 'No payment was confirmed and no ticket was issued. Choose a new trip when you are ready.' : status === 'Processing' ? 'Your payment is being checked. Your ticket will be available after payment is confirmed.' : ready ? 'Your ticket is ready for boarding.' : 'No boarding pass is available for this booking. Contact terminal staff for help.';
-    return <MobileDialog title={title} onClose={onClose}><h2>{title}</h2><p className="ggo-payment-detail-reference">{booking.bookingReference} · {booking.paymentMethod} · {money(status === 'Paid' ? booking.totalPaid ?? booking.requiredAmount : booking.requiredAmount)}</p><p>{description}</p>{status === 'Failed' ? <><Button onClick={() => c.go('schedule')}>Choose a new trip</Button><button type="button" className="ggo-picker-cancel" onClick={onClose}>Close</button></> : <Button onClick={onClose}>Back to history</Button>}</MobileDialog>;
+    const discount = discountAmountFor(booking);
+    return <MobileDialog title={title} onClose={onClose}><h2>{title}</h2><p className="ggo-payment-detail-reference">{booking.bookingReference} · {booking.paymentMethod} · {money(status === 'Paid' ? booking.totalPaid ?? booking.requiredAmount : booking.requiredAmount)}</p>{discount > 0 && <p>Discount applied: −{money(discount)}</p>}<p>{description}</p>{status === 'Failed' ? <><Button onClick={() => c.go('schedule')}>Choose a new trip</Button><button type="button" className="ggo-picker-cancel" onClick={onClose}>Close</button></> : <Button onClick={onClose}>Back to history</Button>}</MobileDialog>;
 }
 export function ClientConfirmation() {
     const c = useClient(); const [query] = useSearchParams(); const b = c.bookings.find(item => item.bookingReference === query.get('reference'));
@@ -39,9 +41,48 @@ export function ClientPass() {
     const c = useClient(); const [query] = useSearchParams(); const b = c.bookings.find(item => item.bookingReference === query.get('reference')) || (!query.has('reference') ? c.bookings.find(canIssueTicket) : null);
     const download = () => c.run(async () => {
         const image = await QRCode.toDataURL(b.bookingReference, { width: 600, margin: 4, errorCorrectionLevel: 'H' });
-        const pdf = new jsPDF({ unit: 'mm', format: [100, 180] }); pdf.setFontSize(19); pdf.text('Guimaras Go', 12, 18); pdf.setFontSize(12); pdf.text('Boarding pass', 12, 28); pdf.setFontSize(10);
-        const rows = [b.passengerName, `${b.origin} to ${b.destination}`, `${b.vesselName || b.ferryName || 'Ferry'} | ${b.date}`, `${formatTime(b.time)} | ${b.passengers} passenger(s)`, `Reference: ${b.bookingReference}`];
-        pdf.text(pdf.splitTextToSize(rows.join('\n'), 76), 12, 40); pdf.addImage(image, 'PNG', 20, 82, 60, 60); pdf.setFontSize(8); pdf.text(c.preview ? 'PREVIEW SAMPLE - For testing only' : 'Show this QR at the boarding gate.', 12, 157); pdf.save(`${b.bookingReference}.pdf`);
+        const pdf = new jsPDF({ unit: 'mm', format: [100, 220] });
+        const amount = value => `PHP ${(Number(value) || 0).toFixed(2)}`;
+        const discount = discountAmountFor(b);
+        const totalPaid = Number(b.totalPaid ?? b.requiredAmount) || 0;
+        pdf.setFontSize(19); pdf.text('Guimaras Go', 12, 18);
+        pdf.setFontSize(12); pdf.text('Boarding pass and fare receipt', 12, 28);
+        pdf.setFontSize(10);
+        const details = [
+            b.passengerName,
+            `${b.origin} to ${b.destination}`,
+            `${b.vesselName || b.ferryName || 'Ferry'} | ${b.date}`,
+            `${formatTime(b.time)} | ${b.passengers} passenger(s)`,
+            `Reference: ${b.bookingReference}`,
+            `Queue: ${b.queueNumber || 'Pending confirmation'}`
+        ];
+        const detailLines = pdf.splitTextToSize(details.join('\n'), 76);
+        pdf.text(detailLines, 12, 39);
+
+        let y = 44 + detailLines.length * 5;
+        pdf.setDrawColor(190); pdf.line(12, y, 88, y); y += 7;
+        pdf.setFontSize(11); pdf.text('Fare paid', 12, y); y += 7;
+        pdf.setFontSize(9);
+        const fareRows = [
+            ['Passenger fare', b.passengerFare],
+            ...(discount > 0 ? [['Discount applied', -discount]] : []),
+            ...(Number(b.motorcycleFare) > 0 ? [['Motorcycle fare', b.motorcycleFare]] : []),
+            ...(Number(b.stampFee) > 0 ? [['Motorcycle stamp fee', b.stampFee]] : []),
+            ['PPA fee', b.ppaFee]
+        ];
+        fareRows.forEach(([label, value]) => {
+            pdf.text(String(label), 12, y);
+            pdf.text(`${Number(value) < 0 ? '- ' : ''}${amount(Math.abs(Number(value) || 0))}`, 88, y, { align: 'right' });
+            y += 5;
+        });
+        y += 1; pdf.setDrawColor(190); pdf.line(12, y, 88, y); y += 7;
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10);
+        pdf.text('Total paid', 12, y); pdf.text(amount(totalPaid), 88, y, { align: 'right' });
+        pdf.setFont('helvetica', 'normal');
+        pdf.addImage(image, 'PNG', 25, 145, 50, 50);
+        pdf.setFontSize(8);
+        pdf.text(c.preview ? 'PREVIEW SAMPLE - For testing only' : 'Show this QR at the boarding gate.', 12, 207);
+        pdf.save(`${b.bookingReference}.pdf`);
     });
     return <main className="ggo-page ggo-has-nav ggo-boarding">
         <header className="ggo-pass-header"><Link className="ggo-pass-back" aria-label="Back to tickets" to={c.href('bookings')}><Icon name="back" /></Link><h1>Boarding pass</h1><NotificationBell /></header>
@@ -49,7 +90,7 @@ export function ClientPass() {
             <div className={`ggo-pass-map ${b.origin === 'Guimaras' ? 'ggo-route-return' : ''}`} aria-hidden="true"><ArtworkStage width={354} height={118}><Art file="boarding-map-refined.png" width={352} height={120} className="ggo-pass-geography" /><Art file="8a938.svg" className="ggo-pass-route-line" /><Art file="boarding-pin-iloilo.png" width={18.5688} height={18.5688} className="ggo-pin-iloilo" /><Art file="boarding-pin-guimaras.png" width={20.1835} height={20.1835} className="ggo-pin-guimaras" /></ArtworkStage></div>
             <div className="ggo-pass-endpoints"><div><strong>{b.origin}</strong><small>Departure</small></div><span>25–35 min</span><div><strong>{b.destination}</strong><small>Arrival</small></div></div>
             <ArtworkStage width={354} height={144} className="ggo-pass-vessel"><Art file="e21d4.svg" className="ggo-pass-vessel-shape" /><div className="ggo-pass-times"><div><small>Departure</small><strong>{formatTime(b.time)}</strong></div><Art file="boarding-ferry.png" width={69} height={68} /><div><small>Arrival</small><strong>{b.arrivalTime ? formatTime(b.arrivalTime) : '—'}</strong></div></div><p className="ggo-pass-vessel-name">{b.vesselName || b.ferryName || 'Ferry'} · {b.date}</p></ArtworkStage>
-            <Panel className="ggo-qr-panel"><div className="ggo-pass-person"><div><strong>{b.passengerName}</strong><small>{b.passengers} passenger{Number(b.passengers) === 1 ? '' : 's'}</small></div><span className="ggo-pass-person-icon"><Art file="9d2f0.svg" /></span></div><div className="ggo-pass-perforation"><ArtworkStage width={354} height={0}><Art file="b5f10.svg" /></ArtworkStage></div><QRCodeSVG value={b.bookingReference} size={160} level="H" marginSize={2} title={`Boarding code ${b.bookingReference}`} imageSettings={{ src: '/images/client/fe28f.svg', width: 28, height: 24, excavate: true }} /><small className="ggo-pass-reference">{b.bookingReference}</small><small>Present this QR code to boarding staff.</small>{c.preview && <small>Preview sample · For testing only</small>}</Panel>
+            <Panel className="ggo-qr-panel"><div className="ggo-pass-person"><div><strong>{b.passengerName}</strong><small>{b.passengers} passenger{Number(b.passengers) === 1 ? '' : 's'}</small></div><span className="ggo-pass-person-icon"><Art file="9d2f0.svg" /></span></div><div className="ggo-pass-perforation"><ArtworkStage width={354} height={0}><Art file="b5f10.svg" /></ArtworkStage></div><QRCodeSVG value={b.bookingReference} size={220} level="H" marginSize={4} title={`Boarding code ${b.bookingReference}`} /><small className="ggo-pass-reference">{b.bookingReference}</small><strong className="ggo-pass-queue">{b.queueNumber || 'Queue assigned after payment confirmation'}</strong><small>Present this QR code to boarding staff.</small>{c.preview && <small>Preview sample · For testing only</small>}</Panel>
             <Button secondary disabled={c.busy} onClick={download}>{c.busy ? 'Preparing…' : 'Download boarding pass'}</Button>
         </> : <Panel><h2>No boarding pass available</h2><p>A verified payment and confirmed booking are required.</p><Button onClick={() => c.go('history')}>Payment history</Button></Panel>}
     </main>;
@@ -166,6 +207,14 @@ export function ClientProfile() {
                 </div>
             </div>
 
+            {c.user.discountIdPhoto && (
+                <Panel className="ggo-discount-id-profile">
+                    <h3>{c.user.category || 'Discount'} ID photo</h3>
+                    <p>Saved from your registration for discount verification.</p>
+                    <img src={c.user.discountIdPhoto} alt="Your saved discount ID photo" />
+                </Panel>
+            )}
+
             <div className="ggo-profile-stats">
                 {[
                     [
@@ -265,6 +314,7 @@ export function ClientEditProfile() {
         age: String(c.user.age ?? ''),
         profilePhoto: c.user.profilePhoto || ''
     });
+    const needsDiscountId = ['Student', 'PWD'].includes(form.category) || Number(form.age) >= 60;
 
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -312,6 +362,28 @@ export function ClientEditProfile() {
         reader.readAsDataURL(file);
     };
 
+    const handleDiscountIdChange = event => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            c.setError('Choose a JPG, PNG or WebP ID photo.');
+            event.target.value = '';
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            c.setError('Choose an ID photo smaller than 5 MB.');
+            event.target.value = '';
+            return;
+        }
+        c.setError('');
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (typeof reader.result === 'string') update({ discountIdPhoto: reader.result });
+        };
+        reader.onerror = () => c.setError('Unable to read this ID photo. Please try again.');
+        reader.readAsDataURL(file);
+    };
+
     const save = event => {
         event.preventDefault();
 
@@ -340,6 +412,9 @@ export function ClientEditProfile() {
             });
 
             if (issue) throw new Error(issue);
+            if (needsDiscountId && !form.discountIdPhoto) {
+                throw new Error('Upload your Student, PWD or Senior ID photo before saving this profile.');
+            }
 
             if (
                 newPassword &&
@@ -367,6 +442,10 @@ export function ClientEditProfile() {
                     fullName: form.fullName,
                     email: form.email,
                     phoneNumber: form.phoneNumber,
+                    age,
+                    gender: form.gender,
+                    category: form.category,
+                    discountIdPhoto: needsDiscountId ? form.discountIdPhoto : '',
                     profilePhoto: form.profilePhoto || ''
                 }
             });
@@ -380,6 +459,14 @@ export function ClientEditProfile() {
                 },
                 result.token
             );
+
+            if (needsDiscountId) {
+                const reviews = await c.request('/auth/discount-requests');
+                c.setDiscountRequests((reviews.requests || []).map(item => {
+                    const passenger = { id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category };
+                    return { id: item._id, passenger, identity: passengerIdentity(passenger), photo: item.photo, status: item.status, reason: item.reason || '', source: item.source || '', requestId: item._id };
+                }));
+            }
 
             if (newPassword) {
                 await c.request('/auth/password', {
@@ -452,9 +539,7 @@ export function ClientEditProfile() {
             </div>
 
             <p className="ggo-profile-helper">
-                Your photo is used on your profile.
-                {!c.preview &&
-                    ' Age, gender and category are saved on this device.'}
+                Your photo is used on your profile. Age, gender, category and any ID photo are saved to your account.
             </p>
 
             <form
@@ -512,10 +597,30 @@ export function ClientEditProfile() {
                     label="Profile passenger category"
                     options={['Regular', 'Student', 'PWD']}
                     value={form.category || 'Regular'}
-                    onChange={value =>
-                        update({ category: value })
-                    }
+                    onChange={value => update({
+                        category: value,
+                        ...(value !== form.category ? { discountIdPhoto: '' } : {})
+                    })}
                 />
+
+                {(['Student', 'PWD'].includes(form.category) || Number(form.age) >= 60) && (
+                    <Panel className="ggo-discount-id-profile ggo-edit-discount-id">
+                        <h3>{Number(form.age) >= 60 ? 'Senior' : form.category} ID photo required</h3>
+                        <p>Upload a clear photo of the ID used to verify this fare category. Staff will review it before a discount is approved.</p>
+                        {form.discountIdPhoto && <img src={form.discountIdPhoto} alt="Discount ID photo preview" />}
+                        <label className="ggo-photo-upload" htmlFor="ggo-discount-id-photo">
+                            {form.discountIdPhoto ? 'Change ID photo' : 'Upload ID photo'}
+                        </label>
+                        <input
+                            id="ggo-discount-id-photo"
+                            className="ggo-photo-file-input"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleDiscountIdChange}
+                            required={!form.discountIdPhoto}
+                        />
+                    </Panel>
+                )}
 
                 <Field
                     label="Email"

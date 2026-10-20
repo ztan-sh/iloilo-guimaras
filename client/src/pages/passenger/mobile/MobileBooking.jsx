@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 import { useClient } from './MobileState';
 import { Art, ArtworkStage, Button, Choices, Field, Footer, Gender, Header, MobileDialog, NotificationBell, Panel, Progress } from './MobileUI';
 import { accountPerson, bookingIssue, bookingWindowIssue, canIssueTicket, departureCountdown, fareFor, money, normalizeSchedule, paymentState, photoIssue, requestFor, rideLabel, todayInManila } from './mobileUtils';
-import { discountCategory, operationsStore, personIssue } from '../../../components/operations/operationsStore';
+import { DEFAULT_PRICES, VESSELS, discountCategory, operationsStore, passengerIdentity, personIssue } from '../../../components/operations/operationsStore';
 import { formatTime, matchesTrip, timeToMinutes } from '../../Staff/staffUtils';
 import { createId } from '../../../utils/createId.js';
 
 function VesselCard({ vessel, available, treatment, stackOrder, onSelect }) {
-    const name = vessel === 'Felipe III' ? 'MV Felipe III' : vessel;
-    const lines = name.startsWith('MV ') ? ['MV', name.slice(3)] : name === 'Lite Ferry 22' ? ['Lite Ferry', '22'] : [name];
+    const name = vessel;
+    const lines = name.startsWith('MV ') ? ['MV', name.slice(3)] : [name];
     return <button type="button" className={`ggo-vessel ggo-vessel-${treatment}`} style={{ zIndex: stackOrder }} aria-label={`View ${vessel} schedules`} onClick={onSelect}>
         <ArtworkStage width={354} height={258} className="ggo-vessel-card">
             <Art className="ggo-vessel-shape" file={stackOrder === 1 ? `dashboard-card-first-${treatment}.svg` : `dashboard-card-${treatment}.svg`} />
@@ -32,6 +32,59 @@ export function ClientDashboard() {
     ];
 
     const [vesselSearch, setVesselSearch] = useState("");
+    const [fareListOpen, setFareListOpen] = useState(false);
+    const [fareListLoading, setFareListLoading] = useState(false);
+    const [fareListPrices, setFareListPrices] = useState(null);
+    const [fareListError, setFareListError] = useState('');
+
+    const openFareList = () => setFareListOpen(true);
+
+    useEffect(() => {
+        if (!fareListOpen) return undefined;
+        if (c.preview) {
+            setFareListPrices(Object.fromEntries(VESSELS.map(vessel => [vessel, { ...DEFAULT_PRICES, ...(c.operations.prices?.[vessel] || {}) }])));
+            setFareListError('');
+            return undefined;
+        }
+
+        let active = true;
+        let loading = false;
+        let initialLoad = true;
+        const refreshPrices = async () => {
+            if (!active || loading) return;
+            loading = true;
+            if (initialLoad) setFareListLoading(true);
+            try {
+                const results = await Promise.allSettled(VESSELS.map(vessel => c.request(`/pricing/public?vesselName=${encodeURIComponent(vessel)}&refresh=${Date.now()}`)));
+                if (!active) return;
+                const loaded = Object.fromEntries(results.flatMap((result, index) => result.status === 'fulfilled' ? [[VESSELS[index], result.value.prices]] : []));
+                setFareListPrices(previous => ({ ...(previous || {}), ...loaded }));
+                setFareListError(Object.keys(loaded).length === VESSELS.length ? '' : 'Some current fares could not be refreshed. Showing the last saved prices.');
+            } catch {
+                if (active) setFareListError('Unable to refresh current fares. Showing the last saved prices.');
+            } finally {
+                loading = false;
+                if (initialLoad) {
+                    initialLoad = false;
+                    if (active) setFareListLoading(false);
+                }
+            }
+        };
+        const refreshWhenVisible = () => {
+            if (document.visibilityState === 'visible') refreshPrices();
+        };
+
+        refreshPrices();
+        const timer = window.setInterval(refreshPrices, 15000);
+        window.addEventListener('focus', refreshPrices);
+        document.addEventListener('visibilitychange', refreshWhenVisible);
+        return () => {
+            active = false;
+            window.clearInterval(timer);
+            window.removeEventListener('focus', refreshPrices);
+            document.removeEventListener('visibilitychange', refreshWhenVisible);
+        };
+    }, [fareListOpen, c.preview]);
 
     const filteredVessels = vessels.filter(vessel =>
         vessel.toLowerCase().includes(vesselSearch.trim().toLowerCase())
@@ -52,7 +105,7 @@ export function ClientDashboard() {
 
     const apiRoot = (
         import.meta.env.VITE_API_BASE_URL ||
-        "http://localhost:5000/api"
+        "https://iloilo-guimaras.onrender.com/api"
     ).replace(/\/api\/?$/, "");
 
     const profilePhoto = savedPhoto
@@ -97,14 +150,48 @@ export function ClientDashboard() {
                     Hi, {c.user.fullName?.split(" ")[0] || "traveller"}!
                 </h1>
                 <p>Choose a vessel for your next crossing.</p>
-                <button
-                    type="button"
-                    className="ggo-guide-trigger"
-                    onClick={c.openGuide}
-                >
-                    How to use this app
-                </button>
+                <div className="ggo-dashboard-actions">
+                    <button
+                        type="button"
+                        className="ggo-guide-trigger"
+                        onClick={c.openGuide}
+                    >
+                        How to use this app
+                    </button>
+                    <button type="button" className="ggo-fare-list-trigger" onClick={openFareList}>
+                        Fare Pricing List
+                    </button>
+                </div>
             </header>
+
+            {fareListOpen && <MobileDialog className="ggo-fare-pricing-dialog" title="Fare pricing list" onClose={() => setFareListOpen(false)}>
+                <div className="ggo-fare-pricing-heading"><div><small>PASSENGER FARES</small><h2>Fare Pricing List</h2></div><button type="button" onClick={() => setFareListOpen(false)} aria-label="Close fare pricing list">×</button></div>
+                {fareListLoading && <p>Loading current fares…</p>}
+                {fareListError && <p className="ggo-fare-pricing-error" role="status">{fareListError}</p>}
+                {fareListPrices && VESSELS.map(vessel => {
+                    const prices = fareListPrices[vessel];
+                    if (!prices) return null;
+                    const price = key => Number(prices[key] ?? DEFAULT_PRICES[key] ?? 0);
+                    const discount = key => (price('solo') * price(key) / 100).toFixed(2);
+                    return <section className="ggo-fare-pricing-vessel" key={vessel}>
+                        <h3>{vessel}</h3>
+                        <dl>
+                            <div><dt>Solo passenger</dt><dd>{money(price('solo'))}</dd></div>
+                            <div><dt>Two passengers / companion fare</dt><dd>{money(price('companion'))}</dd></div>
+                            <div><dt>Student discount per eligible passenger</dt><dd>{price('student')}% · {money(discount('student'))} off</dd></div>
+                            <div><dt>PWD discount per eligible passenger</dt><dd>{price('pwd')}% · {money(discount('pwd'))} off</dd></div>
+                            <div><dt>Senior discount per eligible passenger</dt><dd>{price('senior')}% · {money(discount('senior'))} off</dd></div>
+                            <div><dt>Small motorcycle (250cc and below)</dt><dd>{money(price('motorcycle'))}</dd></div>
+                            <div><dt>Small motorcycle stamp fee</dt><dd>{money(price('smallBikeStamp'))}</dd></div>
+                            <div><dt>Big motorcycle (above 250cc)</dt><dd>{money(price('bigBike'))}</dd></div>
+                            <div><dt>Big motorcycle stamp fee</dt><dd>{money(price('bigBikeStamp'))}</dd></div>
+                            <div><dt>PPA fee</dt><dd>{money(price('ppa'))} per booking</dd></div>
+                        </dl>
+                    </section>;
+                })}
+                <p className="ggo-fare-pricing-note">Discounts require approval of a valid ID and apply to eligible passenger fares. Motorcycle fares, stamp fees, and PPA fees are separate. Final total depends on passengers, motorcycle type, and approved discounts.</p>
+                <Button onClick={() => setFareListOpen(false)}>Done</Button>
+            </MobileDialog>}
 
  <div className="ggo-vessel-search">
         <span className="ggo-vessel-search-icon" aria-hidden="true">
@@ -160,9 +247,7 @@ export function ClientDashboard() {
                                 ? "orange"
                                 : /felipe/i.test(vessel)
                                   ? "gold"
-                                  : /lite ferry 22/i.test(vessel)
-                                    ? "brown"
-                                    : ["orange", "gold", "brown"][i % 3]
+                                  : ["orange", "gold", "brown"][i % 3]
                         }
                         available={c.schedules.some(
                             t =>
@@ -306,7 +391,7 @@ export function ClientBook() {
     const change = patch => c.setDraft({ ...d, ...patch });
     const people = (index, patch) => change({ people: d.people.map((p, i) => i === index ? { ...p, ...patch } : p) });
     const count = number => { if (number < 1 || number > (d.motorcycle ? 3 : 10)) return; change({ people: number < d.people.length ? d.people.slice(0, number) : [...d.people, { id: createId(), name: '', age: '', gender: '', category: 'Regular' }] }); };
-    const takeID = person => { if (!c.preview) return; const issue = personIssue(person); if (issue) return c.setError(issue); c.setPhoto(null); c.setPhotoPerson(person); c.setPhotoReturn('book-trip'); c.go('id-photo'); };
+    const takeID = person => { const issue = personIssue(person); if (issue) return c.setError(issue); c.setPhoto(null); c.setPhotoPerson(person); c.setPhotoReturn('book-trip'); c.go('id-photo'); };
     const chooseMotorcycle = motorcycleType => {
         const issue = bookingWindowIssue(d.trip, true);
         if (issue) { setBikeQuestionOpen(false); c.setError(''); setMotorcycleWarning(issue); return; }
@@ -349,7 +434,7 @@ export function ClientBook() {
                         <h3>Passenger category</h3><Choices label={`Passenger ${i + 1} category`} options={['Regular', 'Student', 'PWD']} value={p.category} onChange={value => people(i, { category: value })} />
                     </>}
                     {Number(p.age) >= 60 && <small>Age 60+ · Senior eligibility requires staff approval.</small>}
-                    {discountCategory(p) !== 'Regular' && <div className="ggo-id-request"><small>{requestFor(c.operations.requests, p)?.status === 'approved' ? 'ID approved · Passenger discount available' : requestFor(c.operations.requests, p)?.status === 'pending' ? 'ID submitted · Awaiting staff review' : requestFor(c.operations.requests, p)?.status === 'requested' ? 'Staff requested a clearer photo' : 'ID photo required for a discount'}</small>{c.preview ? <Button secondary onClick={() => requestFor(c.operations.requests, p)?.status === 'pending' || requestFor(c.operations.requests, p)?.status === 'approved' ? c.go('id-status') : takeID(p)}>{['pending', 'approved'].includes(requestFor(c.operations.requests, p)?.status) ? 'Check review status' : 'Take ID photo'}</Button> : <small>Discount review is not available yet.</small>}</div>}
+                    {discountCategory(p) !== 'Regular' && <div className="ggo-id-request"><small>{requestFor(c.operations.requests, p)?.status === 'approved' ? 'ID approved · Passenger discount available' : requestFor(c.operations.requests, p)?.status === 'pending' ? 'ID submitted · Awaiting staff review' : requestFor(c.operations.requests, p)?.status === 'requested' ? 'Staff requested a clearer photo' : 'ID photo required before booking'}</small><Button secondary onClick={() => ['pending', 'approved'].includes(requestFor(c.operations.requests, p)?.status) ? c.go('id-status') : takeID(p)}>{['pending', 'approved'].includes(requestFor(c.operations.requests, p)?.status) ? 'Check review status' : 'Upload ID photo'}</Button></div>}
                 </Panel>)}
             </div>
             {d.motorcycle && <Panel><h3>Motorcycle details</h3><Field label="Plate number" value={d.plateNumber} onChange={e => change({ plateNumber: e.target.value })} placeholder="ABC 1234" required /></Panel>}
@@ -404,12 +489,25 @@ export function ClientID() {
     const allApproved = eligible.length > 0 && requests.every(r => r?.status === 'approved' && r.photo); const attention = requests.find(r => r?.status === 'requested');
     const title = missing ? 'ID photo required' : status ? allApproved ? 'Discount approved' : attention ? 'ID photo needs attention' : 'Awaiting staff review' : review ? 'Review ID photo' : 'Take ID photo';
     const upload = file => { const issue = photoIssue(file); if (issue) return c.setError(issue); const reader = new FileReader(); reader.onerror = () => c.setError('Unable to read this photo. Choose another file.'); reader.onload = () => { c.setPhoto(String(reader.result)); c.go('id-review'); }; reader.readAsDataURL(file); };
+    const refreshReview = () => c.run(async () => {
+        const result = await c.request('/auth/discount-requests');
+        c.setDiscountRequests((result.requests || []).map(item => {
+            const passenger = { id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category };
+            return { id: item._id, passenger, identity: passengerIdentity(passenger), photo: item.photo, status: item.status, reason: item.reason || '', source: item.source || '', requestId: item._id };
+        }));
+    });
     const usePhoto = () => {
         if (!c.photo) return c.setError('Take an ID photo first.');
-        if (!c.preview) return c.setError('Discount review is not available yet.');
         if (c.photoReturn === 'register') { c.setRegistration({ ...c.registration, idPhoto: c.photo }); c.setPhoto(null); c.go('register'); }
-        else { operationsStore.requestID(person, c.photo, 'Client mobile booking'); c.setPhoto(null); c.go('id-status'); }
+        else if (c.preview) { operationsStore.requestID(person, c.photo, 'Client mobile booking'); c.setPhoto(null); c.go('id-status'); }
+        else c.run(async () => {
+            const result = await c.request('/auth/discount-requests', { method: 'POST', body: { passengerId: String(person.id), passengerName: person.name, age: Number(person.age), gender: person.gender, category: discountCategory(person), photo: c.photo, source: 'Passenger booking' } });
+            const item = result.request;
+            const passenger = { id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category };
+            c.setDiscountRequests(previous => [...previous.filter(entry => entry.id !== item._id), { id: item._id, passenger, identity: passengerIdentity(passenger), photo: item.photo, status: item.status, reason: item.reason || '', source: item.source || '', requestId: item._id }]);
+            c.setPhoto(null); c.go('book-trip');
+        });
     };
     return <main className="ggo-page ggo-has-footer"><Header title={title} description={missing ? 'Add a photo for every passenger requesting a discount.' : status ? allApproved ? 'Staff have approved the required ID photos.' : attention ? 'Staff could not approve the submitted photo.' : 'Your ID photos have been submitted.' : review ? 'Check that the name and ID details are readable.' : 'Discount verification · Staff approval required'} /><input ref={f} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden onChange={e => { if (e.target.files[0]) upload(e.target.files[0]); e.target.value = ''; }} />{missing ? <p>You can submit the discount request once all required ID photos are attached.</p> : status ? <Panel><h2>{allApproved ? 'Your passenger discount is ready' : attention ? 'Take another ID photo' : 'Passenger discount · Pending approval'}</h2><p>{allApproved ? 'A discount is applied to each approved passenger fare. The motorcycle charge stays separate.' : attention ? attention.reason : 'Each ID is reviewed separately. Continue after all requested IDs are approved.'}</p>{allApproved && c.draft && <><p>{rideLabel(c.draft)}</p><small>Total to pay</small><strong className="ggo-large-amount">{money(fareFor(c.draft, c.operations, c.preview).total)}</strong></>}<small>A booking is confirmed after payment. ID approval does not issue a ticket.</small></Panel> : <Panel><h3>{person.name || 'Passenger ID'}</h3><small>{discountCategory(person)}</small><div className="ggo-photo-frame">{review && c.photo ? <img src={c.photo} alt="Captured passenger ID for review" /> : <><strong>Place your ID inside the frame</strong><small>Check that all ID details are readable.</small></>}</div><p>{review ? 'Staff will review this photo before applying your passenger discount.' : 'Photograph the original, valid ID. Make sure the name, photo and ID details are readable.'}</p></Panel>}
-        <Footer>{missing ? <Button orange onClick={() => c.go(c.photoReturn)}>Back to {c.photoReturn === 'register' ? 'registration' : 'booking'}</Button> : status ? <><Button secondary onClick={() => { if (attention && c.draft) c.setDraft({ ...c.draft, regularFare: true }); c.go('book-trip'); }}>{attention ? 'Continue at regular fare' : 'Back to booking'}</Button><Button orange onClick={() => { if (allApproved) c.go('payment'); else if (attention) { c.setPhotoPerson(attention.passenger); c.setPhoto(null); c.go('id-photo'); } else { const latest = c.operations.requests; const done = eligible.every(p => requestFor(latest, p)?.status === 'approved'); c.setError(done ? '' : 'Staff review is still pending. Check again after the staff review.'); } }}>{allApproved ? 'Continue to payment' : attention ? 'Take a new photo' : 'Check review status'}</Button></> : review ? <><Button secondary onClick={() => { c.setPhoto(null); c.go('id-photo'); }}>Retake photo</Button><Button orange disabled={!c.preview || !c.photo} onClick={usePhoto}>Use photo</Button></> : <><Button secondary onClick={() => c.go(c.photoReturn)}>Back to {c.photoReturn === 'register' ? 'registration' : 'booking'}</Button><Button orange disabled={!c.preview} onClick={() => f.current.click()}>Take photo</Button></>}</Footer></main>;
+        <Footer>{missing ? <Button orange onClick={() => c.go(c.photoReturn)}>Back to {c.photoReturn === 'register' ? 'registration' : 'booking'}</Button> : status ? <><Button secondary onClick={() => { if (attention && c.draft) c.setDraft({ ...c.draft, regularFare: true }); c.go('book-trip'); }}>{attention ? 'Continue at regular fare' : 'Back to booking'}</Button><Button orange disabled={c.busy} onClick={() => { if (allApproved) c.go('payment'); else if (attention) { c.setPhotoPerson(attention.passenger); c.setPhoto(null); c.go('id-photo'); } else if (c.preview) { c.setError('Staff review is still pending. Check again after the staff review.'); } else refreshReview(); }}>{allApproved ? 'Continue to payment' : attention ? 'Take a new photo' : c.busy ? 'Checking…' : 'Check review status'}</Button></> : review ? <><Button secondary onClick={() => { c.setPhoto(null); c.go('id-photo'); }}>Retake photo</Button><Button orange disabled={!c.photo || c.busy} onClick={usePhoto}>{c.busy ? 'Submitting…' : 'Use photo'}</Button></> : <><Button secondary onClick={() => c.go(c.photoReturn)}>Back to {c.photoReturn === 'register' ? 'registration' : 'booking'}</Button><Button orange onClick={() => f.current.click()}>Choose ID photo</Button></>}</Footer></main>;
 }

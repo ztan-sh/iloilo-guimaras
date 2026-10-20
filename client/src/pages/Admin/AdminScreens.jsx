@@ -122,7 +122,7 @@ export function AdminSchedules() {
         const [startHour, startMinute] = bulkForm.startTime.split(":").map(Number);
         const firstDeparture = startHour * 60 + startMinute;
         if (!bulkForm.startDate || !bulkForm.endDate || bulkForm.endDate < bulkForm.startDate) { setBulkError("Choose an end date that is the same as or later than the start date."); return; }
-        if (!vesselName || firstDeparture < 210 || firstDeparture > 1170 || firstDeparture % 30 !== 0 || interval < 30 || interval > 360 || interval % 30 !== 0) { setBulkError("Choose a first departure between 3:30 AM and 7:30 PM and an interval in 30-minute increments."); return; }
+        if (!vesselName || !/^([01]\d|2[0-3]):[0-5]\d$/.test(bulkForm.startTime) || firstDeparture < 0 || firstDeparture > 1409 || interval < 1 || interval > 360) { setBulkError("Choose a valid first departure time before 11:30 PM and an interval from 1 to 360 minutes."); return; }
         setBulkSaving(true); setBulkError("");
         let created = 0; let skipped = 0;
         try {
@@ -131,8 +131,7 @@ export function AdminSchedules() {
             const originFirst = bulkForm.origin;
             const minutesToTime = minutes => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
             const departures = [];
-            for (let departure = firstDeparture; departure <= 1170; departure += interval) departures.push(departure);
-            if (departures.at(-1) !== 1170) departures.push(1170);
+            for (let departure = firstDeparture; departure <= 1409; departure += interval) departures.push(departure);
             const dates = [];
             const cursor = new Date(`${bulkForm.startDate}T00:00:00.000Z`);
             const lastDate = new Date(`${bulkForm.endDate}T00:00:00.000Z`);
@@ -257,12 +256,11 @@ export function AdminSchedules() {
         </AdminDialog>}
         {bulkOpen && <AdminDialog title="Generate ferry schedules" onClose={() => { if (!bulkSaving) setBulkOpen(false); }}>
             <form className="staff-form-stack" onSubmit={generateDaySchedule}>
-                <p>Generate alternating trips for this vessel on every date in the range. Each day starts from the selected port, and trips run through 7:30 PM. Each trip arrives 30 minutes after departure. Existing departures for this vessel will be skipped.</p>
+                <p>Generate alternating trips for this vessel on every date in the range. Each day starts from the selected port. Departures can be scheduled through 11:29 PM, and each trip arrives 30 minutes later. Existing departures for this vessel will be skipped.</p>
                 <AdminNotice error>{bulkError}</AdminNotice>
-                <AdminField label="Vessel" icon="ticketInput" value={availableVessels.includes(bulkForm.vesselName) ? bulkForm.vesselName : "__custom__"} onChange={event => setBulkForm(current => ({ ...current, vesselName: event.target.value === "__custom__" ? "" : event.target.value }))} options={[...availableVessels.map(value => ({ value, label: value })), { value: "__custom__", label: "Add another vessel…" }]} disabled={bulkSaving} />
-                {!availableVessels.includes(bulkForm.vesselName) && <AdminField label="New vessel name" icon="ticketInput" placeholder="Enter vessel name" value={bulkForm.vesselName} onChange={updateBulkForm("vesselName")} required disabled={bulkSaving} maxLength={100} />}
+                <AdminField label="Vessel" icon="ticketInput" value={bulkForm.vesselName} onChange={event => setBulkForm(current => ({ ...current, vesselName: event.target.value }))} options={["MV Halili", "MV FastCraft", "MV Felipe"]} disabled={bulkSaving} />
                 <div className="staff-details-grid"><AdminField label="Start date" icon="routeInput" type="date" value={bulkForm.startDate} onChange={event => setBulkForm(current => ({ ...current, startDate: event.target.value, endDate: current.endDate < event.target.value ? event.target.value : current.endDate }))} required disabled={bulkSaving} /><AdminField label="Generate through" icon="routeInput" type="date" min={bulkForm.startDate} value={bulkForm.endDate} onChange={updateBulkForm("endDate")} required disabled={bulkSaving} /></div>
-                <div className="staff-details-grid"><AdminField label="First departure starts from" icon="routeInput" options={locations} value={bulkForm.origin} onChange={updateBulkForm("origin")} disabled={bulkSaving} /><AdminField label="First departure time" icon="routeInput" type="time" min="03:30" max="19:30" step="1800" value={bulkForm.startTime} onChange={updateBulkForm("startTime")} required disabled={bulkSaving} /><AdminField label="Departure interval (minutes)" icon="routeInput" type="number" min="30" max="360" step="30" value={bulkForm.interval} onChange={updateBulkForm("interval")} required disabled={bulkSaving} /></div>
+                <div className="staff-details-grid"><AdminField label="First departure starts from" icon="routeInput" options={locations} value={bulkForm.origin} onChange={updateBulkForm("origin")} disabled={bulkSaving} /><AdminField label="First departure time" icon="routeInput" type="time" step="60" value={bulkForm.startTime} onChange={updateBulkForm("startTime")} required disabled={bulkSaving} /><AdminField label="Departure interval (minutes)" icon="routeInput" type="number" min="1" max="360" step="1" value={bulkForm.interval} onChange={updateBulkForm("interval")} required disabled={bulkSaving} /></div>
                 <p>After each crossing, the next trip departs in the opposite direction. The selected start port determines the ferry’s first direction for this date.</p>
                 <div className="admin-desktop-editor-actions"><AdminButton type="submit" disabled={bulkSaving}>{bulkSaving ? "Generating…" : "Generate trips"}</AdminButton><AdminButton variant="secondary" disabled={bulkSaving} onClick={() => setBulkOpen(false)}>Cancel</AdminButton></div>
             </form>
@@ -305,10 +303,10 @@ export function AdminTripEditor() {
         <AdminPanel><form className="staff-form-stack" onSubmit={save}>
             <AdminHeading title="Schedule information" detail={isNew ? "New departure" : `Trip ${tripLabel(existing)}`} />
             <AdminNotice error>{error}</AdminNotice>
-            <AdminField label="Vessel" icon="ticketInput" placeholder="Enter vessel name" value={form.vesselName} onChange={change("vesselName")} required disabled={saving} maxLength={100} />
+            <AdminField label="Vessel" icon="ticketInput" value={form.vesselName} onChange={change("vesselName")} options={["MV Halili", "MV FastCraft", "MV Felipe"]} required disabled={saving} />
             <div className="staff-details-grid"><AdminField label="Origin" icon="routeInput" options={locations} value={form.origin} onChange={change("origin")} disabled={saving} /><AdminField label="Destination" icon="routeInput" options={locations} value={form.destination} onChange={change("destination")} disabled={saving} /></div>
             <AdminField label="Travel date" icon="routeInput" type="date" value={form.date} onChange={change("date")} required disabled={saving} />
-            <div className="staff-details-grid"><AdminField label="Departure" icon="routeInput" type="time" min="03:30" max="19:30" step="1800" value={form.departureTime} onChange={change("departureTime")} required disabled={saving} /><AdminField label="Arrival" icon="routeInput" type="time" min="04:00" max="20:00" step="1800" value={form.arrivalTime} onChange={change("arrivalTime")} required disabled={saving} /></div>
+            <div className="staff-details-grid"><AdminField label="Departure" icon="routeInput" type="time" step="60" value={form.departureTime} onChange={change("departureTime")} required disabled={saving} /><AdminField label="Arrival" icon="routeInput" type="time" step="60" value={form.arrivalTime} onChange={change("arrivalTime")} required disabled={saving} /></div>
             <hr /><div className="admin-desktop-editor-actions"><AdminButton type="submit" disabled={saving}>{saving ? "Saving…" : "Save trip"}</AdminButton><AdminButton variant="secondary" disabled={saving} onClick={() => navigate(`${basePath}/schedules`)}>Cancel</AdminButton></div>
         </form></AdminPanel>
         <AdminPanel><h2>Trip capacity</h2><small>{isNew ? "Follows the selected service configuration" : "Configured for this service"}</small>
@@ -320,27 +318,33 @@ export function AdminTripEditor() {
 }
 
 export function AdminTickets() {
-    const { statistics: s, selectedTrip: trip, basePath } = useAdminWorkspace();
+    const { statistics: s, selectedTrip: trip, basePath, bookings } = useAdminWorkspace();
     const navigate = useNavigate();
     const [query, setQuery] = useState("");
+    const [searchedQuery, setSearchedQuery] = useState(null);
     const [id, setId] = useState("");
-    const rows = s.paid.filter(b => matchesSearch(query, b.passengerName, b.bookingReference, ...passengerNames(b)));
+    const rows = searchedQuery
+        ? bookings.filter(b => matchesSearch(searchedQuery, b.passengerName, b.bookingReference, b.queueNumber, ...passengerNames(b)))
+        : s.records;
     const page = usePage(rows, 6);
     const ticket = rows.find(b => b._id === id) || rows[0];
-    return <><TripBanner /><div className="staff-two-panels">
-        <AdminPanel><AdminHeading title="Paid tickets" detail={`Showing ${countLabel(rows.length, "ticket record")}`} />
-            <AdminField label="Search tickets" icon="ticketInput" type="search" placeholder="Search ticket ID or passenger name" value={query} onChange={e => { setQuery(e.target.value); page.setPage(0); }} />
-            <AdminTable label="Paid tickets" className="admin-desktop-ticket-table" columns={columns([["Passenger / ticket", 38], ["Source", 18], ["Travelers", 23], ["Payment", 21]])} empty={!rows.length && "No paid tickets match your search."}>
-                {page.rows.map(b => <tr key={b._id} data-selected={b._id === ticket?._id} onClick={() => setId(b._id)}><td><button type="button" className="admin-desktop-row-button" aria-label={`View ticket ${b.bookingReference}`} aria-pressed={b._id === ticket?._id} onClick={() => setId(b._id)}><strong>{b.passengerName}</strong><small>{b.bookingReference}</small></button></td><AdminCell label={sourceLabel(b)} /><AdminCell label={countLabel(passengerCount(b), "passenger")} detail={hasMotorcycle(b) ? "1 motorcycle" : "No motorcycle"} /><td><AdminStatus>Paid</AdminStatus></td></tr>)}
+    return <><TripBanner />{searchedQuery && <AdminNotice>Search results check all trips. The trip details are shown with each booking.</AdminNotice>}<div className="staff-two-panels">
+        <AdminPanel><AdminHeading title="Ticket records" detail={`Showing ${countLabel(rows.length, "booking record")}`} />
+            <form className="admin-ticket-search" onSubmit={event => { event.preventDefault(); setId(""); setSearchedQuery(query.trim()); page.setPage(0); }}>
+                <AdminField label="Search tickets" icon="ticketInput" type="search" placeholder="Search ticket ID or passenger name" value={query} onChange={e => setQuery(e.target.value)} />
+                <AdminButton type="submit" variant="secondary">Search</AdminButton>
+            </form>
+            <AdminTable label="Ticket records" className="admin-desktop-ticket-table" columns={columns([["Passenger / ticket", 38], ["Source", 18], ["Travelers", 23], ["Payment", 21]])} empty={!rows.length && (searchedQuery ? "No booking record matches this search across all trips." : "No booking records match the selected trip.")}>
+                {page.rows.map(b => <tr key={b._id} data-selected={b._id === ticket?._id} onClick={() => setId(b._id)}><td><button type="button" className="admin-desktop-row-button" aria-label={`View ticket ${b.bookingReference}`} aria-pressed={b._id === ticket?._id} onClick={() => setId(b._id)}><strong>{b.passengerName}</strong><small>{b.bookingReference}{b.queueNumber ? ` · ${b.queueNumber}` : ""}{searchedQuery ? ` · ${b.vesselName || b.ferryName || "Ferry"} · ${b.date || ""} · ${formatTime(b.time || b.departureTime)}` : ""}</small></button></td><AdminCell label={sourceLabel(b)} /><AdminCell label={countLabel(passengerCount(b), "passenger")} detail={hasMotorcycle(b) ? "1 motorcycle" : "No motorcycle"} /><AdminCell label={b.status === "CANCELLED" ? "Cancelled" : paymentState(b)} /> </tr>)}
             </AdminTable>{rows.length > 6 && <Pagination page={page} />}
         </AdminPanel>
         <AdminPanel>{ticket ? <>
-            <div className="staff-section-heading"><h2>{ticket.bookingReference}</h2><AdminStatus>Paid</AdminStatus></div>
-            <AdminDetail label="Ticket holder">{ticket.passengerName}</AdminDetail><AdminDetail label="Route & departure">{trip?.route} · {formatTime(trip?.departureTime)}</AdminDetail><hr />
+            <div className="staff-section-heading"><h2>{ticket.bookingReference}</h2><AdminStatus>{ticket.status === "CANCELLED" ? "Cancelled" : paymentState(ticket)}</AdminStatus></div>
+            <AdminDetail label="Ticket holder">{ticket.passengerName}</AdminDetail><AdminDetail label="Route & departure">{ticket.origin} → {ticket.destination} · {formatTime(ticket.time || ticket.departureTime)}</AdminDetail><AdminDetail label="Ferry & date">{ticket.vesselName || ticket.ferryName || trip?.vesselName} · {ticket.date}</AdminDetail><hr />
             <AdminDetail label="Passengers">{passengerNames(ticket).join(" · ")}</AdminDetail><AdminDetail label="Motorcycle">{hasMotorcycle(ticket) ? [ticket.motorcycleModel || "Motorcycle", ticket.plateNumber].filter(Boolean).join(" · ") : "Passenger only"}</AdminDetail>
-            <AdminDetail label="Payment">{money(paymentAmount(ticket))} · {ticket.paymentMethod}</AdminDetail><AdminDetail label="Boarding status">{boardingState(ticket) === "Ready" ? "Awaiting boarding" : boardingState(ticket)}</AdminDetail>
+            <AdminDetail label="Queue number">{ticket.queueNumber || "Not assigned yet"}</AdminDetail><AdminDetail label="Payment">{money(paymentAmount(ticket))} · {ticket.paymentMethod}</AdminDetail><AdminDetail label="Boarding status">{boardingState(ticket) === "Ready" ? ticket.paymentStatus === "VERIFIED" ? "Awaiting boarding" : "Not ready until payment is confirmed" : boardingState(ticket)}</AdminDetail>
             <AdminButton variant="secondary" onClick={() => navigate(`${basePath}/bookings?booking=${encodeURIComponent(ticket._id)}`)}>View passenger details</AdminButton><AdminButton variant="secondary" onClick={() => navigate(`${basePath}/payments?payment=${encodeURIComponent(ticket._id)}`)}>View payment</AdminButton>
-        </> : <><h2>Ticket details</h2><p>Select a paid ticket to view its details.</p></>}</AdminPanel>
+        </> : <><h2>Ticket details</h2><p>Select a booking record to view its details.</p></>}</AdminPanel>
     </div></>;
 }
 
@@ -348,13 +352,13 @@ export function AdminPassengers() {
     const { statistics: s, selectedTrip: trip, basePath } = useAdminWorkspace();
     const navigate = useNavigate();
     const [query, setQuery] = useState("");
-    const rows = passengerRows(s.paid).filter(({ booking: b, name }) => matchesSearch(query, name, b.bookingReference, b.plateNumber));
+    const rows = passengerRows(s.records).filter(({ booking: b, name }) => matchesSearch(query, name, b.bookingReference, b.plateNumber, b.queueNumber));
     const page = usePage(rows, 8);
     return <><TripBanner /><AdminPanel>
-        <AdminHeading title="Passenger manifest" detail={`${s.paidPassengers} paid passengers · ${s.motorcycles} motorcycles`}><AdminButton variant="secondary" onClick={() => navigate(`${basePath}/boarding`)}>Boarding records</AdminButton></AdminHeading>
+        <AdminHeading title="Passenger records" detail={`${passengerRows(s.records).length} passengers on this trip · ${s.paidPassengers} paid`}><AdminButton variant="secondary" onClick={() => navigate(`${basePath}/boarding`)}>Boarding records</AdminButton></AdminHeading>
         <AdminField label="Search passengers" icon="user" type="search" placeholder="Search name, ticket ID or plate number" value={query} onChange={e => { setQuery(e.target.value); page.setPage(0); }} />
-        <AdminTable label="Passenger manifest" className="admin-desktop-wide-table" columns={columns([["Passenger", 21], ["Ticket ID", 15], ["Motorcycle", 24], ["Source", 12], ["Trip", 15], ["Boarding", 13]])} empty={!rows.length && "No paid passengers match your search."}>
-            {page.rows.map(({ booking: b, name, index, role }) => <tr key={`${b._id}-${index}`}><AdminCell label={name} detail={role} /><AdminCell label={b.bookingReference} /><AdminCell label={hasMotorcycle(b) ? index ? `With ${b.passengerName}` : b.motorcycleModel || "Motorcycle" : "—"} detail={hasMotorcycle(b) ? b.plateNumber : "Passenger only"} /><AdminCell label={sourceLabel(b)} /><AdminCell label={tripLabel(trip)} /><td>{boardingState(b) === "Boarded" ? <AdminStatus>Boarded</AdminStatus> : <><strong>Awaiting</strong><small>Paid ticket</small></>}</td></tr>)}
+        <AdminTable label="Passenger records" className="admin-desktop-wide-table" columns={columns([["Passenger", 19], ["Ticket ID", 15], ["Motorcycle", 22], ["Source", 11], ["Trip", 13], ["Payment", 10], ["Boarding", 10]])} empty={!rows.length && "No passengers match this trip and search."}>
+            {page.rows.map(({ booking: b, name, index, role }) => <tr key={`${b._id}-${index}`}><AdminCell label={name} detail={role} /><AdminCell label={b.bookingReference} /><AdminCell label={hasMotorcycle(b) ? index ? `With ${b.passengerName}` : b.motorcycleModel || "Motorcycle" : "—"} detail={hasMotorcycle(b) ? b.plateNumber : "Passenger only"} /><AdminCell label={sourceLabel(b)} /><AdminCell label={tripLabel(trip)} /><AdminCell label={b.status === "CANCELLED" ? "Cancelled" : paymentState(b)} /><AdminCell label={boardingState(b) === "Boarded" ? "Boarded" : b.paymentStatus === "VERIFIED" ? "Awaiting boarding" : "Not ready"} /></tr>)}
         </AdminTable><Pagination page={page} /><small>Accompanying passengers share the ticket holder's ticket.</small>
     </AdminPanel></>;
 }
@@ -363,7 +367,7 @@ export function AdminPayments() {
     const { statistics: s, selectedTrip: trip, basePath, preview, bookings } = useAdminWorkspace();
     const navigate = useNavigate();
     const [params, setParams] = useSearchParams();
-    const [scope, setScope] = useState("trip");
+    const [scope, setScope] = useState("all");
     const payment = bookings.find(b => b._id === params.get("payment"));
     const rows = scope === "all" ? bookings : s.records;
     const revenue = rows.filter(isPaid).reduce((total, booking) => total + paymentAmount(booking), 0);
@@ -379,7 +383,6 @@ export function AdminPayments() {
         </div>
         <AdminPanel><AdminHeading title="Transactions" detail={scope === "all" ? "All passenger payment attempts across all trips" : `Selected trip · ${tripLabel(trip)}`}>
             <div className="staff-actions">
-                <AdminButton variant={scope === "trip" ? undefined : "secondary"} onClick={() => setScope("trip")}>Selected trip</AdminButton>
                 <AdminButton variant={scope === "all" ? undefined : "secondary"} onClick={() => setScope("all")}>All payments</AdminButton>
                 {!preview && <AdminButton variant="secondary" onClick={() => navigate(`${basePath}/payment-verification`)}>Review pending payments</AdminButton>}
                 <AdminButton variant="secondary" onClick={() => navigate(`${basePath}/tickets`)}>Ticket records</AdminButton>

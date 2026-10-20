@@ -40,9 +40,16 @@ export function ClientLogin() {
                 }
             });
 
-            sessionStorage.setItem('token', data.token);
             localStorage.removeItem('token');
             localStorage.removeItem('user');
+            sessionStorage.removeItem('token');
+            if (data.token) {
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.removeItem('ggo-cookie-session');
+            } else {
+                sessionStorage.setItem('ggo-cookie-session', 'active');
+                sessionStorage.removeItem('token');
+            }
 
             let person = {};
 
@@ -68,6 +75,8 @@ export function ClientLogin() {
                 <h1>Welcome back</h1>
                 <p>Log in to book your next ferry trip.</p>
             </div>
+
+            {c.error && <p className="ggo-auth-error" role="alert">{c.error}</p>}
 
             <form className="ggo-form" onSubmit={submit}>
                 <Field
@@ -200,7 +209,7 @@ export function ClientRegister() {
                 throw new Error('Please enter a valid age from 0 to 120.');
             }
 
-            if (c.preview && eligible && !f.idPhoto) {
+            if (eligible && !f.idPhoto) {
                 c.setPhotoReturn('register');
                 c.go('id-required');
                 return;
@@ -243,7 +252,11 @@ export function ClientRegister() {
                         fullName: f.fullName.trim(),
                         email: f.email.trim(),
                         phoneNumber: `+63${f.phoneNumber}`,
-                        password: f.password
+                        password: f.password,
+                        age: Number(f.age),
+                        gender: f.gender,
+                        category: f.category,
+                        discountIdPhoto: f.idPhoto
                     }
                 });
 
@@ -341,26 +354,12 @@ export function ClientRegister() {
                             the discount applies.
                         </small>
 
-                        {c.preview ? (
-                            <>
-                                <p className="ggo-accent">
-                                    {f.idPhoto
-                                        ? 'ID photo attached'
-                                        : 'ID photo required'}
-                                </p>
-
-                                <Button onClick={takePhoto}>
-                                    {f.idPhoto
-                                        ? 'Retake ID photo'
-                                        : 'Take ID photo'}
-                                </Button>
-                            </>
-                        ) : (
-                            <p>
-                                Discount verification is not available yet.
-                                Your account can use the regular fare.
-                            </p>
-                        )}
+                        <p className="ggo-accent">
+                            {f.idPhoto ? 'ID photo attached' : 'ID photo required'}
+                        </p>
+                        <Button onClick={takePhoto}>
+                            {f.idPhoto ? 'Retake ID photo' : 'Upload ID photo'}
+                        </Button>
                     </Panel>
                 )}
 

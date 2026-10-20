@@ -23,7 +23,7 @@ export const createStaffPreviewApi = () => {
     const schedules = [
         { id: "preview-iloilo", vesselName: "MV Halili", route: "Iloilo → Guimaras", departureTime: "09:30", arrivalTime: "10:00", passengerCapacity: 100, motorcycleCapacity: 10, walkInMotorcycleCapacity: 2 },
         { id: "preview-guimaras", vesselName: "MV Halili", route: "Guimaras → Iloilo", departureTime: "10:15", arrivalTime: "10:45", passengerCapacity: 100, motorcycleCapacity: 10, walkInMotorcycleCapacity: 2 },
-        ...["Felipe III", "Lite Ferry 22"].map((vesselName, i) => ({ id: `preview-vessel-${i}`, vesselName, route: "Iloilo → Guimaras", departureTime: "09:30", arrivalTime: "10:00", passengerCapacity: 100, motorcycleCapacity: 10, walkInMotorcycleCapacity: 2 }))
+
     ];
     const base = {
         date: initialDate, origin: "Iloilo", destination: "Guimaras", time: "09:30", vesselName: "MV Halili",

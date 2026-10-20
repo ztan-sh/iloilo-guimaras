@@ -30,7 +30,7 @@ export function ProfileAvatar() {
     const c = useClient();
     const [failed, setFailed] = useState(false);
     const savedPhoto = c.user?.profilePhoto || c.user?.profilePicture || c.user?.profileImage || c.user?.avatarUrl || c.user?.photoURL || c.user?.imageUrl || c.user?.avatar || c.user?.photo || '';
-    const apiRoot = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+    const apiRoot = (import.meta.env.VITE_API_BASE_URL || 'https://iloilo-guimaras.onrender.com/api').replace(/\/api\/?$/, '');
     const photo = savedPhoto ? (/^https?:\/\/|^data:image\//i.test(savedPhoto) ? savedPhoto : `${apiRoot}/${String(savedPhoto).replace(/^\/+/, '')}`) : '';
     useEffect(() => setFailed(false), [photo]);
     return <Link aria-label="Open profile" className="ggo-toolbar-profile" to={c.href('profile')}><span className="ggo-toolbar-avatar">{photo && !failed ? <img src={photo} alt={`${c.user?.fullName || 'Your'} profile`} onError={() => setFailed(true)} /> : <Art file="avatar-sarah.png" alt="Profile" />}</span></Link>;

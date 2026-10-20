@@ -11,7 +11,7 @@ const MayaPayment = () => {
 
     const API_URL =
         (import.meta.env.VITE_API_BASE_URL ||
-            "http://localhost:5000/api").replace(
+            "https://iloilo-guimaras.onrender.com/api").replace(
                 /\/api\/?$/,
                 ""
             );
@@ -659,6 +659,9 @@ const MayaPayment = () => {
                     `${API_URL}/api/payment/upload-proof`,
                     {
                         method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${getAuthToken()}`
+                        },
 
                         body:
                             formData

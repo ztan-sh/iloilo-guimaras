@@ -62,7 +62,7 @@ const createWalkInTicket = async (req, res) => {
             // retried transaction recalculates capacity from its new snapshot.
             const trip = await FerrySchedule.findOneAndUpdate(
                 { _id: body.tripId, active: { $ne: false } },
-                { $inc: { staffSalesVersion: 1 } }, { new: true, session }
+                { $inc: { staffSalesVersion: 1, queueCounter: 1 } }, { new: true, session }
             );
             if (!trip || trip.date !== manilaDate()) throw Object.assign(new Error("Select an active departure for today."), { status: 400 });
             const departure = new Date(`${trip.date}T${trip.departureTime}:00+08:00`);
@@ -79,6 +79,7 @@ const createWalkInTicket = async (req, res) => {
             const [origin, destination] = trip.route.split(/\s*→\s*/);
             [booking] = await Booking.create([{
                 _id: body.saleId, bookingReference: `GG-W-${randomUUID().slice(0, 8).toUpperCase()}`,
+                queueNumber: `MT-${String(trip.queueCounter).padStart(2, "0")}`,
                 origin, destination, date: normalizeDate(trip.date), time: trip.departureTime,
                 departureTime: trip.departureTime, ferryId: String(trip._id), ferryName: trip.vesselName, vesselName: trip.vesselName,
                 passengerName, passengers, accompanyingPassengers: companions,

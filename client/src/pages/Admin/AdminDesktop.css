@@ -24,6 +24,9 @@
 .admin-desktop-ticket-table { min-width: 540px; }
 .admin-desktop-row-button { display: block; width: 100%; border: 0; border-radius: 6px; padding: 0; text-align: left; color: inherit; background: transparent; cursor: pointer; }
 .admin-desktop-row-button:hover strong { color: var(--staff-paid); }
+.admin-ticket-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; margin: 12px 0 20px; }
+.admin-ticket-search .staff-field { margin: 0; }
+.admin-ticket-search > .staff-button { min-width: 120px; }
 .admin-desktop .admin-desktop-table tbody tr:has(.admin-desktop-row-button):hover { background: var(--staff-aqua); }
 .admin-desktop-table-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .admin-desktop-table-footer > .staff-button { width: 196px; }
@@ -521,6 +524,8 @@
     .admin-desktop .staff-metric { min-width: 0; min-height: 120px; padding: 16px; }
     .admin-desktop .staff-metric > strong { font-size: clamp(24px, 6vw, 32px); line-height: 1.2; white-space: normal; overflow-wrap: anywhere; }
     .admin-desktop .staff-two-panels { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .admin-ticket-search { grid-template-columns: minmax(0, 1fr); }
+    .admin-ticket-search > .staff-button { width: 100%; }
     .admin-desktop .staff-panel { min-width: 0; padding: clamp(14px, 4vw, 20px); }
     .admin-desktop .staff-section-heading { align-items: stretch; flex-direction: column; }
     .admin-desktop .staff-section-heading > .staff-button { width: 100%; }
