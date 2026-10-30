@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Booking = require("../models/Booking");
 const FerrySchedule = require("../models/FerrySchedule");
+const Notification = require("../models/Notification");
 const { manilaDate, belongsToTrip } = require("../utils/staffTrip");
 const { recordActivity } = require("../utils/activityAudit");
 
@@ -98,6 +99,20 @@ const rejectBoarding = async (req, res) => {
         if (!booking) return;
         const updated = await Booking.findOneAndUpdate({ _id: booking._id, boardingStatus: { $nin: ["ON BOARD", "REJECTED"] } }, { $set: { boardingStatus: "REJECTED", status: "CANCELLED", rejectionReason: reason.trim(), rejectedAt: new Date() } }, { new: true, runValidators: true });
         if (!updated) return res.status(409).json({ success: false, message: "This ticket has already been boarded or rejected.", booking: await Booking.findById(booking._id) });
+        if (updated.userId) {
+            try {
+                await Notification.create({
+                    userId: updated.userId,
+                    bookingId: updated._id,
+                    bookingReference: updated.bookingReference || updated._id.toString(),
+                    type: "BOARDING_REJECTED",
+                    title: "Boarding rejected",
+                    message: `Boarding for booking ${updated.bookingReference || ""} was rejected. Reason: ${reason.trim()}`
+                });
+            } catch (notificationError) {
+                console.error("Create boarding rejection notification error:", notificationError);
+            }
+        }
         req.auditLogged = true;
         await recordActivity({ req, actorRole: "staff", actorId: req.staff.staffId, actorName: req.staff.name, actorEmail: req.staff.email,
             action: "Rejected ticket for boarding", summary: `${req.staff.name} rejected ${updated.passengerName} on ticket ${updated.bookingReference}`,

@@ -40,11 +40,13 @@ export function ClientLogin() {
                 }
             });
 
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            sessionStorage.removeItem('token');
+            for (const storage of [localStorage, sessionStorage]) {
+                storage.removeItem('token');
+                storage.removeItem('user');
+            }
             if (data.token) {
-                sessionStorage.setItem('token', data.token);
+                // Keep passenger sign-in across app closes/restarts.
+                localStorage.setItem('token', data.token);
                 sessionStorage.removeItem('ggo-cookie-session');
             } else {
                 sessionStorage.setItem('ggo-cookie-session', 'active');
@@ -428,6 +430,7 @@ export function ClientRegister() {
                         </label>
 
                         <div className="ggo-input ggo-phone-input">
+                            <Icon name="phone" />
                             <span className="ggo-phone-prefix">+63</span>
 
                             <input
@@ -520,6 +523,8 @@ export function ClientReset() {
                         <Icon name="check" />
                     </span>
                 )}
+
+                {c.error && <p className="ggo-auth-error" role="alert">{c.error}</p>}
 
                 <h1>
                     {complete

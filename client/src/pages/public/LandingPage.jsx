@@ -9,6 +9,7 @@ import {
     FiChevronLeft,
     FiChevronRight,
     FiMapPin,
+    FiMail,
     FiStar,
     
 } from "react-icons/fi";
@@ -1335,7 +1336,7 @@ const LandingPage = () => {
 
                 .gg-footer-grid {
                     display: grid;
-                    grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;
+                    grid-template-columns: 1.5fr 1fr 1fr 1fr;
                     gap: 35px;
                     padding-bottom: 50px;
                 }
@@ -1344,6 +1345,14 @@ const LandingPage = () => {
                     width: 78px;
                     height: 60px;
                     object-fit: contain;
+                }
+
+                .gg-footer-logo {
+                    display: block;
+                    padding: 0;
+                    border: 0;
+                    background: transparent;
+                    cursor: pointer;
                 }
 
                 .gg-footer-brand p {
@@ -1396,6 +1405,13 @@ const LandingPage = () => {
                     align-items: center;
                     justify-content: center;
                     color: rgba(255,255,255,.75);
+                    text-decoration: none;
+                    cursor: pointer;
+                }
+
+                .gg-footer-social:hover {
+                    color: var(--gg-orange);
+                    border-color: var(--gg-orange);
                 }
 
                 .gg-footer-bottom {
@@ -1810,14 +1826,14 @@ const LandingPage = () => {
                                     className="gg-primary-cta"
                                     onClick={goToLogin}
                                 >
-                                    Book your trip
+                                    Sign in as Passenger
                                     <FiArrowRight size={17} />
                                 </button>
 
                                 <button
                                     type="button"
                                     className="gg-outline-cta"
-                                    onClick={() => scrollToSection("about")}
+                                    onClick={() => scrollToSection("how-it-works")}
                                 >
                                     Explore
                                     <FiArrowDown size={15} />
@@ -2047,28 +2063,26 @@ const LandingPage = () => {
                     <div className="gg-inner">
                         <div className="gg-footer-grid">
                             <div className="gg-footer-brand">
-                                <img
-                                    src="/images/guimarasgo-logo.png"
-                                    alt="GuimarasGo"
-                                />
+                                <button
+                                    type="button"
+                                    className="gg-footer-logo"
+                                    aria-label="GuimarasGo logo on the landing page"
+                                    disabled
+                                >
+                                    <img src="/images/guimarasgo-logo.png" alt="GuimarasGo" />
+                                </button>
                                 <p>
                                     A digital ferry ticketing experience for travel
                                     between Iloilo and Guimaras.
                                 </p>
 
                                 <div className="gg-footer-socials">
-                                    <span className="gg-footer-social">f</span>
-                                    <span className="gg-footer-social">◎</span>
+                                    <a className="gg-footer-social" href="https://www.facebook.com/share/1CKbHZeaEW/" target="_blank" rel="noreferrer" aria-label="GuimarasGo on Facebook">f</a>
+                                    <a className="gg-footer-social" href="mailto:guimarasgo2026@gmail.com" aria-label="Email GuimarasGo Support"><FiMail size={16} /></a>
                                 </div>
                             </div>
                             <div>
                                 <div className="gg-footer-title">Explore</div>
-                                <button
-                                    className="gg-footer-link"
-                                    onClick={() => scrollToSection("about")}
-                                >
-                                    Contact Us
-                                </button>
                                 <button
                                     className="gg-footer-link"
                                     onClick={goToLogin}
@@ -2079,15 +2093,13 @@ const LandingPage = () => {
 
                             <div>
                                 <div className="gg-footer-title">Location</div>
-                                <span className="gg-footer-link">Iloilo</span>
-                                <span className="gg-footer-link">Guimaras</span>
-                                <span className="gg-footer-link">Philippines</span>
+                                <a className="gg-footer-link" href="https://maps.app.goo.gl/Wei5CvfUZ5tTLAaR8" target="_blank" rel="noreferrer">Iloilo City, Philippines</a>
+                                <a className="gg-footer-link" href="https://maps.app.goo.gl/zLfUps56E92uXtcm9" target="_blank" rel="noreferrer">Guimaras, Philippines</a>
                             </div>
 
                             <div>
                                 <div className="gg-footer-title">Contact</div>
-                                <span className="gg-footer-link">GuimarasGo Support</span>
-                                <span className="gg-footer-link">Online booking assistance</span>
+                                <a className="gg-footer-link" href="mailto:guimarasgo2026@gmail.com">GuimarasGo Support</a>
                             </div>
                         </div>
 

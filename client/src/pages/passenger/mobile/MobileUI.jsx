@@ -12,12 +12,15 @@ export function Art({ file, className = '', alt = '', style, ...props }) {
 const icons = { user: '53aa8.svg', mail: '0ae68.svg', lock: '3a2e4.svg', eye: 'd7cb3.svg', back: '43307.svg', chevron: '552c0.svg', pencil: '02ad5.svg', ticket: '83e1d.svg', card: 'f3a7d.svg', bell: 'bac49.svg', moon: '7469c.svg', language: '7f588.svg', check: 'de98c.svg' };
 // Auth icon file names vary between exported frames; these are the original
 // profile-input exports, shared by the login, registration and edit forms.
-export function Icon({ name }) { return <span className="ggo-icon"><Art file={icons[name]} /></span>; }
-export function Brand({ route = false }) { return <div className="ggo-brand"><span className="ggo-brand-logo"><Art file="fe28f.svg" /></span><div><strong>Guimaras Go</strong>{route && <small>Iloilo ↔ Guimaras</small>}</div></div>; }
+export function Icon({ name }) {
+    if (name === 'phone') return <span className="ggo-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7 3h3l1.5 4-2 1.5a14 14 0 0 0 6 6L17 13l4 1.5v3A2.5 2.5 0 0 1 18.5 20C10.5 19.5 4.5 13.5 4 5.5A2.5 2.5 0 0 1 7 3Z" /></svg></span>;
+    return <span className="ggo-icon"><Art file={icons[name]} /></span>;
+}
+export function Brand({ route = false }) { return <Link className="ggo-brand" to="/" aria-label="Return to GuimarasGo landing page"><span className="ggo-brand-logo"><Art file="fe28f.svg" /></span><div><strong>Guimaras Go</strong>{route && <small>Iloilo ↔ Guimaras</small>}</div></Link>; }
 export function Button({ children, secondary = false, orange = false, className = '', ...props }) { return <button type="button" className={`ggo-button ${secondary ? 'ggo-secondary' : ''} ${orange ? 'ggo-orange' : ''} ${className}`} {...props}>{children}</button>; }
 export function Field({ label, icon, type = 'text', hint, labelAction, ...props }) {
     const id = useId(); const [visible, setVisible] = useState(false);
-    return <div className="ggo-field"><div className="ggo-field-label"><label htmlFor={id}>{label}</label>{labelAction}</div><div className="ggo-input">{icon && <Icon name={icon} />}<input id={id} type={type === 'password' && visible ? 'text' : type} {...props} />{type === 'password' && <button type="button" aria-label={visible ? 'Hide password' : 'Show password'} onClick={() => setVisible(v => !v)}><Art file="d7cb3.svg" /></button>}</div>{hint && <small>{hint}</small>}</div>;
+    return <div className="ggo-field"><div className="ggo-field-label"><label htmlFor={id}>{label}</label>{labelAction}</div><div className="ggo-input">{icon && <Icon name={icon} />}<input id={id} type={type === 'password' && visible ? 'text' : type} {...props} />{type === 'password' && <button className="ggo-password-visibility" type="button" aria-label={visible ? 'Hide password' : 'Show password'} aria-pressed={visible} title={visible ? 'Hide password' : 'Show password'} onClick={() => setVisible(v => !v)}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{visible ? <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></> : <><path d="m3 3 18 18"/><path d="M10.6 5.1A9.8 9.8 0 0 1 12 5c6.4 0 10 7 10 7a16.7 16.7 0 0 1-3 3.8M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 4-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></>}</svg></button>}</div>{hint && <small>{hint}</small>}</div>;
 }
 export function Gender({ value, onChange }) {
     const id = useId(); const [open, setOpen] = useState(false);

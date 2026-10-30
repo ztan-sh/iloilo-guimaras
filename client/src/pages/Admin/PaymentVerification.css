@@ -1050,3 +1050,5 @@
         align-self: flex-start;
     }
 }
+.payment-rejection-reason { display:flex; flex-direction:column; gap:8px; margin:14px 0; color:var(--ink, #192729); font-size:14px; font-weight:600; }
+.payment-rejection-reason textarea { width:100%; min-height:92px; resize:vertical; padding:12px; border:1px solid #d8d4cc; border-radius:12px; background:#fff; color:#192729; font:inherit; font-weight:400; }

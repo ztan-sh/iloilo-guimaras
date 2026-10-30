@@ -1456,6 +1456,11 @@ const rejectPayment = async (req, res) => {
         }
 
 
+        const reason = String(req.body?.reason || "").trim();
+        if (!reason || reason.length > 1000) {
+            return res.status(400).json({ success: false, message: "Enter a rejection reason of 1–1,000 characters." });
+        }
+
         // =================================================
         // PREVENT DUPLICATE PROCESSING
         // =================================================
@@ -1490,12 +1495,13 @@ const rejectPayment = async (req, res) => {
         booking.totalPaid =
             null;
 
+        booking.rejectionReason = reason;
+
 
         await booking.save();
 
         req.auditLogged = true;
         const admin = req.admin || {};
-        const reason = String(req.body?.reason || "").trim();
         await recordActivity({
             req,
             actorRole: "admin",
@@ -1518,6 +1524,21 @@ const rejectPayment = async (req, res) => {
                 ...(reason ? { reason } : {})
             }
         });
+
+        if (booking.userId) {
+            try {
+                await Notification.create({
+                    userId: booking.userId,
+                    bookingId: booking._id,
+                    bookingReference: booking.bookingReference || booking._id.toString(),
+                    type: "PAYMENT_REJECTED",
+                    title: "Payment rejected",
+                    message: `Your payment for booking ${booking.bookingReference || ""} was rejected. Reason: ${reason}`
+                });
+            } catch (notificationError) {
+                console.error("Create payment rejection notification error:", notificationError);
+            }
+        }
 
 
         return res.status(200).json({

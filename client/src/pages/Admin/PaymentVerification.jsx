@@ -79,6 +79,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
     const [selectedPayment, setSelectedPayment] = useState(null);
     const [confirmAction, setConfirmAction] = useState(null);
     const [processing, setProcessing] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
 
     // Browser admin sessions use HttpOnly cookies. Only native clients need
     // the bearer token returned by the mobile login flow.
@@ -392,6 +393,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
         setConfirmAction(action);
         setShowConfirmModal(true);
         setError("");
+        setRejectionReason("");
     };
 
     /* =========================================================
@@ -414,7 +416,8 @@ const PaymentVerification = ({ onPendingCountChange }) => {
 
     const processPayment = async (
         payment,
-        action
+        action,
+        reason = ""
     ) => {
         const paymentId =
             getPaymentId(payment);
@@ -457,6 +460,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                         "Content-Type":
                             "application/json",
                     },
+                    ...(action === "reject" ? { body: JSON.stringify({ reason }) } : {}),
                 }
             );
 
@@ -522,11 +526,13 @@ const PaymentVerification = ({ onPendingCountChange }) => {
     ========================================================= */
 
     const handleRejectPayment = (
-        payment
+        payment,
+        reason
     ) => {
         processPayment(
             payment,
-            "reject"
+            "reject",
+            reason
         );
     };
 
@@ -1226,6 +1232,13 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                                     : "Are you sure you want to approve this payment?"}
                             </p>
 
+                            {confirmAction === "reject" && (
+                                <label className="payment-rejection-reason">
+                                    Reason for rejection
+                                    <textarea value={rejectionReason} onChange={event => setRejectionReason(event.target.value)} maxLength={1000} rows={4} required placeholder="Explain why this payment cannot be approved" />
+                                </label>
+                            )}
+
                             <div className="selected-reference">
 
                                 <span>
@@ -1264,7 +1277,7 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                                             : "modal-confirm success"
                                     }
                                     disabled={
-                                        processing
+                                        processing || (confirmAction === "reject" && !rejectionReason.trim())
                                     }
                                     onClick={() => {
 
@@ -1273,7 +1286,8 @@ const PaymentVerification = ({ onPendingCountChange }) => {
                                             "reject"
                                         ) {
                                             handleRejectPayment(
-                                                selectedPayment
+                                                selectedPayment,
+                                                rejectionReason.trim()
                                             );
                                         } else {
                                             handleVerifyPayment(

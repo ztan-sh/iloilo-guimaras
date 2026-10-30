@@ -49,16 +49,27 @@ export default function Navbar({ onSectionSelect, treatment = 'on-dark' }) {
         return () => cancelAnimationFrame(frame);
     }, [portalOpen]);
 
-    const selectSection = id => {
+    const selectSection = (id, event) => {
         setMobileMenuOpen(false);
-        if (location.pathname === '/') onSectionSelect?.(id);
+        if (location.pathname === '/') {
+            event?.preventDefault();
+            onSectionSelect?.(id);
+        }
     };
     const closePortal = () => setPortalOpen(false);
+    const isLandingPage = location.pathname === '/';
+    const handleBrandClick = event => {
+        if (isLandingPage) {
+            event.preventDefault();
+            return;
+        }
+        setMobileMenuOpen(false);
+    };
 
     return <>
         <header className={`website-navigation website-navigation-${treatment}`}>
             <nav ref={navRef} className="website-nav" aria-label="Main navigation">
-                <Link className="website-nav-brand" to="/#home" onClick={() => selectSection('home')} aria-label="GuimarasGo overview">
+                <Link className="website-nav-brand" to="/" onClick={handleBrandClick} aria-label={isLandingPage ? 'GuimarasGo landing page' : 'Return to GuimarasGo landing page'} aria-disabled={isLandingPage} tabIndex={isLandingPage ? -1 : 0}>
                     <span className="website-nav-logo"><img src="/images/landing/navigation-logo.svg" width={59.4513} height={50.7123} alt="" /></span>
                     <span className="website-nav-wordmark">GuimarasGo</span>
                 </Link>
@@ -66,8 +77,7 @@ export default function Navbar({ onSectionSelect, treatment = 'on-dark' }) {
                     {mobileMenuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
                 </button>
                 <div id={menuId} className={`website-nav-links ${mobileMenuOpen ? 'is-open' : ''}`}>
-                    <Link className="website-nav-link website-nav-overview" to="/#home" onClick={() => selectSection('home')}>Overview</Link>
-                    <Link className="website-nav-link website-nav-faqs" to="/#faq" onClick={() => selectSection('faq')}>FAQs</Link>
+                    <Link className="website-nav-link website-nav-faqs" to="/#faq" onClick={event => selectSection('faq', event)}>FAQs</Link>
                     <Link className="website-nav-link website-nav-app" to="/get-app" onClick={() => setMobileMenuOpen(false)} aria-current={location.pathname === '/get-app' ? 'page' : undefined}>Get the App</Link>
                     <button ref={portalRef} type="button" className="website-nav-link website-nav-sign-in" aria-haspopup="dialog" aria-expanded={portalOpen} onClick={() => { setMobileMenuOpen(false); setPortalOpen(true); }}>Staff / Admin sign-in</button>
                 </div>

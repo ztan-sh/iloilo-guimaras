@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useAdminFlow } from "./AdminPreview";
 import { deriveEvents, normalizeTrip, timestampDate, todayInManila, tripStatistics } from "./adminUtils";
 import { useOperations } from "../../components/operations/useOperations";
@@ -14,20 +14,23 @@ export function AdminState({ children }) {
     const [version, setVersion] = useState(0);
     const [notice, setNotice] = useState("");
     const [data, setData] = useState({ schedules: [], bookings: [], events: [], admin: null, loading: true, error: "" });
+    const workspaceLoading = useRef(true);
     useEffect(() => {
-        const timer = setInterval(() => setVersion(current => current + 1), 10000);
+        const timer = setInterval(() => {
+            if (!workspaceLoading.current) setVersion(current => current + 1);
+        }, 10000);
         return () => clearInterval(timer);
     }, []);
     useEffect(() => {
         const controller = new AbortController();
-        let timedOut = false;
+        workspaceLoading.current = true;
         setData(current => ({ ...current, loading: current.loading, error: "" }));
         const config = { signal: controller.signal };
         const timeoutId = window.setTimeout(() => {
-            timedOut = true;
+            workspaceLoading.current = false;
             controller.abort();
-            setData(current => ({ ...current, loading: false, error: "The admin workspace took longer than 5 seconds to load. Check your connection and retry." }));
-        }, 5000);
+            setData(current => ({ ...current, loading: false, error: "The admin workspace could not connect after 60 seconds. Check your connection and retry." }));
+        }, 60000);
         Promise.all([
             flow.api.get("/bookings/schedules", { ...config, params: { date } }),
             flow.api.get("/bookings", config), flow.api.get("/admin/me", config),
@@ -35,6 +38,7 @@ export function AdminState({ children }) {
         ]).then(([trips, records, profile, events]) => {
             if (controller.signal.aborted) return;
             window.clearTimeout(timeoutId);
+            workspaceLoading.current = false;
             const schedules = (trips.data.schedules || trips.data.capacities || []).map(normalizeTrip).sort((a, b) => a.departureTime.localeCompare(b.departureTime));
             const bookings = records.data.bookings || [];
             setData({ schedules, bookings, admin: profile.data.admin,
@@ -42,6 +46,7 @@ export function AdminState({ children }) {
         }).catch(error => {
             if (controller.signal.aborted) return;
             window.clearTimeout(timeoutId);
+            workspaceLoading.current = false;
             setData(current => ({ ...current, loading: false, error: error.response?.data?.message || error.message || "Unable to load the management workspace." }));
         });
         return () => { window.clearTimeout(timeoutId); controller.abort(); };

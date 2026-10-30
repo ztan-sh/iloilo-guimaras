@@ -14,13 +14,17 @@ export function pricingIssue(prices) {
     return "";
 }
 export function quoteRide(prices, passengers, motorcycle, requests = [], regularFare = false, motorcycleType = "standard") {
-    const passengerFare = round(passengers.length * prices.solo);
+    // The first traveler is the motorcycle driver. Their vehicle fare covers
+    // their seat; only passengers riding behind them pay a passenger fare.
+    const billablePassengers = motorcycle ? Math.max(0, passengers.length - 1) : passengers.length;
+    const passengerFare = round(billablePassengers * prices.solo);
     const motorcycleFare = motorcycle ? round(motorcycleType === "big-bike" ? Number(prices.bigBike ?? 353) : Number(prices.motorcycle ?? 285)) : 0;
     const stampFee = motorcycle ? round(motorcycleType === "big-bike" ? Number(prices.bigBikeStamp ?? 7) : Number(prices.smallBikeStamp ?? 5)) : 0;
-    const discounts = passengers.map(person => {
+    const discounts = passengers.map((person, index) => {
         const category = discountCategory(person);
         const approval = requests.find(request => request.passenger.id === person.id && request.identity === passengerIdentity(person) && request.status === "approved" && request.photo);
-        const percent = !regularFare && approval && category !== "Regular" ? Number(prices[category.toLowerCase()]) : 0;
+        const isMotorcycleDriver = motorcycle && index === 0;
+        const percent = !regularFare && !isMotorcycleDriver && approval && category !== "Regular" ? Number(prices[category.toLowerCase()]) : 0;
         return { id: person.id, category, percent, amount: round(prices.solo * percent / 100) };
     });
     const discount = round(discounts.reduce((sum, item) => sum + item.amount, 0));

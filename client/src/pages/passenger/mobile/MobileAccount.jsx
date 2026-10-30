@@ -141,13 +141,6 @@ export function ClientProfile() {
         <main className="ggo-page ggo-has-nav">
             <div className="ggo-profile-heading">
                 <Header title="Profile" toolbar={false} />
-
-                <button
-                    className="ggo-logout"
-                    onClick={() => setConfirmLogout(true)}
-                >
-                    Log out
-                </button>
             </div>
 
             {confirmLogout && (
@@ -301,6 +294,14 @@ export function ClientProfile() {
                         onChange={() => c.setDark(!c.dark)}
                     />
                 </div>
+
+                <button
+                    type="button"
+                    className="ggo-row ggo-logout-setting"
+                    onClick={() => setConfirmLogout(true)}
+                >
+                    Log out
+                </button>
             </div>
         </main>
     );

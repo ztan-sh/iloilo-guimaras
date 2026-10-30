@@ -122,7 +122,7 @@ export const createStaffPreviewApi = () => {
                 if (!Array.isArray(body.passengerDetails) || body.passengerDetails.length !== body.passengers || body.passengerDetails.some(personIssue)) fail("Complete each passenger’s individual details.");
                 if (!body.regularFare && body.passengerDetails.some(person => discountCategory(person) !== "Regular" && !ops.requests.some(request => request.identity === passengerIdentity(person) && request.status === "approved" && request.photo))) fail("Approve each eligible ID or explicitly choose the regular fare.");
                 if (motorcycle && (!body.motorcycleModel?.trim() || !body.plateNumber?.trim())) fail("Enter the motorcycle model and plate number.");
-                quote = quoteRide(prices, body.passengerDetails, motorcycle, ops.requests, body.regularFare);
+                quote = quoteRide(prices, body.passengerDetails, motorcycle, ops.requests, body.regularFare, body.motorcycleType);
             }
             if (!Number.isInteger(body.passengers) || body.passengers < 1 || body.passengers > (motorcycle ? 3 : 10)) fail("Choose a valid passenger count.");
             const total = quote ? quote.total : body.passengers * fares.passenger + (motorcycle ? fares.motorcycle : 0) + fares.ppa;

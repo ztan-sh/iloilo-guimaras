@@ -683,6 +683,56 @@ export default function MobileApp({ preview = false }) {
         }
     };
 
+    const refreshApp = async () => {
+        if (preview || !hasPassengerSession()) return;
+        setLoading(true);
+        setError('');
+        const tasks = await Promise.allSettled([
+            request('/auth/me'),
+            request('/bookings/my'),
+            request(`/bookings/schedules/available?date=${encodeURIComponent(date)}`),
+            request('/auth/discount-requests'),
+            request('/notifications')
+        ]);
+        const [profile, bookingsResult, schedulesResult, discountsResult, notificationsResult] = tasks;
+        if (profile.status === 'fulfilled') {
+            const value = profile.value.user || profile.value;
+            const personal = readJSON(localStorage, `ggo-person:${value.id || value._id}`, {});
+            saveUser({ ...personal, ...value });
+        }
+        if (bookingsResult.status === 'fulfilled') {
+            const value = bookingsResult.value;
+            const rows = Array.isArray(value) ? value : value.bookings || value.data?.bookings || [];
+            setBookings(rows.map(booking => {
+                const vesselName = canonicalVesselName(booking.vesselName || booking.ferryName);
+                return { ...booking, vesselName, ferryName: vesselName };
+            }));
+        }
+        if (schedulesResult.status === 'fulfilled') {
+            const value = schedulesResult.value;
+            const rows = Array.isArray(value) ? value : value.schedules || value.capacities || value.data?.schedules || value.data?.capacities || [];
+            const normalized = rows.map(normalizeSchedule);
+            setSchedules(normalized);
+            setVessel(current => normalized.some(item => item.vesselName === current) ? current : normalized[0]?.vesselName || current);
+        }
+        if (discountsResult.status === 'fulfilled') {
+            setDiscountRequests((discountsResult.value.requests || []).map(item => {
+                const passenger = { id: item.passengerId, name: item.passengerName, age: item.age, gender: item.gender, category: item.category };
+                return { id: item._id, passenger, identity: passengerIdentity(passenger), photo: item.photo, status: item.status, reason: item.reason || '', source: item.source || '', requestId: item._id };
+            }));
+        }
+        if (notificationsResult.status === 'fulfilled') {
+            setServerNotifications((notificationsResult.value.notifications || []).map(item => ({
+                id: String(item._id), bookingId: item.bookingId ? String(item.bookingId) : '', bookingReference: item.bookingReference || '',
+                type: item.type || 'booking_update', title: item.title, detail: item.message, time: item.createdAt,
+                serverRead: Boolean(item.isRead), requestId: item.type === 'discount' ? item.bookingId : ''
+            })));
+        }
+        const failed = tasks.find(task => task.status === 'rejected');
+        setError(failed?.reason?.message || '');
+        setLoading(false);
+    };
+
     const logout = () => {
         if (!preview) {
             request('/auth/logout', { method: 'POST' }).catch(() => {});
@@ -758,6 +808,7 @@ export default function MobileApp({ preview = false }) {
         setError,
         busy,
         loading,
+        refreshApp,
         photo,
         setPhoto,
         photoPerson,

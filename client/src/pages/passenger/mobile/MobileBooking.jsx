@@ -42,7 +42,7 @@ export function ClientDashboard() {
     useEffect(() => {
         if (!fareListOpen) return undefined;
         if (c.preview) {
-            setFareListPrices(Object.fromEntries(VESSELS.map(vessel => [vessel, { ...DEFAULT_PRICES, ...(c.operations.prices?.[vessel] || {}) }])));
+            setFareListPrices({ ...DEFAULT_PRICES, ...(c.operations.prices?.[VESSELS[0]] || {}) });
             setFareListError('');
             return undefined;
         }
@@ -55,11 +55,10 @@ export function ClientDashboard() {
             loading = true;
             if (initialLoad) setFareListLoading(true);
             try {
-                const results = await Promise.allSettled(VESSELS.map(vessel => c.request(`/pricing/public?vesselName=${encodeURIComponent(vessel)}&refresh=${Date.now()}`)));
+                const result = await c.request(`/pricing/public?vesselName=${encodeURIComponent(VESSELS[0])}&refresh=${Date.now()}`);
                 if (!active) return;
-                const loaded = Object.fromEntries(results.flatMap((result, index) => result.status === 'fulfilled' ? [[VESSELS[index], result.value.prices]] : []));
-                setFareListPrices(previous => ({ ...(previous || {}), ...loaded }));
-                setFareListError(Object.keys(loaded).length === VESSELS.length ? '' : 'Some current fares could not be refreshed. Showing the last saved prices.');
+                setFareListPrices(result.prices || null);
+                setFareListError(result.prices ? '' : 'Current fares could not be loaded.');
             } catch {
                 if (active) setFareListError('Unable to refresh current fares. Showing the last saved prices.');
             } finally {
@@ -161,6 +160,9 @@ export function ClientDashboard() {
                     <button type="button" className="ggo-fare-list-trigger" onClick={openFareList}>
                         Fare Pricing List
                     </button>
+                    <button type="button" className="ggo-fare-list-trigger" onClick={c.refreshApp} disabled={c.loading} aria-label="Refresh app data">
+                        {c.loading ? 'Refreshing…' : 'Refresh'}
+                    </button>
                 </div>
             </header>
 
@@ -168,13 +170,12 @@ export function ClientDashboard() {
                 <div className="ggo-fare-pricing-heading"><div><small>PASSENGER FARES</small><h2>Fare Pricing List</h2></div><button type="button" onClick={() => setFareListOpen(false)} aria-label="Close fare pricing list">×</button></div>
                 {fareListLoading && <p>Loading current fares…</p>}
                 {fareListError && <p className="ggo-fare-pricing-error" role="status">{fareListError}</p>}
-                {fareListPrices && VESSELS.map(vessel => {
-                    const prices = fareListPrices[vessel];
-                    if (!prices) return null;
+                {fareListPrices && (() => {
+                    const prices = fareListPrices;
                     const price = key => Number(prices[key] ?? DEFAULT_PRICES[key] ?? 0);
                     const discount = key => (price('solo') * price(key) / 100).toFixed(2);
-                    return <section className="ggo-fare-pricing-vessel" key={vessel}>
-                        <h3>{vessel}</h3>
+                    return <section className="ggo-fare-pricing-vessel">
+                        <h3>Standard fares</h3>
                         <dl>
                             <div><dt>Solo passenger</dt><dd>{money(price('solo'))}</dd></div>
                             <div><dt>Two passengers / companion fare</dt><dd>{money(price('companion'))}</dd></div>
@@ -188,7 +189,7 @@ export function ClientDashboard() {
                             <div><dt>PPA fee</dt><dd>{money(price('ppa'))} per booking</dd></div>
                         </dl>
                     </section>;
-                })}
+                })()}
                 <p className="ggo-fare-pricing-note">Discounts require approval of a valid ID and apply to eligible passenger fares. Motorcycle fares, stamp fees, and PPA fees are separate. Final total depends on passengers, motorcycle type, and approved discounts.</p>
                 <Button onClick={() => setFareListOpen(false)}>Done</Button>
             </MobileDialog>}

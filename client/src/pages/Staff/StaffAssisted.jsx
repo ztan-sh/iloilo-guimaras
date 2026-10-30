@@ -27,7 +27,7 @@ export default function StaffAssisted({ trip, trips, onSelectTrip, onRefresh }) 
     const [busy, setBusy] = useState(false);
     const pending = useRef(false);
     const prices = ops.prices[trip.vesselName] || DEFAULT_PRICES;
-    const quote = quoteRide(prices, draft.passengers, draft.motorcycle, ops.requests, draft.regularFare);
+    const quote = quoteRide(prices, draft.passengers, draft.motorcycle, ops.requests, draft.regularFare, draft.motorcycleType);
     const signature = JSON.stringify([trip.id, draft.passengers, draft.motorcycle, draft.model, draft.plate, draft.regularFare, quote, prices]);
     const paid = draft.paymentSignature === signature;
     const ticket = ops.bookings.find(item => item._id === draft.ticketId);
