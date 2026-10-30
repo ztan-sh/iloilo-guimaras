@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const User = require("../models/User");
 const DiscountRequest = require("../models/DiscountRequest");
-const { sendPasswordResetEmail } = require("../services/emailService");
+const { sendPasswordResetEmail, isEmailConfigured } = require("../services/emailService");
 const { issueSession } = require("../utils/authSession");
 
 // ========================================
@@ -48,9 +48,7 @@ const requestPasswordReset = async (req, res) => {
             return res.status(400).json({ message: "Enter a valid email address." });
         }
 
-        const emailConfigured = Boolean(
-            process.env.RESEND_API_KEY && process.env.EMAIL_FROM
-        );
+        const emailConfigured = await isEmailConfigured();
         const clientUrl = (
             process.env.CLIENT_URL ||
             (process.env.NODE_ENV === "production"

@@ -191,6 +191,11 @@ app.use(
     adminRoutes
 );
 
+app.use(
+    "/api/admin/email",
+    require("./routes/adminEmailRoutes")
+);
+
 
 app.use(
     "/api/admin/staff",
