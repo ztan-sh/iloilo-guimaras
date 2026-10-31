@@ -1336,7 +1336,7 @@ const LandingPage = () => {
 
                 .gg-footer-grid {
                     display: grid;
-                    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+                    grid-template-columns: 1.5fr 1fr 1fr;
                     gap: 35px;
                     padding-bottom: 50px;
                 }
@@ -1453,7 +1453,7 @@ const LandingPage = () => {
                     }
 
                     .gg-footer-grid {
-                        grid-template-columns: 1.4fr repeat(4, 1fr);
+                        grid-template-columns: 1.4fr repeat(2, 1fr);
                     }
                 }
 
@@ -2081,16 +2081,6 @@ const LandingPage = () => {
                                     <a className="gg-footer-social" href="mailto:guimarasgo2026@gmail.com" aria-label="Email GuimarasGo Support"><FiMail size={16} /></a>
                                 </div>
                             </div>
-                            <div>
-                                <div className="gg-footer-title">Explore</div>
-                                <button
-                                    className="gg-footer-link"
-                                    onClick={goToLogin}
-                                >
-                                    Book now
-                                </button>
-                            </div>
-
                             <div>
                                 <div className="gg-footer-title">Location</div>
                                 <a className="gg-footer-link" href="https://maps.app.goo.gl/Wei5CvfUZ5tTLAaR8" target="_blank" rel="noreferrer">Iloilo City, Philippines</a>

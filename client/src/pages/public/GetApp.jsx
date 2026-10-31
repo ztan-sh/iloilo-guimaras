@@ -1,10 +1,10 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
 import "./GetApp.css";
 
 const ANDROID_APK_URL =
-  "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/app-debug.apk";
-const ANDROID_QR_URL = "/QR/guimarasgo-android.png";
+    "https://iloilo-guimaras.vercel.app/downloads/GuimarasGo.apk";
 
 const GetApp = () => {
     const navigate = useNavigate();
@@ -92,9 +92,12 @@ const GetApp = () => {
 
                         <div className="qr-content">
                             <div className="qr-wrapper">
-                                <img
-                                    src={ANDROID_QR_URL}
-                                    alt="GuimarasGo Android APK QR code"
+                                <QRCodeSVG
+                                    value={ANDROID_APK_URL}
+                                    size={180}
+                                    level="H"
+                                    includeMargin
+                                    title="Scan to download GuimarasGo for Android"
                                 />
                             </div>
 
@@ -119,7 +122,7 @@ const GetApp = () => {
                                     <div className="quick-step">
                                         <span>2</span>
                                         <p>
-                                            Tap <strong>Download Android APK</strong>.
+                                            Scanning opens the direct GuimarasGo APK download.
                                         </p>
                                     </div>
 

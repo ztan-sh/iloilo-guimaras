@@ -18,7 +18,7 @@ const createToken = (user) => {
         },
         process.env.JWT_SECRET,
         {
-            expiresIn: "1d"
+            expiresIn: "30d"
         }
     );
 };

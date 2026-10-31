@@ -14,7 +14,6 @@ const Login = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const [rememberMe, setRememberMe] = useState(false);
     const [loading, setLoading] = useState(false);
 
     const [popup, setPopup] = useState({
@@ -118,27 +117,8 @@ const Login = () => {
             if (userResult.response.ok) {
                 const data = userResult.data;
 
-                if (rememberMe) {
-                    localStorage.setItem(
-                        "token",
-                        data.token
-                    );
-
-                    localStorage.setItem(
-                        "user",
-                        JSON.stringify(data.user)
-                    );
-                } else {
-                    sessionStorage.setItem(
-                        "token",
-                        data.token
-                    );
-
-                    sessionStorage.setItem(
-                        "user",
-                        JSON.stringify(data.user)
-                    );
-                }
+                localStorage.setItem("token", data.token);
+                localStorage.setItem("user", JSON.stringify(data.user));
 
                 setPopup({
                     show: true,
@@ -1159,19 +1139,6 @@ const Login = () => {
                                 </div>
 
                                 <div className="login-options">
-                                    <label className="remember-option">
-                                        <input
-                                            type="checkbox"
-                                            checked={rememberMe}
-                                            onChange={(event) =>
-                                                setRememberMe(
-                                                    event.target.checked
-                                                )
-                                            }
-                                        />
-                                        <span>Remember me</span>
-                                    </label>
-
                                     <button
                                         type="button"
                                         className="forgot-password"

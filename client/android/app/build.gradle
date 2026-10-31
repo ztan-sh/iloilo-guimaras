@@ -10,8 +10,8 @@ android {
         applicationId "com.guimarasgo.ticketing"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode clientPreview ? previewBuildNumber : 15
-        versionName "1.4.10"
+        versionCode clientPreview ? previewBuildNumber : 16
+        versionName "1.4.11"
         manifestPlaceholders = [appIcon: '@mipmap/ic_launcher', appRoundIcon: '@mipmap/ic_launcher_round']
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
@@ -33,6 +33,15 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+// Make the production download filename recognizable to passengers.
+android.applicationVariants.all { variant ->
+    if (variant.buildType.name == 'release') {
+        variant.outputs.all {
+            outputFileName = 'GuimarasGo.apk'
         }
     }
 }
