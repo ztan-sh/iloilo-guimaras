@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { getApiErrorMessage } from '../../../services/errorMessages';
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { operationsStore, passengerIdentity } from '../../../components/operations/operationsStore';
 import { useOperations } from '../../../components/operations/useOperations';
@@ -347,36 +348,41 @@ export default function MobileApp({ preview = false }) {
         endpoint,
         { body, method = 'GET', signal } = {}
     ) => {
-        const response = await fetch(`${API}${endpoint}`, {
-            method,
-            signal,
-            headers: {
-                ...(body instanceof FormData
-                    ? {}
-                    : { 'Content-Type': 'application/json' }),
-                ...(token()
-                    ? { Authorization: `Bearer ${token()}` }
-                    : {}),
-                ...(nativeClient ? { 'X-Client-Platform': 'native' } : {})
-            },
-            credentials: 'include',
-            ...(body
-                ? {
-                      body:
-                          body instanceof FormData
-                              ? body
-                              : JSON.stringify(body)
-                  }
-                : {})
-        });
+        let response;
+        try {
+            response = await fetch(`${API}${endpoint}`, {
+                method,
+                signal,
+                headers: {
+                    ...(body instanceof FormData
+                        ? {}
+                        : { 'Content-Type': 'application/json' }),
+                    ...(token()
+                        ? { Authorization: `Bearer ${token()}` }
+                        : {}),
+                    ...(nativeClient ? { 'X-Client-Platform': 'native' } : {})
+                },
+                credentials: 'include',
+                ...(body
+                    ? {
+                          body:
+                              body instanceof FormData
+                                  ? body
+                                  : JSON.stringify(body)
+                      }
+                    : {})
+            });
+        } catch (error) {
+            throw new Error(getApiErrorMessage(error));
+        }
 
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-            throw new Error(
-                data.message ||
-                    `Unable to complete the request (${response.status}).`
-            );
+            throw new Error(getApiErrorMessage({
+                status: response.status,
+                data
+            }));
         }
 
         return data;

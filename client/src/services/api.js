@@ -4,6 +4,7 @@
 
 import axios from "axios";
 import { Capacitor } from "@capacitor/core";
+import { getApiErrorMessage } from "./errorMessages";
 const nativeClient = Capacitor.isNativePlatform();
 
 // Browser sessions now live in HttpOnly cookies; clear older browser JWTs.
@@ -135,6 +136,8 @@ api.interceptors.response.use(
 
         const status =
             error.response?.status;
+
+        error.message = getApiErrorMessage(error);
 
 
         // =============================================

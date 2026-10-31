@@ -1,5 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import AppErrorBoundary from "./components/common/AppErrorBoundary";
 
 import Trips from "./pages/Trips";
 
@@ -11,6 +12,7 @@ import ClientSplash from "./pages/passenger/mobile/MobileSplash";
 
 import LandingPage from "./pages/public/LandingPage";
 import GetApp from "./pages/public/GetApp";
+import NotFound from "./pages/public/NotFound";
 
 import AdminRegister from "./pages/Admin/AdminRegister";
 import AdminLogin from "./pages/Admin/AdminLogin";
@@ -45,7 +47,8 @@ function ClientLoginEntry() {
 
 function App() {
     return (
-        <Routes>
+        <AppErrorBoundary>
+            <Routes>
 
             {/* =========================================
                 PUBLIC LANDING PAGE
@@ -128,7 +131,10 @@ function App() {
                 <Route path="*" element={<StaffWorkspace />} />
             </Route>}
 
-        </Routes>
+            <Route path="*" element={<NotFound />} />
+
+            </Routes>
+        </AppErrorBoundary>
     );
 }
 

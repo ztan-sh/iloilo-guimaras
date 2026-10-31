@@ -280,6 +280,54 @@ app.use(
 );
 
 
+// Return a readable response for unknown API and website routes.
+app.use("/api", (req, res) => {
+    res.status(404).json({
+        success: false,
+        code: "API_ROUTE_NOT_FOUND",
+        message: `This API route was not found (404): ${req.method} ${req.originalUrl}. Check the address and try again.`
+    });
+});
+
+app.use((req, res) => {
+    res.status(404).json({
+        success: false,
+        code: "ROUTE_NOT_FOUND",
+        message: `This route was not found (404): ${req.method} ${req.originalUrl}. Check the address and try again.`
+    });
+});
+
+// Handle malformed requests, upload limits, CORS rejections and unexpected
+// server errors in one place without exposing stack traces to clients.
+app.use((error, req, res, next) => {
+    if (res.headersSent) return next(error);
+
+    const status = Number(error.status || error.statusCode) ||
+        (error.message === "Not allowed by CORS" ? 403 : 500);
+    const safeStatus = status >= 400 && status <= 599 ? status : 500;
+    const messages = {
+        400: "The request could not be understood (400). Check the information and try again.",
+        401: "Please sign in again to continue (401).",
+        403: "This request is not allowed (403). Check your access and try again.",
+        404: "The requested page or record was not found (404). Check the address and try again.",
+        413: "The uploaded file is too large (413). Choose a smaller file and try again.",
+        429: "There have been too many requests (429). Wait a moment and try again."
+    };
+    const message = safeStatus >= 500
+        ? `The server encountered an error (${safeStatus}). Check your internet connection and try again later.`
+        : messages[safeStatus] || error.message || `The request failed (${safeStatus}).`;
+
+    if (safeStatus >= 500) {
+        console.error("Unhandled server error:", error);
+    }
+
+    res.status(safeStatus).json({
+        success: false,
+        code: error.code || `HTTP_${safeStatus}`,
+        message
+    });
+});
+
 // ===============================
 // SERVER
 // ===============================

@@ -1336,8 +1336,9 @@ const LandingPage = () => {
 
                 .gg-footer-grid {
                     display: grid;
-                    grid-template-columns: 1.5fr 1fr 1fr;
-                    gap: 35px;
+                    grid-template-columns: minmax(240px, 360px) minmax(170px, 230px) minmax(170px, 230px);
+                    justify-content: start;
+                    gap: 38px;
                     padding-bottom: 50px;
                 }
 
@@ -1419,7 +1420,8 @@ const LandingPage = () => {
                     padding-top: 18px;
                     display: flex;
                     align-items: center;
-                    justify-content: space-between;
+                    justify-content: flex-start;
+                    flex-wrap: wrap;
                     gap: 20px;
                     color: rgba(255,255,255,.40);
                     font-size: 10px;
@@ -1453,7 +1455,7 @@ const LandingPage = () => {
                     }
 
                     .gg-footer-grid {
-                        grid-template-columns: 1.4fr repeat(2, 1fr);
+                        grid-template-columns: minmax(220px, 340px) minmax(160px, 210px) minmax(160px, 210px);
                     }
                 }
 
