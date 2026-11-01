@@ -71,7 +71,7 @@ export const boardingIssue = (booking, trip) => {
     if (booking.boardingStatus === "REJECTED" || booking.status === "CANCELLED") return { title: "Boarding rejected", detail: booking.rejectionReason || "This ticket has been cancelled or rejected for boarding." };
     if (booking.paymentStatus !== "VERIFIED") return { title: "Payment is not confirmed", detail: "Payment must be verified by an administrator before this ticket can be boarded." };
     if (booking.status !== "CONFIRMED") return { title: "Booking is not confirmed", detail: "Ask an administrator to review this booking." };
-    if (!matchesTrip(booking, trip)) return { title: "Ticket belongs to another trip", detail: "This ticket does not match the selected date, route, vessel and departure. Select its original trip before continuing." };
+    if (!matchesTrip(booking, trip)) return { title: "Wrong departure time", detail: "Please book and board the specific departure date and time shown on this ticket." };
     if (booking.boardingStatus === "ON BOARD") return { title: booking.timedOutAt ? "Arrival already confirmed" : "Already boarded", detail: `This ticket was used at ${formatTimestamp(booking.boardedAt)}. Boarding cannot be recorded a second time.` };
     return null;
 };

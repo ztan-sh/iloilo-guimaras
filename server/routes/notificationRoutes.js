@@ -24,6 +24,19 @@ router.get("/", protect, async (req, res) => {
     }
 });
 
+router.patch("/read-all", protect, async (req, res) => {
+    try {
+        await Notification.updateMany(
+            { userId: req.user.userId, isRead: false },
+            { $set: { isRead: true, readAt: new Date() } }
+        );
+        return res.json({ success: true, message: "All notifications marked as read." });
+    } catch (error) {
+        console.error("Mark all notifications read error:", error);
+        return res.status(500).json({ success: false, message: "Unable to update notifications." });
+    }
+});
+
 router.patch("/:id/read", protect, async (req, res) => {
     try {
         const notification = await Notification.findOneAndUpdate(

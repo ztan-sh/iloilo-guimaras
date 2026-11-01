@@ -44,7 +44,7 @@ const validateSelectedTrip = async (req, res, booking) => {
     }
     const trip = await FerrySchedule.findOne({ _id: req.body.tripId, active: { $ne: false } });
     if (!trip || !belongsToTrip(booking, trip)) {
-        res.status(400).json({ success: false, message: "This ticket does not match the selected trip.", booking });
+        res.status(400).json({ success: false, message: "Wrong departure time. Please book and board the specific departure date and time shown on this ticket.", booking });
         return false;
     }
     return true;

@@ -28,7 +28,7 @@ export function Gender({ value, onChange }) {
 }
 export function Choices({ options, value, onChange, label }) { return <div className="ggo-choices" role="group" aria-label={label}>{options.map(option => <button type="button" key={option} aria-pressed={value === option} className={value === option ? 'selected' : ''} onClick={() => onChange(option)}>{option}</button>)}</div>; }
 export function Panel({ children, className = '', as: Tag = 'section', ...props }) { return <Tag className={`ggo-panel ${className}`} {...props}>{children}</Tag>; }
-export function NotificationBell({ compact = false }) { const c = useClient(); return <Link className={`ggo-bell ${compact ? 'ggo-bell-compact' : ''}`} aria-label="Notifications" to={c.href('notifications')}><Icon name="bell" />{c.events.some(e => !c.read.includes(e.id)) && <Art file="1f53b.svg" className="ggo-unread-dot" />}</Link>; }
+export function NotificationBell({ compact = false }) { const c = useClient(); return <Link className={`ggo-bell ${compact ? 'ggo-bell-compact' : ''}`} aria-label="Notifications" to={c.href('notifications')}><svg className="ggo-bell-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>{c.events.some(e => !(e.serverRead || c.read.includes(e.id))) && <Art file="1f53b.svg" className="ggo-unread-dot" />}</Link>; }
 export function ProfileAvatar() {
     const c = useClient();
     const [failed, setFailed] = useState(false);

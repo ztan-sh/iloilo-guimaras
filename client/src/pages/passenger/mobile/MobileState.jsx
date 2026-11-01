@@ -689,6 +689,18 @@ export default function MobileApp({ preview = false }) {
         }
     };
 
+    const markAllRead = ids => {
+        const next = [...new Set([...read, ...ids])];
+        setRead(next);
+        if (preview) {
+            operationsStore.saveDraft('client-read', next);
+            return;
+        }
+        localStorage.setItem(`ggo-read:${user.id || user._id}`, JSON.stringify(next));
+        setServerNotifications(current => current.map(item => ({ ...item, serverRead: true })));
+        request('/notifications/read-all', { method: 'PATCH' }).catch(() => {});
+    };
+
     const refreshApp = async () => {
         if (preview || !hasPassengerSession()) return;
         setLoading(true);
@@ -836,6 +848,7 @@ export default function MobileApp({ preview = false }) {
         events,
         read,
         markRead,
+        markAllRead,
         logout,
         openGuide: () => setGuideOpen(true)
     };

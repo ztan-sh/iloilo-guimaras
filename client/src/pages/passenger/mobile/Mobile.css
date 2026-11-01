@@ -137,6 +137,9 @@
 .ggo-bell { display:flex; align-items:center; justify-content:center; position:relative; min-height:44px; min-width:44px; }
 .ggo-bell > .ggo-icon { background:white; border-radius:50%; width:28px; height:28px; box-shadow:0 2px 4px #0003; }
 .ggo-bell .ggo-icon img { width:18px; height:18px; transform:none; }
+.ggo-mobile-app .ggo-bell-glyph { position:relative; z-index:1; display:block; width:23px; height:23px; color:var(--ggo-ink,#192729); }
+.ggo-mobile-app.ggo-dark .ggo-bell-glyph { color:#f5fbfa; }
+.ggo-mobile-app .ggo-schedule-hero .ggo-bell-glyph { color:#fff; }
 .ggo-unread-dot { position:absolute; top:7px; right:9px; }
 .ggo-back { display:flex; align-items:center; width:44px; height:44px; margin:0 0 12px -10px; }
 .ggo-progress { display:flex; gap:12px; list-style:none; margin-bottom:27px; }
