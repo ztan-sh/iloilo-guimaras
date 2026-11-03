@@ -481,7 +481,9 @@ const login = async (req, res) => {
                 email: user.email,
                 phoneNumber:
                     user.phoneNumber,
-                ...profilePhotoFields(user),
+                age: user.age ?? "",
+                gender: user.gender || "",
+                category: user.category || "Regular",
                 notificationsEnabled:
                     user.notificationsEnabled === true
             }

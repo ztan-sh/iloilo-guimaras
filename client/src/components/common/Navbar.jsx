@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { FiMenu, FiX } from 'react-icons/fi';
+import { Capacitor } from '@capacitor/core';
 import { Button, MobileDialog } from '../../pages/passenger/mobile/MobileUI';
 import './Navbar.css';
 
@@ -14,6 +15,7 @@ export default function Navbar({ onSectionSelect, treatment = 'on-dark' }) {
     const hadPortalOpen = useRef(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [portalOpen, setPortalOpen] = useState(false);
+    const nativeApp = Capacitor.isNativePlatform();
 
     useEffect(() => {
         if (!mobileMenuOpen) return;
@@ -78,12 +80,12 @@ export default function Navbar({ onSectionSelect, treatment = 'on-dark' }) {
                 </button>
                 <div id={menuId} className={`website-nav-links ${mobileMenuOpen ? 'is-open' : ''}`}>
                     <Link className="website-nav-link website-nav-faqs" to="/#faq" onClick={event => selectSection('faq', event)}>FAQs</Link>
-                    <Link className="website-nav-link website-nav-app" to="/get-app" onClick={() => setMobileMenuOpen(false)} aria-current={location.pathname === '/get-app' ? 'page' : undefined}>Get the App</Link>
-                    <button ref={portalRef} type="button" className="website-nav-link website-nav-sign-in" aria-haspopup="dialog" aria-expanded={portalOpen} onClick={() => { setMobileMenuOpen(false); setPortalOpen(true); }}>Staff / Admin sign-in</button>
+                    {!nativeApp && <Link className="website-nav-link website-nav-app" to="/get-app" onClick={() => setMobileMenuOpen(false)} aria-current={location.pathname === '/get-app' ? 'page' : undefined}>Get the App</Link>}
+                    {!nativeApp && <button ref={portalRef} type="button" className="website-nav-link website-nav-sign-in" aria-haspopup="dialog" aria-expanded={portalOpen} onClick={() => { setMobileMenuOpen(false); setPortalOpen(true); }}>Staff / Admin sign-in</button>}
                 </div>
             </nav>
         </header>
-        {portalOpen && <MobileDialog className="website-portal-dialog" title="Staff / Admin sign-in" onClose={closePortal}>
+        {!nativeApp && portalOpen && <MobileDialog className="website-portal-dialog" title="Staff / Admin sign-in" onClose={closePortal}>
             <div className="website-portal-heading"><h2>Staff / Admin sign-in</h2><p>Choose your portal to sign in.</p></div>
             <div className="website-portal-choices"><Button orange onClick={() => navigate('/staff/login')}>Staff sign-in</Button><Button orange onClick={() => navigate('/admin/login')}>Admin sign-in</Button></div>
             <button type="button" className="website-portal-back" onClick={closePortal}>Back to landing page</button>

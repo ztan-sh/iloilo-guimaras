@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import { Capacitor } from "@capacitor/core";
 import AppErrorBoundary from "./components/common/AppErrorBoundary";
 
 import Trips from "./pages/Trips";
@@ -41,6 +42,19 @@ login: <ClientLoginEntry />, register: <ClientRegister />, dashboard: <ClientDas
     'id-approved': <ClientID />, 'id-attention': <ClientID />
 };
 
+const ANDROID_RELEASE_URL =
+    "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/app-debug.apk";
+
+function ApkDownloadRedirect() {
+    useEffect(() => {
+        window.location.replace(ANDROID_RELEASE_URL);
+    }, []);
+
+    return <main role="status" style={{ padding: "2rem", textAlign: "center" }}>
+        Opening the GuimarasGo Android download…
+    </main>;
+}
+
 function ClientLoginEntry() {
     return <ClientLogin />;
 }
@@ -55,8 +69,15 @@ function App() {
             ========================================= */}
             <Route
                 path="/"
-                element={testingAPK && localClientPreview ? <Navigate to="/preview/client/dashboard" replace /> : <LandingPage />}
+                element={testingAPK && localClientPreview
+                    ? <Navigate to="/preview/client/dashboard" replace />
+                    : Capacitor.isNativePlatform()
+                        ? <Navigate to="/dashboard" replace />
+                        : <LandingPage />}
             />
+
+            {/* Public APK link used by the landing page QR code. */}
+            <Route path="/download" element={<ApkDownloadRedirect />} />
 
             {/* GET THE APP */}
             <Route

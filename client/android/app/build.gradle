@@ -6,6 +6,15 @@ def previewBuildNumber = providers.gradleProperty('previewBuildNumber').orElse('
 android {
     namespace = "com.guimarasgo.ticketing"
     compileSdk = rootProject.ext.compileSdkVersion
+    sourceSets {
+        main {
+            // The public website hosts this APK for downloads. Do not package
+            // a second copy of the installer inside the Android application.
+            assets {
+                exclude 'public/downloads/GuimarasGo.apk'
+            }
+        }
+    }
     defaultConfig {
         applicationId "com.guimarasgo.ticketing"
         minSdkVersion rootProject.ext.minSdkVersion

@@ -4,7 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import "./GetApp.css";
 
 const ANDROID_APK_URL =
-    "https://iloilo-guimaras.vercel.app/downloads/GuimarasGo.apk";
+    "https://iloilo-guimaras.vercel.app/download";
 
 const GetApp = () => {
     const navigate = useNavigate();
