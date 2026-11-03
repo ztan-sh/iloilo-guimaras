@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Capacitor } from "@capacitor/core";
 import AppErrorBoundary from "./components/common/AppErrorBoundary";
 
 import Trips from "./pages/Trips";
@@ -71,9 +70,7 @@ function App() {
                 path="/"
                 element={testingAPK && localClientPreview
                     ? <Navigate to="/preview/client/dashboard" replace />
-                    : Capacitor.isNativePlatform()
-                        ? <Navigate to="/dashboard" replace />
-                        : <LandingPage />}
+                    : <LandingPage />}
             />
 
             {/* Public APK link used by the landing page QR code. */}
