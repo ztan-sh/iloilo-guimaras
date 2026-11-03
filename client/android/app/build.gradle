@@ -48,7 +48,7 @@ android {
 
 // Make the production download filename recognizable to passengers.
 android.applicationVariants.all { variant ->
-    if (variant.buildType.name == 'release') {
+    if (variant.buildType.name == 'release' || (variant.buildType.name == 'debug' && !clientPreview)) {
         variant.outputs.all {
             outputFileName = 'GuimarasGo.apk'
         }

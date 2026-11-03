@@ -30,12 +30,12 @@
   "redirects": [
     {
       "source": "/downloads/GuimarasGo.apk",
-      "destination": "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/app-debug.apk",
+      "destination": "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/GuimarasGo.apk",
       "permanent": false
     },
     {
       "source": "/download",
-      "destination": "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/app-debug.apk",
+      "destination": "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/GuimarasGo.apk",
       "permanent": false
     }
   ],

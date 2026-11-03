@@ -42,7 +42,7 @@ login: <ClientLoginEntry />, register: <ClientRegister />, dashboard: <ClientDas
 };
 
 const ANDROID_RELEASE_URL =
-    "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/app-debug.apk";
+    "https://github.com/ztan-sh/iloilo-guimaras/releases/latest/download/GuimarasGo.apk";
 
 function ApkDownloadRedirect() {
     useEffect(() => {
